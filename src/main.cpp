@@ -2,8 +2,7 @@
 #include <data.h>
 #include <hub.h>
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);     // Пара подмигиваний
   for (uint8_t i = 0; i < 6; i++) { // Для индикации запуска
