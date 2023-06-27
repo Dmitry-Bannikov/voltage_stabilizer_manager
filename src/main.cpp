@@ -5,9 +5,8 @@
 void setup()
 {
   Serial.begin(115200);
-  pinMode(LED_BUILTIN, OUTPUT); // Пара подмигиваний
-  for (uint8_t i = 0; i < 6; i++)
-  { // Для индикации запуска
+  pinMode(LED_BUILTIN, OUTPUT);     // Пара подмигиваний
+  for (uint8_t i = 0; i < 6; i++) { // Для индикации запуска
     digitalWrite(LED_BUILTIN, LOW);
     delay(30);
     digitalWrite(LED_BUILTIN, HIGH);

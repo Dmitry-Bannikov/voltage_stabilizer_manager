@@ -49,8 +49,7 @@ void build() {
 
 void actions(GyverPortal &p)
 {
-    if (p.form("/cfg"))
-    { // Если есть сабмит формы - копируем все в переменные
+    if (p.form("/cfg")) { // Если есть сабмит формы - копируем все в переменные
         p.copyStr("apSsid", wifi_settings.apSsid);
         p.copyStr("apPass", wifi_settings.apPass);
         p.copyStr("staSsid", wifi_settings.staSsid);
