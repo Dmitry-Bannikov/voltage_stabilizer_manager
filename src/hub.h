@@ -3,19 +3,22 @@
 //================= Библиотеки ==================//
 #include "data.h"
 #include <Arduino.h>
+#include <LittleFS.h>
 #include <GyverPortal.h>
 
-GyverPortal ui;
+GyverPortal ui(&LittleFS);
 
 void build() {
   GP.BUILD_BEGIN(600);
   GP.THEME(GP_LIGHT);
   GP.GRID_RESPONSIVE(650); // Отключение респонза при узком экране
   GP.PAGE_TITLE("stab_manager");
-  if (!wifi_settings.staMode) {
-    GP.TITLE("Stab board manager (AP)");
+  if (networkConnectionMode == NET_MODE_AP) {
+     GP.LABEL(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (AP)");
+    //GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager");
   } else {
-    GP.TITLE("Stab board manager (STA)");
+     GP.LABEL(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (STA)");
+    //GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager");
   }
   GP.HR();
   GP.NAV_TABS_LINKS("/,/sets,/wifi", "Home,Board Settings,WiFi Settings");
@@ -34,8 +37,12 @@ void build() {
           GP.TEXT("staSsid", "Login", wifi_settings.staSsid, "", 20);
           GP.BREAK();
           GP.TEXT("staPass", "Password", wifi_settings.staPass, "", 20);
-          GP.BREAK(); M_BOX(GP_CENTER, GP.LABEL("STA Enable");
-                            GP.SWITCH("staEn", wifi_settings.staModeEn););););
+          GP.BREAK(); 
+          M_BOX(
+            GP_CENTER, GP.LABEL("STA Enable");
+            GP.SWITCH("staEn", wifi_settings.staModeEn);
+          ););     
+  );
   GP.FORM_END();
   M_BLOCK_TAB(           // Блок с OTA-апдейтом
       "ESP UPDATE",      // Имя + тип DIV
@@ -80,9 +87,11 @@ void hub_init() {
     Serial.println();
     digitalWrite(LED_BUILTIN, LOW);
     pinMode(LED_BUILTIN, INPUT);
+    networkConnectionMode = NET_MODE_STA;
   } else {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(wifi_settings.apSsid, wifi_settings.apPass);
+    networkConnectionMode = NET_MODE_AP;
     Serial.println();
     Serial.println("WiFi AP mode started");
     Serial.println();
@@ -90,6 +99,7 @@ void hub_init() {
   ui.attachBuild(build);
   ui.attach(actions);
   ui.start();
+  LittleFS.begin();
   ui.enableOTA();
 }
 

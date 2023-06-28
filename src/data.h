@@ -9,13 +9,12 @@
 #define STA_DEFAULT_PASS    ""                      // Стандартный пароль точки доступа роутера (До 20-ти символов)
 #define STA_CONNECT_EN      0                       // 1/0 - вкл./выкл. подключение к роутеру 
 
-#define MEMORY_KEY          127                     //ключ памяти (от 0 до 255), если изменить, то при следующем запуске данные не 
-                                                    //будут читаться из памяти
+#define MEMORY_KEY          128                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
 
-
-
+#define NET_MODE_AP         0
+#define NET_MODE_STA        1
+int networkConnectionMode = NET_MODE_AP;            // режим вифи: 0 - AP, 1 - STA
 struct {                                            // Структура со всеми настройками
-    bool staMode = false;                           // режим вифи: false - AP, true - STA
     bool staModeEn = STA_CONNECT_EN;                // Подключаться роутеру по умолчанию?
     char apSsid[21] = AP_DEFAULT_SSID;              // Имя сети для AP режима по умолчанию
     char apPass[21] = AP_DEFAULT_PASS;              // Пароль сети для AP режима по умолчанию
