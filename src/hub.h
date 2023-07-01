@@ -1,65 +1,139 @@
 #pragma once
 
 //================= Библиотеки ==================//
-#include "data.h"
+
 #include <Arduino.h>
+#include <EEManager.h>
 #include <LittleFS.h>
 #include <GyverPortal.h>
+#include <custom_elements.h>
+#include <data.h>
+#include <functions.h>
 
 GyverPortal ui(&LittleFS);
+EEManager memoryWIFI(wifi_settings, 20000);
+EEManager memorySETS(stab_trim_save, 20000);
 
 void build() {
+
+  //------------------------------------------//
   GP.BUILD_BEGIN(600);
   GP.THEME(GP_LIGHT);
+  GP.UPDATE("inV,outV,outC,bState,staEn");
+
   GP.GRID_RESPONSIVE(650); // Отключение респонза при узком экране
   GP.PAGE_TITLE("stab_manager");
   if (networkConnectionMode == NET_MODE_AP) {
-     GP.LABEL(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (AP)");
-    //GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager");
+    GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (AP)");
   } else {
-     GP.LABEL(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (STA)");
-    //GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager");
+    GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (STA)");
   }
   GP.HR();
-  GP.NAV_TABS_LINKS("/,/sets,/wifi", "Home,Board Settings,WiFi Settings");
+  GP.NAV_TABS("Home,Board Settings,WiFi Settings");
   GP.BREAK();
-  GP.FORM_BEGIN("/cfg"); // Начало формы
-  M_BLOCK(               // Общий блок-колонка для WiFi
-      GP.SUBMIT("SUBMIT SETTINGS"); // Кнопка отправки формы
-      M_BLOCK_TAB( // Конфиг для AP режима -> текстбоксы (логин + пароль)
-          "AP-Mode", // Имя + тип DIV
-          GP.TEXT("apSsid", "Login", wifi_settings.apSsid, "", 20);
-          GP.BREAK();
-          GP.TEXT("apPass", "Password", wifi_settings.apPass, "", 20);
-          GP.BREAK(););
-      M_BLOCK_TAB( // Конфиг для STA режима -> текстбоксы (логин + пароль)
-          "STA-Mode", // Имя + тип DIV
-          GP.TEXT("staSsid", "Login", wifi_settings.staSsid, "", 20);
-          GP.BREAK();
-          GP.TEXT("staPass", "Password", wifi_settings.staPass, "", 20);
-          GP.BREAK(); 
-          M_BOX(
-            GP_CENTER, GP.LABEL("STA Enable");
-            GP.SWITCH("staEn", wifi_settings.staModeEn);
-          ););     
-  );
-  GP.FORM_END();
-  M_BLOCK_TAB(           // Блок с OTA-апдейтом
+  
+  GP.NAV_BLOCK_BEGIN();
+    GP.TITLE("Board Data");
+    GP.HR();
+    M_BOX(GP.LABEL("Input Voltage");    GP.NUMBER("inV", "", stab_data_toprint.inputVoltage, "", true);     );
+    M_BOX(GP.LABEL("Output Voltage");   GP.NUMBER("outV", "", stab_data_toprint.outputVoltage, "", true);   );
+    M_BOX(GP.LABEL("Output Current");   GP.NUMBER_F("outC", "", stab_data_toprint.outputCurrent, 2, "", true); );
+    M_BOX(GP.LABEL("Board State");      GP.TEXT("bState", "", board_state_str, "", 20);   );
+  GP.NAV_BLOCK_END();
+
+  GP.NAV_BLOCK_BEGIN();
+    GP.TITLE("Board Settings");
+    GP.HR();
+    GP.FORM_BEGIN("brdcfg");
+    GP.SUBMIT("Save Settings");
+    M_BOX(GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("prec", "", stab_trim_save.vprecision);  );
+    M_BOX(GP.LABEL("Tune Voltage Input");       GP.NUMBER("vtuneIn", "", stab_trim_save.vtuneIn);     );
+    M_BOX(GP.LABEL("Tune Voltage Output");      GP.NUMBER("vtuneOut", "", stab_trim_save.vtuneOut);    );
+    M_BOX(GP.LABEL("Const Voltage");            GP.NUMBER("constV", "", stab_trim_save.vconstOut);   );
+    M_BOX(GP.LABEL("Motor Type");               GP.SELECT("m_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", stab_trim_save.mot_type - 1); );
+    M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_bhvr", "NO_OFF,OFF,ON", stab_trim_save.relBehavior+1);     );
+    GP.FORM_END();
+  GP.NAV_BLOCK_END();
+
+  GP.NAV_BLOCK_BEGIN();
+    GP.TITLE("Connection Config");
+    GP.HR();
+    GP.FORM_BEGIN("/netcfg");
+    GP.SUBMIT("SUBMIT & RESTART"); 
+    M_BLOCK_TAB( 
+      "AP-Mode config", 
+      GP.TEXT("apSsid", "Login AP", wifi_settings.apSsid, "", 20);
+      GP.TEXT("apPass", "Password AP", wifi_settings.apPass, "", 20);
+      GP.BREAK(); 
+      M_BOX(
+        GP_CENTER, GP.LABEL("Use Router Network ");
+        GP.CHECK_FUNC("staEn", wifi_settings.staModeEn, "toggleDiv()");
+      );
+    );
+    
+    GP_DIV_START("stasets", wifi_settings.staModeEn);
+    M_BLOCK_TAB( 
+      "STA-Mode config", 
+      GP.TEXT("staSsid", "Login STA", wifi_settings.staSsid, "", 20);
+      GP.TEXT("staPass", "Password STA", wifi_settings.staPass, "", 20);
+    );
+    GP_DIV_END();
+    GP.FORM_END();
+    M_BLOCK_TAB(           // Блок с OTA-апдейтом
       "ESP UPDATE",      // Имя + тип DIV
       GP.OTA_FIRMWARE(); // Кнопка с OTA начинкой
-  );
-  GP.BUILD_END(); // Конец билда страницы
+    );
+  GP.NAV_BLOCK_END();
+  GP_HIDE_BLOCK_SCRIPT("check_staEn", "stasets");
+  GP.BUILD_END();
+
 }
 
 void actions(GyverPortal &p) {
-  if (p.form("/cfg")) { // Если есть сабмит формы - копируем все в переменные
+
+  // if (ui.click()) {
+  //   if (ui.click("m_type"))  stab_trim_save.mot_type = ui.getInt("m_type") + 1;
+  //   if (ui.click("rel_bhvr"))  stab_trim_save.relBehavior = ui.getInt("rel_bhvr") - 1;
+  //   ui.clickInt("constV", stab_trim_save.vconstOut);
+  //   ui.clickInt("prec", stab_trim_save.vprecision);
+  //   ui.clickInt("vtuneIn", stab_trim_save.vtuneIn);
+  //   ui.clickInt("vtuneOut", stab_trim_save.vtuneOut);
+  // }
+
+
+  if (ui.update()) {
+    ui.updateInt("inV", stab_data_toprint.inputVoltage);
+    ui.updateInt("outV", stab_data_toprint.outputVoltage);
+    ui.updateFloat("outC", stab_data_toprint.outputCurrent);
+    ui.updateString("bState", board_state_str);
+  }
+
+  if (p.form("/netcfg")) { // Если есть сабмит формы - копируем все в переменные
     p.copyStr("apSsid", wifi_settings.apSsid);
     p.copyStr("apPass", wifi_settings.apPass);
     p.copyStr("staSsid", wifi_settings.staSsid);
     p.copyStr("staPass", wifi_settings.staPass);
     p.copyBool("staEn", wifi_settings.staModeEn);
+    LED_switch(1);
     memoryWIFI.updateNow();
+    delay(1000);
     ESP.restart();
+  }
+
+  if (p.form("/brdcfg")) {
+    int mot_type;
+    int rel_bhvr;
+    p.copyInt("prec", stab_trim_save.vprecision);
+    p.copyInt("tuneIn", stab_trim_save.vtuneIn);
+    p.copyInt("tuneOut", stab_trim_save.vtuneOut);
+    p.copyInt("constV", stab_trim_save.vconstOut);
+    p.copyInt("m_type", mot_type);
+    p.copyInt("rel_bhvr", rel_bhvr);
+    stab_trim_save.mot_type = mot_type + 1;
+    stab_trim_save.relBehavior = rel_bhvr - 1;
+    LED_switch(1);
+    memorySETS.update();
+    LED_switch(0);
   }
 }
 
@@ -70,12 +144,9 @@ void hub_init() {
     WiFi.begin(wifi_settings.staSsid, wifi_settings.staPass);
     connection_timer = millis();
     while (WiFi.status() != WL_CONNECTED) {
-      pinMode(LED_BUILTIN, OUTPUT);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(250);
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(250);
+      LED_blink(100);
       if (millis() - connection_timer >= 10000) {
+        LED_switch(0);
         wifi_settings.staModeEn = 0;
         memoryWIFI.updateNow();
         ESP.restart();
@@ -85,8 +156,6 @@ void hub_init() {
     Serial.println();
     Serial.println(WiFi.localIP());
     Serial.println();
-    digitalWrite(LED_BUILTIN, LOW);
-    pinMode(LED_BUILTIN, INPUT);
     networkConnectionMode = NET_MODE_STA;
   } else {
     WiFi.mode(WIFI_AP);
@@ -99,10 +168,7 @@ void hub_init() {
   ui.attachBuild(build);
   ui.attach(actions);
   ui.start();
-  LittleFS.begin();
   ui.enableOTA();
-}
-
-void foo() {
-  // somecode
+  if (!LittleFS.begin()) Serial.println("FS Error");
+  ui.downloadAuto(true);
 }
