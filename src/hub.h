@@ -67,7 +67,7 @@ void build() {
       GP.BREAK(); 
       M_BOX(
         GP_CENTER, GP.LABEL("Use Router Network ");
-        GP.CHECK_FUNC("staEn", wifi_settings.staModeEn, "toggleDiv()");
+        GP_CHECK_FUNC("staEn", wifi_settings.staModeEn, "toggleDiv()");
       );
     );
     
