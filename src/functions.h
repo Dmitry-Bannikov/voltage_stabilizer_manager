@@ -71,56 +71,33 @@ bool board_state_toStr(uint16_t board_state, String& board_state_str) {
 void dataHandler() {
   static uint32_t tick = 0;
   if (millis() -  tick >= 1000) {
+    stab_data_toprint.board_state = 44;
     board_state_toStr(stab_data_toprint.board_state, board_state_str);
     stab_data_toprint.inputVoltage = random(190, 300);
     stab_data_toprint.outputVoltage = random(190, 300);
     stab_data_toprint.outputCurrent = random(100, 1000)/100;
     tick = millis();
-    Serial.println();
-    Serial.print("Motor Type: ");
-    Serial.println(stab_trim_save.mot_type);
-    Serial.print("Relay Behavior: ");
-    Serial.println(stab_trim_save.relBehavior);
-    Serial.print("Const Voltage: ");
-    Serial.println(stab_trim_save.vconstOut);
-    Serial.print("sta En sw: ");
-    Serial.println(wifi_settings.staModeEn);
   }
 }
 
-int motor_type_to_startpwr(int default_startpwr, int mot_type) {
-  switch (mot_type)
-  {
-    case 1:
-      return default_startpwr*0.5;
-      break;
-    case 2:
-      return default_startpwr*1.0;
-      break;
-    case 3:
-      return default_startpwr*1.5;
-      break;
-    case 4:
-      return default_startpwr*2.0;
-      break;
-    default:
-      return 0;
-      break;
-  }
+int motortype_to_startpwr(int mot_type) {
+  mot_type += 1;
+  mot_type = (mot_type > 4 ? 4 : mot_type);
+  mot_type = (mot_type < 1 ? 1 : mot_type);
+  return min_pwr_GLOB * mot_type;
 } 
 
-void trim_send_to_save() {
-
-}
-
-void trim_save_to_send() {
-  stab_trim_send.startpwr = motor_type_to_startpwr(stab_trim_save.default_startpwr, stab_trim_save.mot_type);
+int startpwr_to_motortype (int startpwr) {
+  startpwr = (startpwr > 200 ? 200 : startpwr);
+  startpwr = (startpwr < 50 ? 50 : startpwr);
+  int res = startpwr/min_pwr_GLOB;
+  return res - 1;
 }
 
 void trim_save_validation(trim_save_t *t) {
   t->vprecision = constrain(t->vprecision, 1, 5);
-  t->mot_type = constrain(t->mot_type, 1, 4);
-  t->relBehavior = constrain(t->relBehavior, -1, 1);
+  t->startpwr = constrain(t->startpwr, 50, 200);
+  t->relBehavior = constrain(t->relBehavior, 0, 2);
   t->vconstOut = constrain(t->vconstOut, 210, 240);
   t->vtuneIn = constrain(t->vtuneIn, -6, 6);
   t->vtuneOut = constrain(t->vtuneOut, -6, 6);

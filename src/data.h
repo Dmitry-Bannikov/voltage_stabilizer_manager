@@ -39,9 +39,8 @@ struct trim_save_t {                                        // Структур�
   int vtuneIn = 0;                      //подстройка напряжения по входу
   int vtuneOut = 0;                     //подстройка напряжения по выходу
   int vconstOut = 220;                  //напряжение регуляции
-  int relBehavior = -1;                  //поведение реле
-  int mot_type = 1;
-  int default_startpwr = 100;
+  int relBehavior = -1;                 //поведение реле
+  int startpwr = 100;
 } stab_trim_save;
 
 struct {
@@ -58,4 +57,5 @@ struct {
 //------------------------Служебные переменные-------------------------------------//
 String board_state_str = "";
 bool needUpdateFlag = false;
+int min_pwr_GLOB = 50;
 

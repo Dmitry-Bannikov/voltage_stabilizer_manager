@@ -50,8 +50,8 @@ void build() {
     M_BOX(GP.LABEL("Tune Voltage Input");       GP.NUMBER("vtuneIn", "", stab_trim_save.vtuneIn);     );
     M_BOX(GP.LABEL("Tune Voltage Output");      GP.NUMBER("vtuneOut", "", stab_trim_save.vtuneOut);    );
     M_BOX(GP.LABEL("Const Voltage");            GP.NUMBER("constV", "", stab_trim_save.vconstOut);   );
-    M_BOX(GP.LABEL("Motor Type");               GP.SELECT("m_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", stab_trim_save.mot_type - 1); );
-    M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_bhvr", "NO_OFF,OFF,ON", stab_trim_save.relBehavior+1);     );
+    M_BOX(GP.LABEL("Motor Type");               GP.SELECT("m_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", startpwr_to_motortype(stab_trim_save.startpwr)); );
+    M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_bhvr", "OFF,ON,NO_OFF", stab_trim_save.relBehavior);     );
     GP.FORM_END();
   GP.NAV_BLOCK_END();
 
@@ -122,15 +122,13 @@ void actions(GyverPortal &p) {
 
   if (p.form("/brdcfg")) {
     int mot_type;
-    int rel_bhvr;
     p.copyInt("prec", stab_trim_save.vprecision);
     p.copyInt("tuneIn", stab_trim_save.vtuneIn);
     p.copyInt("tuneOut", stab_trim_save.vtuneOut);
     p.copyInt("constV", stab_trim_save.vconstOut);
     p.copyInt("m_type", mot_type);
-    p.copyInt("rel_bhvr", rel_bhvr);
-    stab_trim_save.mot_type = mot_type + 1;
-    stab_trim_save.relBehavior = rel_bhvr - 1;
+    p.copyInt("rel_bhvr", stab_trim_save.relBehavior);
+    stab_trim_save.startpwr = motortype_to_startpwr(mot_type);
     LED_switch(1);
     memorySETS.update();
     LED_switch(0);
