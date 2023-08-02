@@ -9,11 +9,7 @@ void LED_switch(bool state);
 void LED_blink(uint16_t period);
 bool board_state_toStr(uint16_t board_state, String& board_state_str);
 void dataHandler();
-int motor_type_to_startpwr(int default_startpwr, int mot_type);
-void trim_send_to_save();
-void trim_save_to_send();
-void trim_save_validation(trim_save_t *t);
-void hub_init();
+
 
 
 void LED_switch(bool state) {
@@ -71,35 +67,11 @@ bool board_state_toStr(uint16_t board_state, String& board_state_str) {
 void dataHandler() {
   static uint32_t tick = 0;
   if (millis() -  tick >= 1000) {
-    stab_data_toprint.board_state = 44;
-    board_state_toStr(stab_data_toprint.board_state, board_state_str);
-    stab_data_toprint.inputVoltage = random(190, 300);
-    stab_data_toprint.outputVoltage = random(190, 300);
-    stab_data_toprint.outputCurrent = random(100, 1000)/100;
+    gData_stat = 44;
+    board_state_toStr(gData_stat, gData_stat_str);
+    gData_input = random(190, 300);
+    gData_output = random(190, 300);
+    gData_load = random(100, 1000)/100;
     tick = millis();
   }
 }
-
-int motortype_to_startpwr(int mot_type) {
-  mot_type += 1;
-  mot_type = (mot_type > 4 ? 4 : mot_type);
-  mot_type = (mot_type < 1 ? 1 : mot_type);
-  return min_pwr_GLOB * mot_type;
-} 
-
-int startpwr_to_motortype (int startpwr) {
-  startpwr = (startpwr > 200 ? 200 : startpwr);
-  startpwr = (startpwr < 50 ? 50 : startpwr);
-  int res = startpwr/min_pwr_GLOB;
-  return res - 1;
-}
-
-void trim_save_validation(trim_save_t *t) {
-  t->vprecision = constrain(t->vprecision, 1, 5);
-  t->startpwr = constrain(t->startpwr, 50, 200);
-  t->relBehavior = constrain(t->relBehavior, 0, 2);
-  t->vconstOut = constrain(t->vconstOut, 210, 240);
-  t->vtuneIn = constrain(t->vtuneIn, -6, 6);
-  t->vtuneOut = constrain(t->vtuneOut, -6, 6);
-}
-

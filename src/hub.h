@@ -12,7 +12,7 @@
 
 GyverPortal ui(&LittleFS);
 EEManager memoryWIFI(wifi_settings, 20000);
-EEManager memorySETS(stab_trim_save, 20000);
+EEManager memorySETS(gTrimmers, 20000);
 
 void build() {
 
@@ -35,10 +35,10 @@ void build() {
   GP.NAV_BLOCK_BEGIN();
     GP.TITLE("Board Data");
     GP.HR();
-    M_BOX(GP.LABEL("Input Voltage");    GP.NUMBER("inV", "", stab_data_toprint.inputVoltage, "", true);     );
-    M_BOX(GP.LABEL("Output Voltage");   GP.NUMBER("outV", "", stab_data_toprint.outputVoltage, "", true);   );
-    M_BOX(GP.LABEL("Output Current");   GP.NUMBER_F("outC", "", stab_data_toprint.outputCurrent, 2, "", true); );
-    M_BOX(GP.LABEL("Board State");      GP.TEXT("bState", "", board_state_str, "", 20);   );
+    M_BOX(GP.LABEL("Input Voltage");    GP.NUMBER("inV", "", gData_input, "", true);     );
+    M_BOX(GP.LABEL("Output Voltage");   GP.NUMBER("outV", "", gData_output, "", true);   );
+    M_BOX(GP.LABEL("Output Current");   GP.NUMBER("outC", "", gData_load, "", true);  );
+    M_BOX(GP.LABEL("Board State");      GP.TEXT("bState", "", gData_stat_str, "", 20);   );
   GP.NAV_BLOCK_END();
 
   GP.NAV_BLOCK_BEGIN();
@@ -46,12 +46,13 @@ void build() {
     GP.HR();
     GP.FORM_BEGIN("brdcfg");
     GP.SUBMIT("Save Settings");
-    M_BOX(GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("prec", "", stab_trim_save.vprecision);  );
-    M_BOX(GP.LABEL("Tune Voltage Input");       GP.NUMBER("vtuneIn", "", stab_trim_save.vtuneIn);     );
-    M_BOX(GP.LABEL("Tune Voltage Output");      GP.NUMBER("vtuneOut", "", stab_trim_save.vtuneOut);    );
-    M_BOX(GP.LABEL("Const Voltage");            GP.NUMBER("constV", "", stab_trim_save.vconstOut);   );
-    M_BOX(GP.LABEL("Motor Type");               GP.SELECT("m_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", startpwr_to_motortype(stab_trim_save.startpwr)); );
-    M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_bhvr", "OFF,ON,NO_OFF", stab_trim_save.relBehavior);     );
+    M_BOX(GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("prec", "", gTrim_precision);  );
+    M_BOX(GP.LABEL("Tune Voltage Input");       GP.NUMBER("vtuneIn", "", gTrim_tuneIn);     );
+    M_BOX(GP.LABEL("Tune Voltage Output");      GP.NUMBER("vtuneOut", "", gTrim_tuneOut);    );
+    M_BOX(GP.LABEL("Target Voltage");           GP.NUMBER("targetV", "", gTrim_targetVolt);   );
+    M_BOX(GP.LABEL("Motor Type");               GP.SELECT("mot_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", gTrim_motType); );
+    M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_set", "OFF,ON,NO_OFF", gTrim_relSet);     );
+    M_BOX(GP.LABEL("TC Ratio");                 GP.NUMBER("tcRatio", "", gTrim_tcRatio);   );
     GP.FORM_END();
   GP.NAV_BLOCK_END();
 
@@ -102,10 +103,10 @@ void actions(GyverPortal &p) {
 
 
   if (ui.update()) {
-    ui.updateInt("inV", stab_data_toprint.inputVoltage);
-    ui.updateInt("outV", stab_data_toprint.outputVoltage);
-    ui.updateFloat("outC", stab_data_toprint.outputCurrent);
-    ui.updateString("bState", board_state_str);
+    ui.updateInt("inV", gData_input);
+    ui.updateInt("outV", gData_output);
+    ui.updateFloat("outC", gData_load);
+    ui.updateString("bState", gData_stat_str);
   }
 
   if (p.form("/netcfg")) { // Если есть сабмит формы - копируем все в переменные
@@ -121,14 +122,13 @@ void actions(GyverPortal &p) {
   }
 
   if (p.form("/brdcfg")) {
-    int mot_type;
-    p.copyInt("prec", stab_trim_save.vprecision);
-    p.copyInt("tuneIn", stab_trim_save.vtuneIn);
-    p.copyInt("tuneOut", stab_trim_save.vtuneOut);
-    p.copyInt("constV", stab_trim_save.vconstOut);
-    p.copyInt("m_type", mot_type);
-    p.copyInt("rel_bhvr", stab_trim_save.relBehavior);
-    stab_trim_save.startpwr = motortype_to_startpwr(mot_type);
+    p.copyInt("prec", gTrim_precision);
+    p.copyInt("tuneIn", gTrim_tuneIn);
+    p.copyInt("tuneOut", gTrim_tuneOut);
+    p.copyInt("targetV", gTrim_targetVolt);
+    p.copyInt("mot_type", gTrim_motType);
+    p.copyInt("rel_set", gTrim_relSet);
+    p.copyInt("tcRatio", gTrim_tcRatio);
     LED_switch(1);
     memorySETS.update();
     LED_switch(0);
