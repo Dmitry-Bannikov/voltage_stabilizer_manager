@@ -269,7 +269,10 @@ void portalBuild() {
     GP.TITLE("Board Settings");
     GP.HR();
     GP.FORM_BEGIN("brdcfg");
-    GP.SUBMIT("Save Settings");
+    M_BOX(
+      GP.SUBMIT("Save/Write Settings");
+      GP.BUTTON("btn1", "Read Settings");
+    );
     M_BOX(
         GP_CENTER, GP.LABEL("Ignore board settings");
         GP.CHECK("ignoreSets", gTrim_ignoreSets);
@@ -320,15 +323,10 @@ void portalBuild() {
 
 void portalActions(GyverPortal &p) {
 
-  // if (ui.click()) {
-  //   if (ui.click("m_type"))  stab_trim_save.mot_type = ui.getInt("m_type") + 1;
-  //   if (ui.click("rel_bhvr"))  stab_trim_save.relBehavior = ui.getInt("rel_bhvr") - 1;
-  //   ui.clickInt("constV", stab_trim_save.vconstOut);
-  //   ui.clickInt("prec", stab_trim_save.vprecision);
-  //   ui.clickInt("vtuneIn", stab_trim_save.vtuneIn);
-  //   ui.clickInt("vtuneOut", stab_trim_save.vtuneOut);
-  // }
+  if (ui.clickUp("btn1")) {
+    
 
+  }
 
   if (ui.update()) {
     ui.updateInt("inV", gData_input);
