@@ -15,6 +15,7 @@ void LED_switch(bool state);
 void LED_blink(uint16_t period);
 bool board_state_toStr(int16_t board_state, String& board_state_str);
 void dataHandler();
+uint8_t makeRequestI2C(const uint8_t addr, const int16_t request);
 uint8_t sendParams(const uint8_t slave_addr);
 uint8_t requestGetParams(const uint8_t slave_addr);
 uint8_t requestGetData(const uint8_t slave_addr);
@@ -32,7 +33,8 @@ void portalTick();
 
 GyverPortal ui(&LittleFS);
 EEManager memoryWIFI(wifi_settings, 20000);
-EEManager memorySETS(gTrimmers, 20000);
+EEManager memoryTRIMS(gTrimmers, 20000);
+EEManager memoryBSETS(gBoardSets, 20000);
 //-----------Functions definitions---------------//
 
 void LED_switch(bool state) {
@@ -90,57 +92,43 @@ bool board_state_toStr(int16_t board_state, String& board_state_str) {
 void dataHandler() {
   static uint32_t tick = 0;
   if (millis() -  tick >= 1000) {
-    requestGetData(I2C_BOARD_ADDR_1);
+    makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_DATA);
     readDataAsync(I2C_BOARD_ADDR_1);
     board_state_toStr(gData_stat, gData_stat_str);
     tick = millis();
   }
 }
 
-uint8_t sendParams(const uint8_t slave_addr) {
+
+
+uint8_t makeRequestI2C(const uint8_t addr, const int16_t request) {
   flush_tx_buffer();
-  *i2c_master_tx_buffer = I2C_SLAVE_GET_PARAMS;
-  uint8_t size = sizeof(gTrimmers)/sizeof(gTrimmers[0]);
-  for (uint8_t i = 0; i < size; i++) {
-    *(i2c_master_tx_buffer + i + 1) = *(gTrimmers + i);
+  *i2c_master_tx_buffer = request;
+  if (request == I2C_SLAVE_GET_PARAMS) {
+    uint8_t size = sizeof(gTrimmers) / sizeof(*gTrimmers);
+    for (uint8_t i = 0; i < size; i++)
+    {
+      *(i2c_master_tx_buffer + i + 1) = *(gTrimmers + i);
+    }
   }
-  Wire.beginTransmission(slave_addr);
-  Wire.write((uint8_t*)i2c_master_tx_buffer, sizeof(i2c_master_tx_buffer));
-  uint8_t res = Wire.endTransmission();
-  return res;
-}
-
-//-----------Запрос на получение настроек платы------------------//
-uint8_t requestGetParams(const uint8_t slave_addr) {
-  flush_tx_buffer();                                                              //очищаем буфер передачи
-  *i2c_master_tx_buffer = I2C_SLAVE_SEND_PARAMS;                                  //передаем команду отправить параметры
-  Wire.beginTransmission(slave_addr);                                             //начинаем передачу
+  else if (request == I2C_SLAVE_GET_BSETS) {
+    uint8_t size = sizeof(gBoardSets) / sizeof(*gBoardSets);
+    for (uint8_t i = 0; i < size; i++)
+    {
+      *(i2c_master_tx_buffer + i + 1) = *(gBoardSets + i);
+    }
+  }
+  Wire.beginTransmission(addr);
   Wire.write((uint8_t*)i2c_master_tx_buffer, sizeof(i2c_master_tx_buffer));       //передаем
-  Wire.endTransmission();
-  uint8_t res = Wire.requestFrom(slave_addr, sizeof(i2c_master_rx_buffer));                                           //заканчиваем передачу
-  #ifdef SERIAL_DEBUG
-  Serial.println();
-  Serial.print("Request Get parameters: ");
-  Serial.println(res);
-  #endif
-  return res;
+  return Wire.endTransmission();
 }
 
-//-----------Запрос на получение данных--------------------------//
-uint8_t requestGetData(const uint8_t slave_addr) {
-  flush_tx_buffer();
-  *i2c_master_tx_buffer = I2C_SLAVE_SEND_DATA;
-  Wire.beginTransmission(slave_addr);
-  Wire.write((uint8_t*)i2c_master_tx_buffer, sizeof(i2c_master_tx_buffer));
-  Wire.endTransmission();
-  uint8_t res = Wire.requestFrom(slave_addr, sizeof(i2c_master_rx_buffer));
-  return res;
-}
 
 //-----------Функция чтения данных-------------------------------//
 uint8_t readDataAsync(const uint8_t slave_addr) {
   uint8_t res = 0;
   flush_rx_buffer();
+  Wire.requestFrom(slave_addr, sizeof(i2c_master_rx_buffer));
   uint8_t* p = reinterpret_cast<uint8_t*>(i2c_master_rx_buffer);
   if (Wire.available()) {
     Wire.readBytes(p, sizeof(i2c_master_rx_buffer));
@@ -160,7 +148,10 @@ uint8_t readDataAsync(const uint8_t slave_addr) {
     }
   }
   else if (*i2c_master_rx_buffer == I2C_MASTER_GET_STAT) {
-
+    int size = sizeof(gStatis)/sizeof(*gStatis);
+    for (int i = 0; i < size; i++) {
+      *(gStatis + i) = *(i2c_master_rx_buffer + i + 1);
+    }
   }
   else {
     res = 1;
@@ -185,7 +176,7 @@ void connectingInit() {
   Serial.println();
   Serial.println("Wait for i2c connect.");
   int attemptCount = 0;
-  requestGetParams(I2C_BOARD_ADDR_1);
+  makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_PARAMS);
   while(readDataAsync(I2C_BOARD_ADDR_1)) {
     if (++attemptCount == 5) {
       Serial.println();
@@ -195,9 +186,12 @@ void connectingInit() {
     Serial.print(".");
     delay(1000);
   }
+  makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_STAT);
+  delay(10);
+  readDataAsync(I2C_BOARD_ADDR_1);
+  delay(10);
   Serial.println();
-  Serial.print("Target Volt: ");
-  Serial.println(gTrim_targetVolt);
+  Serial.println(gStat_FullP_max);
 }
 
 void memoryInit() {
@@ -207,12 +201,14 @@ void memoryInit() {
   LED_switch(0);
   EEPROM.begin(512);
   memoryWIFI.begin(0, MEMORY_KEY);
-  memorySETS.begin(100, MEMORY_KEY);
+  memoryTRIMS.begin(100, MEMORY_KEY+1);
+  memoryBSETS.begin(150, MEMORY_KEY);
 }
 
 void memoryTick() {
   memoryWIFI.tick();
-  memorySETS.tick();
+  memoryTRIMS.tick();
+  memoryBSETS.tick();
 }
 
 void connectionTick() {
@@ -243,7 +239,7 @@ void portalBuild() {
   //------------------------------------------//
   GP.BUILD_BEGIN(600);
   GP.THEME(GP_LIGHT);
-  GP.UPDATE("inV,outV,outC,bState,staEn");
+  GP.UPDATE("inV,outV,outC,bState,fullPwr,staEn");
 
   GP.GRID_RESPONSIVE(650); // Отключение респонза при узком экране
   GP.PAGE_TITLE("stab_manager");
@@ -261,8 +257,11 @@ void portalBuild() {
     GP.HR();
     M_BOX(GP.LABEL("Input Voltage");    GP.NUMBER("inV", "", gData_input, "", true);     );
     M_BOX(GP.LABEL("Output Voltage");   GP.NUMBER("outV", "", gData_output, "", true);   );
-    M_BOX(GP.LABEL("Output Current");   GP.NUMBER("outC", "", gData_load, "", true);  );
+    M_BOX(GP.LABEL("Output Current");   GP.NUMBER("outC", "", gData_load, "", true);     );
+    M_BOX(GP.LABEL("Full Power");       GP.NUMBER("fullPwr", "", gData_fullpwr, "", true); );
     M_BOX(GP.LABEL("Board State");      GP.TEXT("bState", "", gData_stat_str, "", 20);   );
+    GP.HR();
+    
   GP.NAV_BLOCK_END();
 
   GP.NAV_BLOCK_BEGIN();
@@ -284,6 +283,11 @@ void portalBuild() {
     M_BOX(GP.LABEL("Motor Type");               GP.SELECT("mot_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", gTrim_motType); );
     M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_set", "OFF,ON,NO_OFF", gTrim_relSet);     );
     M_BOX(GP.LABEL("TC Ratio");                 GP.NUMBER("tcRatio", "", gTrim_tcRatio);   );
+
+    GP.HR();
+  
+
+
     GP.FORM_END();
   GP.NAV_BLOCK_END();
 
@@ -324,14 +328,14 @@ void portalBuild() {
 void portalActions(GyverPortal &p) {
 
   if (ui.clickUp("btn1")) {
-    
-
+    makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_PARAMS);
   }
 
   if (ui.update()) {
     ui.updateInt("inV", gData_input);
     ui.updateInt("outV", gData_output);
     ui.updateInt("outC", gData_load);
+    ui.updateInt("fullPwr", gData_fullpwr);
     ui.updateString("bState", gData_stat_str);
   }
 
@@ -357,8 +361,8 @@ void portalActions(GyverPortal &p) {
     p.copyInt("rel_set", gTrim_relSet);
     p.copyInt("tcRatio", gTrim_tcRatio);
     LED_switch(1);
-    memorySETS.update();
-    sendParams(I2C_BOARD_ADDR_1);
+    memoryTRIMS.update();
+    makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_GET_PARAMS);
     LED_switch(0);
   }
 }
