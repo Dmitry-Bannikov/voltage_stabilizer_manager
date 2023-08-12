@@ -62,7 +62,7 @@ bool board_state_toStr(uint16_t board_state, String& board_state_str) {
     }
   }
   if (s.length()) {
-    s.remove(s.length() - 1);
+    s.remove(s.length() - 2);
   }
   board_state_str = s;
   return true;
