@@ -16,13 +16,13 @@ void LED_blink(uint16_t period);
 bool board_state_toStr(int16_t board_state, String& board_state_str);
 void dataHandler();
 uint8_t makeRequestI2C(const uint8_t addr, const int16_t request);
-uint8_t sendParams(const uint8_t slave_addr);
-uint8_t requestGetParams(const uint8_t slave_addr);
-uint8_t requestGetData(const uint8_t slave_addr);
 uint8_t readDataAsync(const uint8_t slave_addr);
 void flush_tx_buffer();
 void flush_rx_buffer();
 void memoryTick();
+void getWorkTime(String& worktime);
+float KVAcalculate(int pwr);
+
 
 
 
@@ -83,7 +83,7 @@ bool board_state_toStr(int16_t board_state, String& board_state_str) {
     }
   }
   if (s.length()) {
-    s.remove(s.length() - 1);
+    s.remove(s.length() - 2);
   }
   board_state_str = s;
   return true;
@@ -91,15 +91,39 @@ bool board_state_toStr(int16_t board_state, String& board_state_str) {
 
 void dataHandler() {
   static uint32_t tick = 0;
+  static uint8_t mode = 0;
   if (millis() -  tick >= 1000) {
-    makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_DATA);
+    if (mode == 0) {
+      makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_DATA);
+    } else if (mode == 1) {
+      makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_STAT);
+    }
+    
     readDataAsync(I2C_BOARD_ADDR_1);
     board_state_toStr(gData_stat, gData_stat_str);
+    getWorkTime(workTime_str);
+    mode = (mode < 1 ? mode+1 : 0);
     tick = millis();
   }
 }
 
+void getWorkTime(String& worktime) {
+  int hours = gStat_workTime_m/60;
+  int minutes = gStat_workTime_m % 60;
+  int days = gStat_workTime_d;
+  String s = "";
+  s += String(days);
+  s += "d, ";
+  s += String(hours);
+  s += "h, ";
+  s += String(minutes);
+  s += "m";
+  worktime = s;
+}
 
+float KVAcalculate(int pwr) {
+  return (float)(pwr/PWR_ACCURACY/1000.0);
+}
 
 uint8_t makeRequestI2C(const uint8_t addr, const int16_t request) {
   flush_tx_buffer();
@@ -186,12 +210,6 @@ void connectingInit() {
     Serial.print(".");
     delay(1000);
   }
-  makeRequestI2C(I2C_BOARD_ADDR_1, I2C_SLAVE_SEND_STAT);
-  delay(10);
-  readDataAsync(I2C_BOARD_ADDR_1);
-  delay(10);
-  Serial.println();
-  Serial.println(gStat_FullP_max);
 }
 
 void memoryInit() {
@@ -200,9 +218,9 @@ void memoryInit() {
   delay(30);
   LED_switch(0);
   EEPROM.begin(512);
-  memoryWIFI.begin(0, MEMORY_KEY);
-  memoryTRIMS.begin(100, MEMORY_KEY+1);
-  memoryBSETS.begin(150, MEMORY_KEY);
+  memoryWIFI.begin(0, 127);
+  memoryTRIMS.begin(100, MEMORY_KEY);
+  memoryBSETS.begin(200, MEMORY_KEY);
 }
 
 void memoryTick() {
@@ -216,12 +234,6 @@ void connectionTick() {
   static uint8_t mode = 0;
   if (millis() - tmr >= 1000) {
     mode = (mode < 2 ? mode + 1 : 0);
-  }
-  if (mode == 0) {
-    requestGetData(I2C_BOARD_ADDR_1);
-  }
-  else {
-    readDataAsync(I2C_BOARD_ADDR_1);
   }
 }
 
@@ -239,7 +251,7 @@ void portalBuild() {
   //------------------------------------------//
   GP.BUILD_BEGIN(600);
   GP.THEME(GP_LIGHT);
-  GP.UPDATE("inV,outV,outC,bState,fullPwr,staEn");
+  GP.UPDATE("inV,outV,outC,bState,fullPwr,staEn,maxFP,minFP,avgFP,workTime");
 
   GP.GRID_RESPONSIVE(650); // Отключение респонза при узком экране
   GP.PAGE_TITLE("stab_manager");
@@ -255,12 +267,16 @@ void portalBuild() {
   GP.NAV_BLOCK_BEGIN();
     GP.TITLE("Board Data");
     GP.HR();
-    M_BOX(GP.LABEL("Input Voltage");    GP.NUMBER("inV", "", gData_input, "", true);     );
-    M_BOX(GP.LABEL("Output Voltage");   GP.NUMBER("outV", "", gData_output, "", true);   );
-    M_BOX(GP.LABEL("Output Current");   GP.NUMBER("outC", "", gData_load, "", true);     );
-    M_BOX(GP.LABEL("Full Power");       GP.NUMBER("fullPwr", "", gData_fullpwr, "", true); );
+    M_BOX(GP.LABEL("Input Voltage, V");    GP.NUMBER("inV", "", 0, "", true);     );
+    M_BOX(GP.LABEL("Output Voltage, V");   GP.NUMBER("outV", "", 0, "", true);   );
+    M_BOX(GP.LABEL("Output Current, A");   GP.NUMBER_F("outC", "", 0, 2, "", true);     );
+    M_BOX(GP.LABEL("Full Power, kVA");  GP.NUMBER_F("fullPwr", "", 0, 3, "", true); );
     M_BOX(GP.LABEL("Board State");      GP.TEXT("bState", "", gData_stat_str, "", 20);   );
     GP.HR();
+    M_BOX(GP.LABEL("Max Power per Minute, kVA");   GP.NUMBER_F("maxFP", "", 0, 3, "", true);   );
+    M_BOX(GP.LABEL("Min Power per Minute, kVA");   GP.NUMBER_F("minFP", "", 0, 3, "", true);   );
+    M_BOX(GP.LABEL("Avg Power per Minute, kVA");   GP.NUMBER_F("avgFP", "", 0, 3, "", true);   );
+    M_BOX(GP.LABEL("Work Time");    GP.TEXT("workTime", "", workTime_str, "", 15);     );
     
   GP.NAV_BLOCK_END();
 
@@ -334,9 +350,13 @@ void portalActions(GyverPortal &p) {
   if (ui.update()) {
     ui.updateInt("inV", gData_input);
     ui.updateInt("outV", gData_output);
-    ui.updateInt("outC", gData_load);
-    ui.updateInt("fullPwr", gData_fullpwr);
+    ui.updateFloat("outC", (float)(gData_load/PWR_ACCURACY));
+    ui.updateFloat("fullPwr", KVAcalculate(gData_fullpwr));
+    ui.updateFloat("maxFP", KVAcalculate(gStat_FullP_max));
+    ui.updateFloat("minFP", KVAcalculate(gStat_FullP_min));
+    ui.updateFloat("avgFP", KVAcalculate(gStat_FullP_avg));
     ui.updateString("bState", gData_stat_str);
+    ui.updateString("workTime", workTime_str);
   }
 
   if (p.form("/netcfg")) { // Если есть сабмит формы - копируем все в переменные

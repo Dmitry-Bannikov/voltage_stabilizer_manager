@@ -7,7 +7,7 @@
 #define STA_DEFAULT_PASS    "orteamoscow"                      // Стандартный пароль точки доступа роутера (До 20-ти символов)
 #define STA_CONNECT_EN      1                       // 1/0 - вкл./выкл. подключение к роутеру 
 
-#define MEMORY_KEY          127                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
+#define MEMORY_KEY          126                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
 
 
 
@@ -52,7 +52,7 @@ struct {                                            // Структура со �
 
 
 //------------------------BOARD DATA------------------------//
-int16_t gData[6] = {0};
+int32_t gData[6] = {0};
 #define gData_input			gData[0]
 #define gData_output		gData[1]
 #define gData_load			gData[2]
@@ -61,7 +61,7 @@ int16_t gData[6] = {0};
 
 
 //----------------------BOARD TRIMMERS----------------------//
-int16_t gTrimmers[8] = {0};
+int32_t gTrimmers[8] = {0};
 #define gTrim_ignoreSets	gTrimmers[0]	//игнорировать настройки платы
 #define gTrim_precision		gTrimmers[1]	//точность/гистерезис
 #define gTrim_tuneIn		gTrimmers[2]	//подстройка напряжения входа
@@ -72,7 +72,7 @@ int16_t gTrimmers[8] = {0};
 #define gTrim_tcRatio		gTrimmers[7]	//отношение трансформатора тока (x/5)
 
 //--------------------BOARD SETS------------------//
-int16_t gBoardSets[8] = {
+int32_t gBoardSets[8] = {
     -22,
     22,
     500,
@@ -95,29 +95,32 @@ int16_t gBoardSets[8] = {
 
 
 //---------------------BOARD STATISTICS------------------------//
-int16_t gStatis[15] = {0};
-#define gStat_OutV_max				gStatis[0]
-#define gStat_OutV_avg				gStatis[1]
-#define gStat_OutV_min				gStatis[2]
-#define gStat_InV_max				gStatis[3]
-#define gStat_InV_avg				gStatis[4]
-#define gStat_InV_min				gStatis[5]
-#define gStat_Curr_max				gStatis[6]
-#define gStat_Curr_avg				gStatis[7]
-#define gStat_Curr_min				gStatis[8]
-#define gStat_FullP_max				gStatis[9]
-#define gStat_FullP_avg				gStatis[10]
-#define gStat_FullP_min				gStatis[11]
+int32_t gStatis[19] = {0};
+#define gStat_workTime_m			gStatis[0]
+#define gStat_workTime_d			gStatis[1]
+#define gStat_OutV_max				gStatis[2]
+#define gStat_OutV_avg				gStatis[3]
+#define gStat_OutV_min				gStatis[4]
+#define gStat_InV_max				gStatis[5]
+#define gStat_InV_avg				gStatis[6]
+#define gStat_InV_min				gStatis[7]
+#define gStat_Curr_max				gStatis[8]
+#define gStat_Curr_avg				gStatis[9]
+#define gStat_Curr_min				gStatis[10]
+#define gStat_FullP_max				gStatis[11]
+#define gStat_FullP_avg				gStatis[12]
+#define gStat_FullP_min				gStatis[13]
 
 
-
+#define PWR_ACCURACY				100.0
 
 
 //------------------------Служебные переменные-------------------------------------//
 String gData_stat_str = "";
+String workTime_str = "";
 bool needUpdateFlag = false;
-int16_t i2c_master_tx_buffer[10] = {0};
-int16_t i2c_master_rx_buffer[20] = {0};
+int32_t i2c_master_tx_buffer[10] = {0};
+int32_t i2c_master_rx_buffer[20] = {0};
 
 
 #define SERIAL_DEBUG
