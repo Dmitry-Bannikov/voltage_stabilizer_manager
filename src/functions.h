@@ -12,7 +12,7 @@
 void connectingInit();
 void memoryInit();
 void LED_switch(bool state);
-void LED_blink(uint16_t period);
+void LED_blink(uint16_t period_on, uint16_t period_off = 0);
 bool board_state_toStr(int16_t board_state, String& board_state_str);
 void dataHandler();
 uint8_t makeRequestI2C(const uint8_t addr, const int16_t request);
@@ -46,21 +46,19 @@ void LED_switch(bool state) {
   }  
 }
 
-void LED_blink(uint16_t period) {
+void LED_blink(uint16_t period_on, uint16_t period_off = 0) {
   static uint64_t tick = 0;
   static bool led_state = false;
-  if (millis() - tick > period) {
-    LED_switch(led_state = !led_state);
-    tick = millis();
-  }
-}
-
-void LED_blink(uint16_t period_on, uint16_t period_off) {
-  static uint64_t tick = 0;
-  static bool led_state = false;
-  if (millis() - tick > (led_state?period_on:period_off)) {
-    LED_switch(led_state = !led_state);
-    tick = millis();
+  if (!period_off) {
+    if (millis() - tick > period_on) {
+      LED_switch(led_state = !led_state);
+      tick = millis();
+    }
+  } else {
+    if (millis() - tick > (led_state ? period_on : period_off)) {
+      LED_switch(led_state = !led_state);
+      tick = millis();
+    }
   }
 }
 
@@ -255,7 +253,7 @@ void portalBuild() {
 
   GP.GRID_RESPONSIVE(650); // Отключение респонза при узком экране
   GP.PAGE_TITLE("stab_manager");
-  if (networkConnectionMode == NET_MODE_AP) {
+  if (!wifi_settings.staModeEn) {
     GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (AP)");
   } else {
     GP.TITLE(GP.ICON_FILE("/ICONS/wifi.svg") + "WIFI Board Manager (STA)");
