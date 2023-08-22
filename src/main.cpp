@@ -1,17 +1,16 @@
 #include <Arduino.h>
-#include <functions.h>
-
+#include <portal.h>
+#include <service.h>
 
 
 void setup() {
-  connectingInit();
-  memoryInit();
-  portalInit();
+	connectionInit();
+	memoryInit();
+	portalInit();
 }
 
 void loop() {
-  memoryTick();
-  portalTick();
-  dataHandler();
+	boardTick();
+	memoryTick();
+	portalTick();
 }
-
