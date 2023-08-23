@@ -15,7 +15,7 @@ GyverPortal ui(&LittleFS);
 
 void portalBuild() {
   //------------------------------------------//
-	GP.BUILD_BEGIN(850);
+	GP.BUILD_BEGIN(900);
 	GP.THEME(GP_LIGHT);
 	String update;
 	for (int i = 0; i < gNumBoards; i++) {
@@ -31,7 +31,7 @@ void portalBuild() {
 	Serial.println(update);
 	GP.UPDATE(update);
 
-	GP.GRID_RESPONSIVE(950); // Отключение респонза при узком экране
+	GP.GRID_RESPONSIVE(600); // Отключение респонза при узком экране
 	GP.PAGE_TITLE("stab_manager");
 	if (!wifi_settings.staModeEn) {
 		GP.TITLE("WIFI Board Manager (AP)");
@@ -46,6 +46,12 @@ void portalBuild() {
 		GP.TITLE("Board Data and Stats");
 		GP.HR();
 		GP.BLOCK_BEGIN("Board Data");
+		if (gNumBoards == 0) {
+			M_BOX(GP_AROUND,
+				GP.LABEL("Плата не отвечает!");
+				GP.BUTTON("btn2", "Restart Board");
+			);
+		}
 		GP_build_data();
 		GP.BLOCK_END();
 		GP.HR();
@@ -63,30 +69,29 @@ void portalBuild() {
 			GP.BUTTON("btn1", "Read Settings");
 			GP.RELOAD_CLICK("btn1");
 		);
-		M_BOX(
-			GP.LABEL("Ignore board settings");
-			GP.CHECK("ignoreSets", gTrim_ignoreSets);
-		);
-		M_BOX(GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("prec", "", gTrim_precision);  );
-		M_BOX(GP.LABEL("Tune Voltage Input");       GP.NUMBER("vtuneIn", "", gTrim_tuneIn);     );
-		M_BOX(GP.LABEL("Tune Voltage Output");      GP.NUMBER("vtuneOut", "", gTrim_tuneOut);    );
-		M_BOX(GP.LABEL("Target Voltage");           GP.NUMBER("targetV", "", gTrim_targetVolt);   );
-		M_BOX(GP.LABEL("Motor Type");               GP.SELECT("mot_type", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", gTrim_motType); );
-		M_BOX(GP.LABEL("Relay Behavior");           GP.SELECT("rel_set", "OFF,ON,NO_OFF", gTrim_relSet);     );
-		M_BOX(GP.LABEL("TC Ratio");                 GP.NUMBER("tcRatio", "", gTrim_tcRatio);   );
+		M_BOX(GP_AROUND, GP.LABEL("Ignore board settings");	GP.CHECK ("trim/0", 	gTrimmers[0]);	);
+		M_BOX(GP_AROUND, GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("trim/1", "", gTrimmers[1]); 	);
+		M_BOX(GP_AROUND, GP.LABEL("Tune Voltage Input");       GP.NUMBER("trim/2", "", gTrimmers[2]);	);
+		M_BOX(GP_AROUND, GP.LABEL("Tune Voltage Output");      GP.NUMBER("trim/3", "", gTrimmers[3]);	);
+		M_BOX(GP_AROUND, GP.LABEL("Target Voltage");           GP.NUMBER("trim/4", "", gTrimmers[4]);	);
+		M_BOX(GP_AROUND, GP.LABEL("Relay Behavior");           GP.SELECT("trim/5", "OFF,ON,NO_OFF", gTrimmers[5]);     				);
+		M_BOX(GP_AROUND, GP.LABEL("Motor Type");               GP.SELECT("trim/6", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", gTrimmers[6]); 	);
+		M_BOX(GP_AROUND, GP.LABEL("TC Ratio");                 GP.NUMBER("trim/7", "", gTrimmers[7]);	);
 		GP.BREAK();
-		GP.BLOCK_BEGIN();
+		
 		GP_details_start("Additional Settings");
-		M_BOX(GP.LABEL("Max Voltage Add");    		GP.NUMBER("vmaxterm", "", gBSets_vMaxTerm);  );
-		M_BOX(GP.LABEL("Min Voltage Add");       	GP.NUMBER("vminterm", "", gBSets_vMinTerm);  );
-		M_BOX(GP.LABEL("Emergency tOFF (ms)");      GP.NUMBER("emerToff", "", gBSets_emergToff); );
-		M_BOX(GP.LABEL("Emergency tON (ms)");       GP.NUMBER("emerTon",  "", gBSets_emergTon);  );
-		M_BOX(GP.LABEL("Motor 1 coeff");            GP.NUMBER("mot1koef", "", gBSets_mot1koef);  );
-		M_BOX(GP.LABEL("Motor 2 coeff");           	GP.NUMBER("mot2koef", "", gBSets_mot2koef);  );
-		M_BOX(GP.LABEL("Motor 3 coeff");            GP.NUMBER("mot2koef", "", gBSets_mot3koef);  );
-		M_BOX(GP.LABEL("Motor 4 coeff");            GP.NUMBER("mot3koef", "", gBSets_mot4koef);  );
-		GP_details_end();
+		GP.BLOCK_BEGIN();
+		M_BOX(GP_AROUND, GP.LABEL("Max Voltage Add");		GP.NUMBER("bset/1", "", gBoardSets[1]);  );
+		M_BOX(GP_AROUND, GP.LABEL("Min Voltage Add");		GP.NUMBER("bset/0", "", gBoardSets[0]);  );
+		M_BOX(GP_AROUND, GP.LABEL("Emergency tOFF (ms)");	GP.NUMBER("bset/2", "", gBoardSets[2]); );
+		M_BOX(GP_AROUND, GP.LABEL("Emergency tON (ms)");	GP.NUMBER("bset/3", "", gBoardSets[3]);  );
+		M_BOX(GP_AROUND, GP.LABEL("Motor 1 coeff");		GP.NUMBER("bset/4", "", gBoardSets[4]);  );
+		M_BOX(GP_AROUND, GP.LABEL("Motor 2 coeff");		GP.NUMBER("bset/5", "", gBoardSets[5]);  );
+		M_BOX(GP_AROUND, GP.LABEL("Motor 3 coeff");		GP.NUMBER("bset/6", "", gBoardSets[6]);  );
+		M_BOX(GP_AROUND, GP.LABEL("Motor 4 coeff");		GP.NUMBER("bset/7", "", gBoardSets[7]);  );
 		GP.BLOCK_END();
+		GP_details_end();
+		
 		GP.HR();
 		GP.FORM_END();
 	GP.NAV_BLOCK_END();
@@ -116,15 +121,23 @@ void portalBuild() {
 }
 
 void portalActions(GyverPortal &p) {
-	static String s = "";
-
 	if (ui.clickUp("btn1")) {
 		recall(TRIMS);
 	}
+	if (ui.clickUp("btn2")) {
+		ESP.restart();
+	}
+
 
 	if (ui.update()) {
-		ui.updateString("b_data/0", s);
-		ui.updateString("b_stat/0", s);
+		for (int i = 0; i < gNumBoards; i++) {
+			String data_name = "b_data/";
+			String stat_name = "b_stat/";
+			data_name += i;
+			stat_name += i;
+			ui.updateString(data_name, gBoard_data[i]);
+			ui.updateString(stat_name, gBoard_stat[i]);
+		}
 	}
 
 	if (p.form("/netcfg")) { // Если есть сабмит формы - копируем все в переменные
@@ -134,9 +147,9 @@ void portalActions(GyverPortal &p) {
 		p.copyStr("staPass", wifi_settings.staPass);
 		String s = wifi_settings.staSsid;
 		if (s.length() > 1) {
-		wifi_settings.staModeEn = 1;
+			wifi_settings.staModeEn = 1;
 		} else {
-		wifi_settings.staModeEn = 0;
+			wifi_settings.staModeEn = 0;
 		}
 		LED_switch(1);
 		remember(WIFI);
@@ -145,37 +158,31 @@ void portalActions(GyverPortal &p) {
 	}
 
 	if (p.form("/brdcfg")) {
-		p.copyBool("ignoreSets", gTrim_ignoreSets);
-		p.copyInt("prec", 		 gTrim_precision);
-		p.copyInt("tuneIn", 	 gTrim_tuneIn);
-		p.copyInt("tuneOut", 	 gTrim_tuneOut);
-		p.copyInt("targetV", 	 gTrim_targetVolt);
-		p.copyInt("mot_type", 	 gTrim_motType);
-		p.copyInt("rel_set", 	 gTrim_relSet);
-		p.copyInt("tcRatio", 	 gTrim_tcRatio);
-
-		p.copyInt("vmaxterm", gBSets_vMaxTerm);  
-		p.copyInt("vminterm", gBSets_vMinTerm); 
-		p.copyInt("emerToff", gBSets_emergToff); 
-		p.copyInt("emerTon",  gBSets_emergTon);  
-		p.copyInt("mot1koef", gBSets_mot1koef);  
-		p.copyInt("mot2koef", gBSets_mot2koef);  
-		p.copyInt("mot2koef", gBSets_mot3koef);  
-		p.copyInt("mot3koef", gBSets_mot4koef);  
-
+		p.copyBool("trim/0", gTrimmers[0]);
+		for (int i = 1; i < 8; i++) {
+			String name = "trim/";
+			name += i;
+			p.copyInt(name, gTrimmers[i]);
+		}
+		for (int i = 0; i < 8; i++) {
+			String name = "bset/";
+			name += i;
+			p.copyInt(name, gBoardSets[i]);
+		} 
 		LED_switch(1);
 		remember(TRIMS);
 		remember(BSETS);
 		uint8_t attempts = 0;
 		uint8_t success = 0;
-		while (attempts < 5 || !success) {
-			for (int i = 0; i2c_boards_addrs[i] != 0; i++) {
-				bool res1 = board[i].sendTrimmers(gTrimmers);
-				bool res2 = board[i].sendBSets(gBoardSets);
-				if (res1 && res2) success =  1;
+		while (!success) {
+			for (int i = 0; i < gNumBoards; i++) {
+				uint8_t res1 = board[i].sendTrimmers(gTrimmers);
+				uint8_t res2 = board[i].sendBSets(gBoardSets);
+				if (!res1 && !res2) success =  1;
 				else success = 0;
 			}
 			attempts++;
+			if (attempts == 5) break;
 		}
 		LED_switch(0);
 	}
@@ -224,6 +231,18 @@ void portalInit() {
 }
 
 void portalTick() {
+	static uint32_t tmr = 0;
+	if (millis() - tmr > 1000) {
+		for (int i = 0; i < gNumBoards; i++)
+		{
+			board[i].getDataStr(gBoard_data[i]);
+			board[i].getStatisStr(gBoard_stat[i]);
+			boards_worktime[i] = board[i].getWorkTime();
+			//board[i].tick();
+		}
+		tmr = millis();
+	}
+	
 	ui.tick();
 }
 

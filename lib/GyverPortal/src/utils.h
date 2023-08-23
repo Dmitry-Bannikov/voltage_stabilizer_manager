@@ -36,12 +36,7 @@ enum GPalign {
     GP_LEFT,
     GP_RIGHT,
     GP_EDGES,
-    GP_JUSTIFY = 3,
-    
-    GP_CENTER2,
-    GP_LEFT2,
-    GP_RIGHT2,
-    GP_JUSTIFY2,
+    GP_AROUND
 };
 
 enum GPblock {

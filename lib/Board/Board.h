@@ -85,18 +85,20 @@ private:
 public:
 	Board();
 	Board(const uint8_t addr);
-	bool 	attach(const uint8_t addr);														//подключить плату (указать адрес)
-	bool 	isOnline();																		//проверить, онлайн ли плата
-	uint8_t getAddress();
-	void 	setAddress(const uint8_t addr);
-	uint8_t 	getData(int32_t* arr, size_t size = 5);
-	uint8_t 	getTrimmers(int32_t* arr, size_t size = 8);
-	uint8_t 	getStatis(int32_t* arr, size_t size = 12);
-	uint8_t 	sendTrimmers(int32_t* arr, size_t size = 8);
-	uint8_t 	sendBSets(int32_t* arr, size_t size = 8);
-	uint8_t		reboot();
-	uint8_t 	toggleRegulation();
-	uint8_t 	setStartKey();
+	bool 	attach(const uint8_t addr);								//подключить плату (указать адрес)
+	bool 	isOnline();												//проверить, онлайн ли плата
+	uint8_t getAddress();											//получить адрес платы		
+	void 	setAddress(const uint8_t addr);							//установить адрес плате
+	uint8_t 	getData(int32_t* arr, size_t size = 5);				//получить данные с платы
+	uint8_t 	getTrimmers(int32_t* arr, size_t size = 8);			//получить триммеры с платы
+	uint8_t 	getStatis(int32_t* arr, size_t size = 12);			//получить статистику
+	uint8_t 	sendTrimmers(int32_t* arr, size_t size = 8);		//отправить триммеры
+	uint8_t 	sendBSets(int32_t* arr, size_t size = 8);			//отправить настройки
+	uint8_t		reboot();									//перезагрузить плату
+	uint8_t 	toggleRegulation();							//вкл/откл регуляцию напряжения
+	uint8_t 	setStartKey();								//установить стартовый ключ
+	void 		setWorkTime(const uint32_t mins);
+	uint32_t 	getWorkTime();
 	void 	getDataStr(String& out);
 	void 	getStatisStr(String& out);
 	void 	tick();

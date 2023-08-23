@@ -207,15 +207,15 @@ void Board::getDataStr(String& out) {
 	float load_Amps = (float)(gData[2])/1000.0;
 
 	String s = "";
-	s += F(" Board: ");
+	s += F(" Board Data: 0x");
 	s += String(_board_addr, HEX);
-	s += F("\nInput Voltage, V:\t");
+	s += F("\nInput V:\t");
 	s += String(gData[0]);
-	s += F("\nOutput Voltage, V:\t");
+	s += F("\nOutput V:\t");
 	s += String(gData[1]);
-	s += F("\nOutput Current, A:\t");
+	s += F("\nOutput Load:\t");
 	s += String(load_Amps, 3);
-	s += F("\nFull Power, kVA:\t");
+	s += F("\nFull P, kVA:\t");
 	s += String(fullPwr_kVA, 3);
 	s += F("\nErrors: ");
 	s += errorsToStr(gData[3]);
@@ -226,7 +226,7 @@ void Board::getStatisStr(String& out) {
 	int32_t gStatis[12] = {0};
 	getStatis(gStatis);
 	String s = "";
-	s += F(" Board: ");
+	s += F(" Board Stats: 0x");
 	s += String(_board_addr, HEX);
 	s += F("\nWork Time: ");
 	s += getWorkTime(_workTime_mins);
@@ -264,14 +264,27 @@ void Board::getStatisStr(String& out) {
 void Board::tick() {
 	static uint32_t tmr = 0;
 	if (millis() - tmr > 1000) {
-		int32_t data[6];
-		int32_t statis[20];
-		getData(data);
+		int32_t statis[12];
 		getStatis(statis);
 		tmr = millis();
 	}
 
 }
+
+void Board::setWorkTime(const uint32_t mins) {
+	int32_t statis[12] = {0};
+	int32_t startkey = 0;
+	if (!getStatisRaw(statis)) {
+		startkey = statis[0];
+		if (startkey) _workTime_mins = mins;
+	}
+}
+
+uint32_t Board::getWorkTime() {
+	return _workTime_mins;
+}
+
+
 
 void Board::detach() {
 	if (!startFlag) return;
@@ -307,7 +320,7 @@ bool Board::pollForDataRx() {
 String Board::errorsToStr(const int32_t errors) {
 	String s = "";
 	if (errors <= 1) {
-		s = "Board State OK";
+		s = "No";
 		return s;
 	}
 	for (uint8_t i = 0; i < 16; i++) {

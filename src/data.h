@@ -19,7 +19,7 @@ struct {                                            // Структура со �
     char staPass[21] = STA_DEFAULT_PASS;            // Пароль сети для STA режима по умолчанию
 } wifi_settings;
 
-int32_t gTrimmers[8] = {0, 3, 0, 0, 220, 0, 1, 60};
+int32_t gTrimmers[8] = {0, 1, 0, 0, 220, 0, 1, 60};
 #define gTrim_ignoreSets	gTrimmers[0]	//игнорировать настройки платы
 #define gTrim_precision		gTrimmers[1]	//точность/гистерезис
 #define gTrim_tuneIn		gTrimmers[2]	//подстройка напряжения входа
@@ -42,3 +42,7 @@ int32_t gBoardSets[8] = {-22, 22, 500, 2000, 40, 100, 150, 200};
 Board board[3];
 uint8_t gNumBoards = 0;
 uint8_t i2c_boards_addrs[3] = {0};
+uint32_t boards_worktime[3] = {0};
+
+String gBoard_data[3];
+String gBoard_stat[3];

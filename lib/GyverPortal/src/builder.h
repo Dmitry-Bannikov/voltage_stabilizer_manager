@@ -651,10 +651,10 @@ struct Builder {
         SEND(F("</div>\n"));
     }
     
-    void BOX_BEGIN(GPalign al = GP_JUSTIFY, const String& w = "100%", bool top = 0) {
+    void BOX_BEGIN(GPalign al = GP_EDGES, const String& w = "100%", bool top = 0) {
         *_GPP += F("<div style='width:");
         *_GPP += w;
-        *_GPP += F(";justify-content:");
+        *_GPP += F("; justify-content:");
         *_GPP += FPSTR(GPgetAlignFlex(al));
         if (top) *_GPP += F(";align-items: flex-start");
         *_GPP += F("' class='inliner'>\n");

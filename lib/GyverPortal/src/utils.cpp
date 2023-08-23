@@ -40,17 +40,18 @@ GP_PGM(_gp_al0, "center");
 GP_PGM(_gp_al1, "flex-start");
 GP_PGM(_gp_al2, "flex-end");
 GP_PGM(_gp_al3, "space-between");
-//GP_PGM(_gp_al4, "center");
-GP_PGM(_gp_al5, "left");
-GP_PGM(_gp_al6, "right");
-GP_PGM(_gp_al7, "justify");
-GP_PGM_LIST(_gp_al, _gp_al0, _gp_al1, _gp_al2, _gp_al3, _gp_al0, _gp_al5, _gp_al6, _gp_al7);
+GP_PGM(_gp_al4, "space-around");
+GP_PGM(_gp_al5, "center");
+GP_PGM(_gp_al6, "left");
+GP_PGM(_gp_al7, "right");
+
+GP_PGM_LIST(_gp_al, _gp_al0, _gp_al1, _gp_al2, _gp_al3, _gp_al4, _gp_al5, _gp_al6, _gp_al7);
 
 PGM_P GPgetAlignFlex(GPalign a) {
     return _gp_al[a];
 }
 PGM_P GPgetAlign(GPalign a) {
-    return _gp_al[a + 4];
+    return _gp_al[a + 5];
 }
 
 // ===================== DATE-TIME UNIX =====================
