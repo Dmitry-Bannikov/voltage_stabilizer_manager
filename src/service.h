@@ -20,6 +20,7 @@ uint8_t scanBoards(uint8_t* addrs, const uint8_t num = 128);
 void remember(Memory type); 
 void recall(Memory type);
 void boardTick();
+void write_read();
 
 EEManager memoryWIFI(wifi_settings, 20000);
 EEManager memoryTrims(gTrimmers, 20000);
@@ -51,19 +52,48 @@ void LED_blink(uint16_t period_on, uint16_t period_off = 0) {
 }
 
 void connectionInit() {
-	
 	pinMode(LED_BUILTIN, OUTPUT);
 	Wire.begin();
 	Wire.setTimeOut(250);
 	delay(10);
 	Serial.begin(115200);
 	delay(10);
+	Serial.println("Initializing connection!");
 	gNumBoards = scanBoards(i2c_boards_addrs);	//сканируем шину и получаем количество плат
-	board = new Board[gNumBoards];
+	Serial.print("Scan boards: ");
+	Serial.println(gNumBoards);
 	for (int i = 0; i < gNumBoards; i++) {
-		board[i].attach(i2c_boards_addrs[i]);
+		bool res = board[i].attach(i2c_boards_addrs[i]);
+		Serial.print("Found board on address: ");
+		Serial.println(board[i].getAddress());
+		Serial.print("Send startkey: ");
+		Serial.println(board[i].setStartKey());
 	}
-	
+
+	uint32_t tmr = millis();
+	int32_t gData[5];
+	String data = "";
+	String statis = "";
+	int i = 0;
+	while(1) {
+		if (millis() - tmr > 1000){
+			if (i % 10 == 0) {
+				Serial.println(String("Online: ") + board[0].isOnline());
+				board[0].getDataStr(data);
+				Serial.println(data);
+				Serial.println();
+			}
+			if (i == 60) {
+				Serial.println("========Statis=======");
+				board[0].getStatisStr(statis);
+				Serial.println(statis);
+				Serial.println("=====================");
+				i = 0;
+			}
+			i++;
+			tmr = millis();
+		}
+	}
 }
 
 void memoryInit() {
@@ -114,12 +144,30 @@ void recall(Memory type) {
 }
 
 void boardTick() {
-	for (int i = 0; i2c_boards_addrs[i] != 0; i++) {
-		board[i].tick();
+	static uint32_t tmr = 0;
+	
+	uint8_t addrs[128] = {0};
+	int32_t key = 0;
+	if (millis() -  tmr > 1000) {
+		
+		tmr = millis();
 	}
 }
 
-
+void write_read() {
+	int32_t data[20] = {0};
+	int32_t data_tx[20] = {0x22, 0};
+	
+	Wire.beginTransmission(0x01);
+	Wire.write((uint8_t*)data_tx, sizeof(data_tx));
+	Serial.println(String("Send result: ") + Wire.endTransmission());
+	Wire.requestFrom(0x01, sizeof(data));
+	uint8_t* p = reinterpret_cast<uint8_t*>(data);
+	if (Wire.available()) {
+		Wire.readBytes(p, sizeof(data));
+		Serial.println(String("Get result: ") + data[0]);
+	}
+}
 
 
 

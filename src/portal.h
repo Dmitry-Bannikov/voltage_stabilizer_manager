@@ -18,19 +18,20 @@ void portalBuild() {
 	GP.BUILD_BEGIN(850);
 	GP.THEME(GP_LIGHT);
 	String update;
-	for (int i = 0; i2c_boards_addrs[i] != 0; i++) {
+	for (int i = 0; i < gNumBoards; i++) {
 		update += "b_data/";
 		update += i;
 		update += ",";
 	}
-	for (int i = 0; i2c_boards_addrs[i] != 0; i++) {
+	for (int i = 0; i < gNumBoards; i++) {
 		update += "b_stat/";
 		update += i;
 		update += ",";
 	}
+	Serial.println(update);
 	GP.UPDATE(update);
 
-	GP.GRID_RESPONSIVE(550); // Отключение респонза при узком экране
+	GP.GRID_RESPONSIVE(950); // Отключение респонза при узком экране
 	GP.PAGE_TITLE("stab_manager");
 	if (!wifi_settings.staModeEn) {
 		GP.TITLE("WIFI Board Manager (AP)");
@@ -58,7 +59,6 @@ void portalBuild() {
 		GP.HR();
 		GP.FORM_BEGIN("brdcfg");
 		M_BOX(
-			GP.BLOCK_BEGIN();
 			GP.SUBMIT("Save/Write Settings");
 			GP.BUTTON("btn1", "Read Settings");
 			GP.RELOAD_CLICK("btn1");
@@ -116,31 +116,15 @@ void portalBuild() {
 }
 
 void portalActions(GyverPortal &p) {
+	static String s = "";
 
 	if (ui.clickUp("btn1")) {
 		recall(TRIMS);
 	}
 
 	if (ui.update()) {
-		if (ui.updateSub("b_data/")) {
-			for (int i = 0; i2c_boards_addrs[i] != 0; i++) {
-				String name = "b_data/";
-				name += i;
-				String text;
-				board[i].getValuesStr(text);
-				ui.updateString(name, text);
-			}
-		}
-
-		if (ui.updateSub("b_stat/")) {
-			for (int i = 0; i2c_boards_addrs[i] != 0; i++) {
-				String name = "b_stat/";
-				name += i;
-				String text;
-				board[i].getStatisStr(text);
-				ui.updateString(name, text);
-			}
-		}
+		ui.updateString("b_data/0", s);
+		ui.updateString("b_stat/0", s);
 	}
 
 	if (p.form("/netcfg")) { // Если есть сабмит формы - копируем все в переменные

@@ -4,9 +4,9 @@
 
 #define AP_DEFAULT_SSID     "Stab_AP_FREE"            // Стандартное имя точки доступа ESP (До 20-ти символов)
 #define AP_DEFAULT_PASS     ""                      // Стандартный пароль точки доступа ESP (До 20-ти символов)
-#define STA_DEFAULT_SSID    ""                      // Стандартное имя точки доступа роутера (До 20-ти символов)
-#define STA_DEFAULT_PASS    ""                      // Стандартный пароль точки доступа роутера (До 20-ти символов)
-#define STA_CONNECT_EN      0                       // 1/0 - вкл./выкл. подключение к роутеру 
+#define STA_DEFAULT_SSID    "honda"                      // Стандартное имя точки доступа роутера (До 20-ти символов)
+#define STA_DEFAULT_PASS    "orteamoscow"                      // Стандартный пароль точки доступа роутера (До 20-ти символов)
+#define STA_CONNECT_EN      1                       // 1/0 - вкл./выкл. подключение к роутеру 
 
 #define MEMORY_KEY          126                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
 
@@ -39,6 +39,6 @@ int32_t gBoardSets[8] = {-22, 22, 500, 2000, 40, 100, 150, 200};
 #define gBSets_mot3koef		gBoardSets[6]
 #define gBSets_mot4koef		gBoardSets[7]
 
-Board* board = nullptr;
+Board board[3];
 uint8_t gNumBoards = 0;
 uint8_t i2c_boards_addrs[3] = {0};

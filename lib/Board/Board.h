@@ -8,6 +8,12 @@
 2) int32_t* data;					//данные
 3) int32_t terminator;				//завершающий ключ
 *
+*===Коды ошибок методов===
+ 0: Ошибок нет
+ 1: Объект не инициализирован
+ 2: Ошибка передачи запроса/данных на плату
+ 3: Таймаут ожидания приема
+ 4: Стартовый код не соответствует запросу
 *
 */
 
@@ -53,27 +59,26 @@
 class Board
 {
 private:
-	int32_t* _txbuffer;
-	int32_t* _rxbuffer;
-	int _rxsize = RX_BUF_SIZE;
-	int _txsize = TX_BUF_SIZE;
+	enum BufferType {
+		RXBUF,
+		TXBUF
+	};
+
+	int32_t _txbuffer[TX_BUF_SIZE];
+	int32_t _rxbuffer[RX_BUF_SIZE];
 	uint8_t _board_addr = 0;
 	const int32_t _flush_val = 0;
 	const int _poll = 500;
 	bool startFlag = false;
 	uint32_t _workTime_mins = 0;
-	uint32_t _lastGetStat = 0;
 	int32_t _startkey = 0;
-	uint32_t _valuesUpdatePrd = 1000UL;		//период обновления значений
+	uint32_t _dataUpdatePrd = 1000UL;		//период обновления значений
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 
-	bool allocateBuffers();
-	void deleteBuffers();
-	void flushRxBuf();
-	void flushTxBuf();
-	uint32_t sizeofTx();
-	uint32_t sizeofRx();
+	void flush(BufferType type);
 	bool pollForDataRx();
+	uint8_t getStatisRaw(int32_t* arr, size_t size = 12);
+	uint8_t getDataRaw(int32_t* arr, size_t size = 5);
 	static String errorsToStr(const int32_t errors);
 	static String getWorkTime(const uint32_t mins);
 	
@@ -84,22 +89,15 @@ public:
 	bool 	isOnline();																		//проверить, онлайн ли плата
 	uint8_t getAddress();
 	void 	setAddress(const uint8_t addr);
-	bool 	setBufferSizes(const uint16_t txbufsize, const uint16_t rxbufsize);				//указать размеры буферов передачи и приема
-	bool 	sendData(const int32_t command);												//отправить команду
-	bool 	sendData(const int32_t command, const int32_t* txdata, const int txdataSize);	//отправить команду и данные
-	size_t 	getData(int32_t* rxdata);														//получить данные в массив
-	size_t 	getData(const int32_t key, int32_t* rxdata); 									//получить данные в массив по ключу
-	size_t 	getDataKey(int32_t &key , int32_t* rxdata);										//получить данные и ключ
-	size_t 	getDataCommand(const int32_t command, int32_t* rxdata);							//отправить команду и получить в ответ данные
-	bool 	getValues(int32_t* arr, size_t size = 5);
-	bool 	getTrimmers(int32_t* arr, size_t size = 8);
-	bool 	getStatis(int32_t* arr, size_t size = 12);
-	bool 	sendTrimmers(int32_t* arr, size_t size = 8);
-	bool 	sendBSets(int32_t* arr, size_t size = 8);
-	bool	reboot();
-	bool 	toggleRegulation();
-	bool 	setStartKey();
-	void 	getValuesStr(String& out);
+	uint8_t 	getData(int32_t* arr, size_t size = 5);
+	uint8_t 	getTrimmers(int32_t* arr, size_t size = 8);
+	uint8_t 	getStatis(int32_t* arr, size_t size = 12);
+	uint8_t 	sendTrimmers(int32_t* arr, size_t size = 8);
+	uint8_t 	sendBSets(int32_t* arr, size_t size = 8);
+	uint8_t		reboot();
+	uint8_t 	toggleRegulation();
+	uint8_t 	setStartKey();
+	void 	getDataStr(String& out);
 	void 	getStatisStr(String& out);
 	void 	tick();
 	void 	detach();
