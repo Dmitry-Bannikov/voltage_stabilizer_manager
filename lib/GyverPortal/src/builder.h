@@ -160,9 +160,9 @@ struct Builder {
     // ======================= СТРАНИЦА =======================
     void PAGE_BEGIN() {
         _gp_nav_id = 0;
-        SEND(F("<!DOCTYPE HTML><html><head>\n"
+        SEND(F("<!DOCTYPE HTML><html lang='en'><head>\n"
         "<meta charset='utf-8'>\n"
-        "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'>\n"
+        "<meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0'>\n"
         "<meta name='apple-mobile-web-app-capable' content='yes'/>\n"
         "<meta name='mobile-web-app-capable' content='yes'/>\n"
         "</head><body>\n"));
