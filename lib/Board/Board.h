@@ -70,8 +70,7 @@ private:
 	const int32_t _flush_val = 0;
 	const int _poll = 500;
 	bool startFlag = false;
-	uint32_t _workTime_mins = 0;
-	int32_t _startkey = 0;
+	int32_t _workTime_mins = 0;
 	uint32_t _dataUpdatePrd = 1000UL;		//период обновления значений
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 
@@ -96,9 +95,7 @@ public:
 	uint8_t 	sendBSets(int32_t* arr, size_t size = 8);			//отправить настройки
 	uint8_t		reboot();									//перезагрузить плату
 	uint8_t 	toggleRegulation();							//вкл/откл регуляцию напряжения
-	uint8_t 	setStartKey();								//установить стартовый ключ
-	void 		setWorkTime(const uint32_t mins);
-	uint32_t 	getWorkTime();
+	int32_t 	getWorkTime();
 	void 	getDataStr(String& out);
 	void 	getStatisStr(String& out);
 	void 	tick();

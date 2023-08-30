@@ -66,17 +66,19 @@ void portalBuild() {
 		GP.FORM_BEGIN("brdcfg");
 		M_BOX(
 			GP.SUBMIT("Save/Write Settings");
+			
 			GP.BUTTON("btn1", "Read Settings");
 			GP.RELOAD_CLICK("btn1");
 		);
 		M_BOX(GP_AROUND, GP.LABEL("Ignore board settings");	GP.CHECK ("trim/0", 	gTrimmers[0]);	);
-		M_BOX(GP_AROUND, GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("trim/1", "", gTrimmers[1]); 	);
-		M_BOX(GP_AROUND, GP.LABEL("Tune Voltage Input");       GP.NUMBER("trim/2", "", gTrimmers[2]);	);
-		M_BOX(GP_AROUND, GP.LABEL("Tune Voltage Output");      GP.NUMBER("trim/3", "", gTrimmers[3]);	);
-		M_BOX(GP_AROUND, GP.LABEL("Target Voltage");           GP.NUMBER("trim/4", "", gTrimmers[4]);	);
+		M_BOX(GP_AROUND, GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("trim/1", "", gTrimmers[1], "20"); );
+		M_BOX(GP_AROUND, GP.LABEL("Tune Voltage Input");       GP.NUMBER("trim/2", "", gTrimmers[2], "20");	);
+		M_BOX(GP_AROUND, GP.LABEL("Tune Voltage Output");      GP.NUMBER("trim/3", "", gTrimmers[3], "20");	);
+		M_BOX(GP_AROUND, GP.LABEL("Target Voltage");           GP.NUMBER("trim/4", "", gTrimmers[4], "20");	);
+		M_BOX(GP_AROUND, GP.LABEL("TC Ratio");                 GP.NUMBER("trim/7", "", gTrimmers[7], "20");	);
 		M_BOX(GP_AROUND, GP.LABEL("Relay Behavior");           GP.SELECT("trim/5", "OFF,ON,NO_OFF", gTrimmers[5]);     				);
 		M_BOX(GP_AROUND, GP.LABEL("Motor Type");               GP.SELECT("trim/6", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", gTrimmers[6]); 	);
-		M_BOX(GP_AROUND, GP.LABEL("TC Ratio");                 GP.NUMBER("trim/7", "", gTrimmers[7]);	);
+		
 		GP.BREAK();
 		
 		GP_details_start("Additional Settings");

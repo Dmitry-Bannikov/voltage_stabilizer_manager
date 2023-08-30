@@ -108,12 +108,7 @@ uint8_t Board::getStatis(int32_t* arr, size_t size ) {
 	int error = 0;
 	if (millis() - last_update >= _statisUpdatePrd) {
 		error = getStatisRaw(statis);
-		_startkey = statis[0];
-		if (_startkey != 0) {
-			_workTime_mins++;
-		} else {
-			_workTime_mins = 0;
-		}
+		_workTime_mins = statis[0];
 		last_update = millis();
 	}
 	for (int i = 0; i < size; i++) {
@@ -189,17 +184,6 @@ uint8_t Board::toggleRegulation() {
 	return 0;
 }
 
-uint8_t Board::setStartKey() {
-	if (!startFlag) return 1;
-	flush(TXBUF);
-	*_txbuffer = I2C_SET_STARTKEY;
-	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
-	return 0;
-}
-
 void Board::getDataStr(String& out) {
 	int32_t gData[5] = {0};
 	getData(gData);
@@ -209,15 +193,15 @@ void Board::getDataStr(String& out) {
 	String s = "";
 	s += F(" Board Data: 0x");
 	s += String(_board_addr, HEX);
-	s += F("\nInput V:\t");
+	s += F("\nInput V    : ");
 	s += String(gData[0]);
-	s += F("\nOutput V:\t");
+	s += F("\nOutput V   : ");
 	s += String(gData[1]);
-	s += F("\nOutput Load:\t");
-	s += String(load_Amps, 3);
-	s += F("\nFull P, kVA:\t");
-	s += String(fullPwr_kVA, 3);
-	s += F("\nErrors: ");
+	s += F("\nOutput Load: ");
+	s += String(load_Amps, 1);
+	s += F("\nFull Power : ");
+	s += String(fullPwr_kVA, 1);
+	s += F("\nErrors     : ");
 	s += errorsToStr(gData[3]);
 	out = s;
 }
@@ -228,33 +212,35 @@ void Board::getStatisStr(String& out) {
 	String s = "";
 	s += F(" Board Stats: 0x");
 	s += String(_board_addr, HEX);
-	s += F("\nWork Time: ");
+	s += F("\nWork T: ");
 	s += getWorkTime(_workTime_mins);
-	s += F("\nMax output V:\t");
+	s += F("\nMax output V : ");
 	s += String(gStatis[1]);
-	s += F("\nAvg output V:\t");
+	s += F("\nAvg output V : ");
 	s += String(gStatis[2]);
-	s += F("\nMin output V:\t");
+	s += F("\nMin output V : ");
 	s += String(gStatis[3]);
 
-	s += F("\nMax input V:\t");
+	s += F("\nMax input V  : ");
 	s += String(gStatis[4]);
-	s += F("\nAvg input V:\t");
+	s += F("\nAvg input V  : ");
 	s += String(gStatis[5]);
-	s += F("\nMin input V:\t");
+	s += F("\nMin input V  : ");
 	s += String(gStatis[6]);
 
-	float max_load = float(gStatis[7])/1000.0;
-	float avg_load = float(gStatis[8])/1000.0;
-	s += F("\nMax load A:\t");
-	s += String(max_load, 2);
-	s += F("\nAvg load A:\t");
-	s += String(avg_load, 2);
+	float max_load = (float)(gStatis[7])/1000.0;
+	float avg_load = (float)(gStatis[8])/1000.0;
+	s += F("\nMax load A   : ");
+	s += String(max_load, 1);
+	s += F("\nAvg load A   : ");
+	s += String(avg_load, 1);
 	
-	s += F("\nMax power, VA:\t");
-	s += String(gStatis[9]);
-	s += F("\nAvg power, VA:\t");
-	s += String(gStatis[10]);
+	float max_pwr = (float)(gStatis[9])/1000.0;
+	float avg_pwr = (float)(gStatis[10])/1000.0;
+	s += F("\nMax power    : ");
+	s += String(max_pwr, 1);
+	s += F("\nAvg power    : ");
+	s += String(avg_pwr, 1);
 
 	s += F("\nErrors: ");
 	s += errorsToStr(gStatis[11]);
@@ -271,20 +257,9 @@ void Board::tick() {
 
 }
 
-void Board::setWorkTime(const uint32_t mins) {
-	int32_t statis[12] = {0};
-	int32_t startkey = 0;
-	if (!getStatisRaw(statis)) {
-		startkey = statis[0];
-		if (startkey) _workTime_mins = mins;
-	}
-}
-
-uint32_t Board::getWorkTime() {
+int32_t Board::getWorkTime() {
 	return _workTime_mins;
 }
-
-
 
 void Board::detach() {
 	if (!startFlag) return;

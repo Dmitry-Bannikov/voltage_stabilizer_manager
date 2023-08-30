@@ -25,7 +25,6 @@ void write_read();
 EEManager memoryWIFI(wifi_settings, 20000);
 EEManager memoryTrims(gTrimmers, 20000);
 EEManager memoryBSets(gBoardSets, 20000);
-EEManager memoryWorkTime(boards_worktime, 60000);
 
 void LED_switch(bool state) {
 	if (state) {
@@ -63,11 +62,8 @@ void connectionInit() {
 	gNumBoards = scanBoards(i2c_boards_addrs);	//сканируем шину и получаем количество плат
 	Serial.print("Scan boards: ");
 	Serial.println(gNumBoards);
-	memoryWorkTime.begin(200, 127);
 	for (int i = 0; i < gNumBoards; i++) {
 		board[i].attach(i2c_boards_addrs[i]);
-		board[i].setStartKey();
-		board[i].setWorkTime(boards_worktime[i]);
 		board[i].getTrimmers(gTrimmers);
 	}
 
@@ -85,7 +81,6 @@ void memoryTick() {
 	memoryWIFI.tick();
 	memoryTrims.tick();
 	memoryBSets.tick();
-	memoryWorkTime.tick();
 }
 
 uint8_t scanBoards(uint8_t* addrs, const uint8_t num) {

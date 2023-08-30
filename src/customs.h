@@ -31,7 +31,7 @@ void GP_build_data() {
 	for (int i = 0; i < gNumBoards; i++) {
 		String text = "Board #";
 		text += String(i2c_boards_addrs[i], HEX);
-		GP.AREA(String("b_data/") + i, 6, text, "45");
+		GP.AREA(String("b_data/") + i, 6, text, "50");
 	}
 }
 
@@ -39,6 +39,13 @@ void GP_build_stats() {
 	for (int i = 0; i < gNumBoards; i++) {
 		String text = "Board #";
 		text += String(i2c_boards_addrs[i], HEX);
-		GP.AREA(String("b_stat/") + i, 10, text, "45");
+		GP.AREA(String("b_stat/") + i, 10, text, "50");
 	}
+}
+
+void GP_target_set() {
+    for (int i = 0; i < 3; i++) {
+        
+        GP.CHECK(String("b_target/") + i, targetBoard[i]);
+    }
 }

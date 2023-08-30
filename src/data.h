@@ -41,6 +41,7 @@ int32_t gBoardSets[8] = {-22, 22, 500, 2000, 40, 100, 150, 200};
 
 Board board[3];
 uint8_t gNumBoards = 0;
+uint8_t targetBoard[3] = {0};
 uint8_t i2c_boards_addrs[3] = {0};
 uint32_t boards_worktime[3] = {0};
 
