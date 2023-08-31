@@ -28,10 +28,10 @@ void portalBuild() {
 		update += i;
 		update += ",";
 	}
-	update += "alert,";
+	update += "alt,";
 	Serial.println(update);
 	GP.UPDATE(update);
-	GP.ALERT("alert");
+	GP.ALERT("alt");
 	GP.GRID_RESPONSIVE(600); // Отключение респонза при узком экране
 	GP.PAGE_TITLE("stab_manager");
 	if (!wifi_settings.staModeEn) {
@@ -67,9 +67,9 @@ void portalBuild() {
 		GP.TITLE("Board Settings");
 		GP.BLOCK_BEGIN("80%");
 		GP.HR();
-		GP.FORM_BEGIN("brdcfg");
+		GP.FORM_BEGIN("/brdcfg");
 		GP_target_set();
-		M_BOX(align, GP.LABEL("Ignore board settings");	GP.CHECK ("trim/0", 	gTrimmers[0]);	);
+		M_BOX(align, GP.LABEL("Ignore board settings");	   GP.CHECK ("trim/0", 	gTrimmers[0]);	);
 		M_BOX(align, GP.LABEL("Precision/ Hysterezis");    GP.NUMBER("trim/1", "", gTrimmers[1], num_width);  	);
 		M_BOX(align, GP.LABEL("Tune Voltage Input");       GP.NUMBER("trim/2", "", gTrimmers[2], num_width);	);
 		M_BOX(align, GP.LABEL("Tune Voltage Output");      GP.NUMBER("trim/3", "", gTrimmers[3], num_width);	);
@@ -79,7 +79,7 @@ void portalBuild() {
 		M_BOX(align, GP.LABEL("Motor Type");               GP.SELECT("trim/6", "TYPE_1,TYPE_2,TYPE_3,TYPE_4", gTrimmers[6]); 	);
 		
 		GP.BREAK();
-		
+		GP.HR();
 		GP_details_start("Additional Settings");
 		GP_block_begin();
 		M_BOX(align, GP.LABEL("Max Voltage Add");		GP.NUMBER("bset/1", "", gBoardSets[1], num_width);  );
@@ -92,33 +92,36 @@ void portalBuild() {
 		M_BOX(align, GP.LABEL("Motor 4 coeff");			GP.NUMBER("bset/7", "", gBoardSets[7], num_width);  );
 		GP_block_end();
 		GP_details_end();
-
 		GP.FORM_END();
-		GP.HR();
+		
 		GP.BLOCK_END();
 	GP.NAV_BLOCK_END();
 
 	GP.NAV_BLOCK_BEGIN();
-		GP.TITLE("Connection Config");
+		GP_container_column("WIFI Settings");
 		GP.HR();
 		GP.FORM_BEGIN("/netcfg");
-		GP.SUBMIT("SUBMIT & RESTART"); 
-		M_BLOCK_TAB( 
-		"AP-Mode config", 
-		GP.TEXT("apSsid", "Login AP", wifi_settings.apSsid, "", 20);
-		GP.TEXT("apPass", "Password AP", wifi_settings.apPass, "", 20);
-		);
-		GP_details_start("STA-Mode config");
-		GP.TEXT("staSsid", "Login STA", wifi_settings.staSsid, "", 20);
-		GP.TEXT("staPass", "Password STA", wifi_settings.staPass, "", 20);
+		GP_container_column();
+		GP.SUBMIT_MINI("SUBMIT & RESTART"); 
+		GP_details_start("AP-Mode config");
+		GP_container_row();
+			GP.TEXT("apSsid", "Login AP", wifi_settings.apSsid, "", 20);
+			GP.PASS_EYE("apPass", "Password AP", wifi_settings.apPass, "", 20);
+		GP_block_end();
 		GP_details_end();
+		GP.BREAK();
+		GP_details_start("STA-Mode config");
+		GP_container_row();
+			GP.TEXT("staSsid", "Login STA", wifi_settings.staSsid, "", 20);
+			GP.PASS_EYE("staPass","Password STA", wifi_settings.staPass, "", 20);
+		GP_block_end();
+		GP_details_end();
+		GP_block_end();
 		GP.FORM_END();
-		M_BLOCK_TAB(           // Блок с OTA-апдейтом
-		"ESP UPDATE",      // Имя + тип DIV
 		GP.OTA_FIRMWARE(); // Кнопка с OTA начинкой
-		);
+		GP.BLOCK_END();
 	GP.NAV_BLOCK_END();
-	GP.BUILD_END();
+GP.BUILD_END();
 
 }
 
@@ -127,10 +130,10 @@ void portalActions(GyverPortal &p) {
 	if (ui.clickUp("btn1")) {
 		recall(TRIMS);
 	}
+
 	if (ui.clickUp("btn2")) {
 		ESP.restart();
 	}
-
 
 	if (ui.update()) {
 		if (ui.update("alt")) {
@@ -169,7 +172,7 @@ void portalActions(GyverPortal &p) {
 	}
 
 	if (p.form("/brdcfg")) {
-		uint8_t success = 0;
+		txSuccess = 0;
 		//=== Формируем имена для сохранения с формы ===//
 		p.copyBool("trim/0", gTrimmers[0]);	
 		for (int i = 1; i < 8; i++) {
@@ -185,19 +188,18 @@ void portalActions(GyverPortal &p) {
 		LED_switch(1);
 		remember(TRIMS);
 		remember(BSETS);
-		success += 1;
+		txSuccess = 1;
 		uint8_t attempts = 0;
 		//отправляем на плату
-		while (!success) {
-			for (int i = 0; targetBoard[i] != 0; i++) {
+		while (txSuccess != 2) {
+			for (int i = 0; i < gNumBoards || targetBoard[i] != 0; i++) {
 				uint8_t res1 = board[i].sendTrimmers(gTrimmers);
 				uint8_t res2 = board[i].sendBSets(gBoardSets);
-				if (!res1 && !res2) success += 1;
+				if (!res1 && !res2) txSuccess = 2;
 			}
 			attempts++;
 			if (attempts == 5) break;
 		}
-		txSuccess = success;
 		LED_switch(0);
 	}
 }

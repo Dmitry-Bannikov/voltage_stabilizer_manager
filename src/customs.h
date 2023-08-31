@@ -56,9 +56,10 @@ void GP_target_set() {
     GP_container_column("Set target board:");
     GP_container_row();
     for (int i = 0; i < gNumBoards; i++) {
+        targetBoard[i] = 1;
         GP_container_column();
         GP.LABEL(String("Board 0x") + i2c_boards_addrs[i]);
-        GP.CHECK(String("btarget/") + i, false);
+        GP.CHECK(String("btarget/") + i, targetBoard[i]);
         GP_block_end();
     }
     GP_container_column();
@@ -84,6 +85,7 @@ void GP_block_end() {
 void GP_container_column(const String& title) {
     String s;
     s += F("\n<div style='display: flex; flex-direction: column; ");
+    s += F("margin: 0 auto;");
     s += F("max-width: max-content; align-items: center; ");
     s += F("justify-content: space-around; padding: 1%;'>\n");
     if (title.length()) {
