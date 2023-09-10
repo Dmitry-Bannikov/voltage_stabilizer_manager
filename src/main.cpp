@@ -10,6 +10,7 @@ void setup() {
 }
 
 void loop() {
+	//comment for test
 	//boardTick();
 	memoryTick();
 	portalTick();
