@@ -16,14 +16,15 @@ GyverPortal ui(&LittleFS);
 void portalBuild() {
   //------------------------------------------//
 	GP.BUILD_BEGIN(900);
+	GP.ONLINE_CHECK(5000);
 	GP.THEME(GP_LIGHT);
 	String update;
-	for (int i = 0; i < gNumBoards; i++) {
+	for (int i = 0; i < board.size(); i++) {
 		update += "b_data/";
 		update += i;
 		update += ",";
 	}
-	for (int i = 0; i < gNumBoards; i++) {
+	for (int i = 0; i < board.size(); i++) {
 		update += "b_stat/";
 		update += i;
 		update += ",";
@@ -47,10 +48,11 @@ void portalBuild() {
 		GP.TITLE("Board Data and Stats");
 		GP.HR();
 		GP.BLOCK_BEGIN("Board Data");
-		if (gNumBoards == 0) {
+		if (board.size() == 0) {
 			M_BOX(GP_CENTER,
-				GP.LABEL("Плата не отвечает!");
-				GP.BUTTON("btn2", "Restart ESP");
+				GP.LABEL("Не обнаружено подключенных плат");
+				GP.BUTTON_MINI("btn2", "Перезагрузить \nESP");
+				GP.BUTTON_MINI("btn3", "Пересканировать");
 			);
 		}
 		GP_build_data();
@@ -126,13 +128,20 @@ GP.BUILD_END();
 }
 
 void portalActions(GyverPortal &p) {
+	if (!espStarted) {
+		espStarted = true;
+		ui.show();
+		
+	}
 	static uint8_t txSuccess = 0;
 	if (ui.clickUp("btn1")) {
 		recall(TRIMS);
 	}
-
 	if (ui.clickUp("btn2")) {
 		ESP.restart();
+	}
+	if (ui.clickUp("btn3")) {
+		scanNewBoards();
 	}
 
 	if (ui.update()) {
@@ -144,7 +153,7 @@ void portalActions(GyverPortal &p) {
 			}
 			txSuccess = 0;
 		}
-		for (int i = 0; i < gNumBoards; i++) {
+		for (int i = 0; i < board.size(); i++) {
 			String data_name = "b_data/";
 			String stat_name = "b_stat/";
 			data_name += i;
@@ -181,8 +190,8 @@ void portalActions(GyverPortal &p) {
 		for (int i = 0; i < 8; i++) {
 			p.copyInt(String("bset/")+i, gBoardSets[i]);
 		}
-		for (int i = 0; i < gNumBoards; i++) {
-			p.copyBool(String("btarget/")+i, targetBoard[i]);
+		for (int i = 0; i < board.size(); i++) {
+			p.copyBool(String("btarget/")+i, i2c_active_board[i]);
 		}
 		//сохраняем в епром
 		LED_switch(1);
@@ -192,7 +201,7 @@ void portalActions(GyverPortal &p) {
 		uint8_t attempts = 0;
 		//отправляем на плату
 		while (txSuccess != 2) {
-			for (int i = 0; i < gNumBoards || targetBoard[i] != 0; i++) {
+			for (int i = 0; i < board.size() || i2c_active_board[i] != 0; i++) {
 				uint8_t res1 = board[i].sendTrimmers(gTrimmers);
 				uint8_t res2 = board[i].sendBSets(gBoardSets);
 				if (!res1 && !res2) txSuccess = 2;
@@ -249,7 +258,7 @@ void portalInit() {
 void portalTick() {
 	static uint32_t tmr = 0;
 	if (millis() - tmr > 1000) {
-		for (int i = 0; i < gNumBoards; i++)
+		for (int i = 0; i < board.size(); i++)
 		{
 			board[i].getDataStr(gBoard_data[i]);
 			board[i].getStatisStr(gBoard_stat[i]);

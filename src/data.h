@@ -39,11 +39,14 @@ int32_t gBoardSets[8] = {-22, 22, 500, 2000, 40, 100, 150, 200};
 #define gBSets_mot3koef		gBoardSets[6]
 #define gBSets_mot4koef		gBoardSets[7]
 
-Board board[3];
-uint8_t gNumBoards = 0;
-uint8_t targetBoard[3] = {0};
-uint8_t i2c_boards_addrs[3] = {0};
+
+std::vector<Board> board;
+std::vector<uint8_t> i2c_boards;
+std::vector<uint8_t> i2c_other_addrs = {0x68};
+std::vector<uint8_t> i2c_active_board(3);
+
 uint32_t boards_worktime[3] = {0};
 
 String gBoard_data[3];
 String gBoard_stat[3];
+bool espStarted = false;
