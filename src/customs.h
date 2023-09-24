@@ -37,17 +37,17 @@ void GP_details_end() {
 }
 
 void GP_build_data() {
-	for (int i = 0; i < gNumBoards; i++) {
+	for (int i = 0; i < board.size(); i++) {
 		String text = "Board #";
-		text += String(i2c_boards_addrs[i], HEX);
+		text += String(i2c_boards[i], HEX);
 		GP.AREA(String("b_data/") + i, 6, text, "50");
 	}
 }
 
 void GP_build_stats() {
-	for (int i = 0; i < gNumBoards; i++) {
+	for (int i = 0; i < board.size(); i++) {
 		String text = "Board #";
-		text += String(i2c_boards_addrs[i], HEX);
+		text += String(i2c_boards[i], HEX);
 		GP.AREA(String("b_stat/") + i, 10, text, "50");
 	}
 }
@@ -55,17 +55,17 @@ void GP_build_stats() {
 void GP_target_set() {
     GP_container_column("Set target board:");
     GP_container_row();
-    for (int i = 0; i < gNumBoards; i++) {
-        targetBoard[i] = 1;
+    for (int i = 0; i < board.size(); i++) {
+        i2c_active_board[i] = 0;
         GP_container_column();
-        GP.LABEL(String("Board 0x") + i2c_boards_addrs[i]);
-        GP.CHECK(String("btarget/") + i, targetBoard[i]);
+        GP.LABEL(String("Board 0x") + i2c_boards[i]);
+        GP.CHECK(String("btarget/") + i, i2c_active_board[i]);
         GP_block_end();
     }
     GP_container_column();
     GP.SUBMIT_MINI("Save/Write");
 	GP.BUTTON_MINI("btn1", "Read Sets");
-	GP.RELOAD_CLICK("btn1");
+	GP.RELOAD_CLICK("btn1,btn3");
     GP_block_end();
 
     GP_block_end();//row
