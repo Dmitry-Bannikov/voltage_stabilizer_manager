@@ -3,10 +3,6 @@
 //
 /*методы библиотеки
 *!!!ВАЖНО!!! Ключи и команды должны соответствовать таким же ключам и командам в плате
-* Структура пакета:
-1) int32_t command || int32_t key;	//стартовый ключ или команда. По ним устройство понимает, что нужно делать с данными
-2) int32_t* data;					//данные
-3) int32_t terminator;				//завершающий ключ
 *
 *===Коды ошибок методов===
  0: Ошибок нет
@@ -20,20 +16,6 @@
 
 
 #include <Arduino.h>
-/*
-#define gStat_startkey				gStatis[0]
-#define gStat_output_max			gStatis[1]
-#define gStat_output_avg			gStatis[2]
-#define gStat_output_min			gStatis[3]
-#define gStat_input_max				gStatis[4]
-#define gStat_input_avg				gStatis[5]
-#define gStat_input_min				gStatis[6]
-#define gStat_load_max				gStatis[7]
-#define gStat_load_avg				gStatis[8]
-#define gStat_fullpwr_max			gStatis[9]
-#define gStat_fullpwr_avg			gStatis[10]
-#define gStat_errors				gStatis[11]
-*/
 
 
 #define I2C_DATA_START						0x30
@@ -49,12 +31,136 @@
 #define I2C_REQUEST_REBOOT					0x24
 #define I2C_REQUEST_NOREG					0x25
 
-#define RX_BUF_SIZE							20
-#define TX_BUF_SIZE							20
+#define RX_BUF_SIZE							100
+#define TX_BUF_SIZE							100
 
+struct data {
+	int16_t inputVoltage;
+	int16_t outputVoltage;
+	float 	outputCurrent;
+	float 	outputPower;
+	float 	cosfi;
+	uint32_t events;
+	uint8_t structSize;
+	uint8_t* buffer = nullptr;
+	data() {
+		structSize = offsetof(struct data, structSize);
+		buffer = new uint8_t[structSize];
+		cosfi = 1.0;
+	}
+	void packData() {
+		memcpy(buffer, (uint8_t*)&inputVoltage, structSize);
+	}
+	void unpackData() {
+		memcpy((uint8_t*) &inputVoltage, buffer, structSize);
+	}
+};
 
+struct stats {
+	uint32_t workTimeMins;
+	uint32_t boardEvents;
+	int16_t outVoltMax;
+	int16_t outVoltAvg;
+	int16_t outVoltMin;
+	int16_t inVoltMax;
+	int16_t inVoltAvg;
+	int16_t inVoltMin;
+	float 	outLoadMax;
+	float 	outLoadAvg;
+	float	powerMax;
+	float 	powerAvg;
+	uint8_t structSize;
+	uint8_t* buffer = nullptr;
+	stats() {
+		structSize = offsetof(struct stats, structSize);
+		buffer = new uint8_t[structSize];
+	}
+	void packData() {
+		memcpy(buffer, (uint8_t*)&workTimeMins, structSize);
+	}
+	void unpackData() {
+		memcpy((uint8_t*) &workTimeMins, buffer, structSize);
+	}
+};
 
+//----------------------BOARD MAIN SETS----------------------//
+struct mainsets {
+	int16_t ignoreSetsFlag;		//игнорировать настройки с платы (0...1)
+	int16_t precision;			//точность/гистерезис (1...6)
+	int16_t tuneInVolt;			//подстройка входа (-6...6)
+	int16_t tuneOutVolt;		//подстройка выхода (-6...6)
+	int16_t targetVolt;			//целевое напряжение (210, 220, 230, 240)
+	int16_t relaySet;			//поведение реле (0...2)
+	int16_t motorType;			//тип мотора (0...3)
+	int16_t transRatio;			//коэффициент трансворматора тока
+	uint8_t structSize;
 
+	int16_t motorStartPwr;
+	int16_t motorMaxCurr;
+
+	uint8_t *buffer = nullptr;
+	mainsets() {
+		structSize = offsetof(struct mainsets, structSize); //вычисляем размер структуры
+		buffer = new uint8_t[structSize];					//выделяем место под буфер
+		ignoreSetsFlag = DEF_IGNORE_SETS_FLG;
+		precision = DEF_TRIM_PRECISION;
+		tuneInVolt = DEF_TRIM_TUNEIN;
+		tuneOutVolt = DEF_TRIM_TUNEOUT;
+		targetVolt = DEF_TRIM_TARGETVOLT;
+		relaySet = DEF_TRIM_RELSET;
+		motorType = DEF_TRIM_MOTTYPE;
+		transRatio = DEF_TRIM_TCRATIO;
+		motorStartPwr = 100;
+		motorMaxCurr = 3000;
+	}
+	void packData() {
+		memcpy(buffer, (uint8_t*) &ignoreSetsFlag, structSize);
+	}
+	void unpackData() {
+		memcpy((uint8_t*) &ignoreSetsFlag, buffer, structSize);
+	}
+};
+
+struct addsets {
+	int16_t minVoltRelative;	//мин напряжение относительно целевого
+	int16_t maxVoltRelative;	//макс напряжение относительно целевого
+	uint16_t emergencyTOFF;		//время аварийного отключения
+	uint16_t emergencyTON;		//время включения после аварии
+	uint16_t motKoef_0;			//коэффициент мощности мотора в %
+	uint16_t motKoef_1;
+	uint16_t motKoef_2;
+	uint16_t motKoef_3;
+	uint8_t structSize;
+	int16_t motorDefPwr;
+	uint8_t *buffer = nullptr;
+	addsets() {
+		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
+		buffer = new uint8_t[structSize];//выделяем место под буфер
+		minVoltRelative = DEF_VMIN_TERM;
+		maxVoltRelative = DEF_VMAX_TERM;
+		emergencyTOFF = DEF_EMERG_TIMEOFF;
+		emergencyTON = DEF_EMERG_TIMEON;
+		motKoef_0 = DEF_MOTOR0_KOEF;
+		motKoef_1 = DEF_MOTOR1_KOEF;
+		motKoef_2 = DEF_MOTOR2_KOEF;
+		motKoef_3 = DEF_MOTOR3_KOEF;
+		motorDefPwr = 100;
+	}
+	void packData() {
+		memcpy(buffer, (uint8_t*) &minVoltRelative, structSize);
+	}
+	void unpackData() {
+		memcpy((uint8_t*) &minVoltRelative, buffer, structSize);
+	}
+};
+
+struct boardData
+{
+	data mainData;
+	stats mainStats;
+	mainsets mainSets;
+	addsets addSets;
+};
 
 class Board
 {
@@ -63,9 +169,9 @@ private:
 		RXBUF,
 		TXBUF
 	};
-
-	int32_t _txbuffer[TX_BUF_SIZE];
-	int32_t _rxbuffer[RX_BUF_SIZE];
+	
+	int8_t _txbuffer[TX_BUF_SIZE];
+	int8_t _rxbuffer[RX_BUF_SIZE];
 	uint8_t _board_addr = 0;
 	const int32_t _flush_val = 0;
 	const int _poll = 500;
@@ -100,8 +206,10 @@ public:
 	void 	getStatisStr(String& out);
 	void 	tick();
 	void 	detach();
-
 	~Board();
+	boardData bdata;
+
+
 };
 
 
