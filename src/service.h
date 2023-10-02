@@ -52,8 +52,6 @@ void connectionInit() {
 	board.emplace_back(0x10);
 	board.emplace_back(0x12);
 	#endif
-	Serial.print("Boards found: ");
-	Serial.println(board.size());
 }
 
 void memoryInit() {
@@ -70,11 +68,15 @@ void boardTick() {
 		board[i].tick();
 	}
 	if (millis() -  tmr > 60000) {
-		//scanNewBoards();
+		scanNewBoards();
 		tmr = millis();
 	}
 }
 
 void scanNewBoards() {
+	static uint8_t old_amount = 2; 
 	Board::scanBoards(board, MAX_BOARDS);
+	if (old_amount != board.size()) {
+		webRefresh = true;
+	}
 }

@@ -40,21 +40,21 @@ void GP_data_build() {
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 		GP.TITLE("Не обнаружено подключенных плат!");
 		M_BOX(
-			GP.BUTTON("rst_btn", "Перезапустить ESP");
-			GP.BUTTON("scan_btn", "Пересканировать платы");
+			GP.BUTTON("rst_btn", "Перезапустить\n систему");
+			GP.BUTTON("scan_btn", "Пересканировать\n платы");
 		);
 		GP.BLOCK_END();
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
-			GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.BLOCK_BEGIN(GP_DIV_RAW, "31%");
 			String value;
 			if (board[i].getLiteral() == "") {
 				value = String(board[i].getAddress());
 			} else {
 				value = board[i].getLiteral();
 			}
-			GP.AREA(String("b_data/")+i, 6, String("Плата ") + value, "100px");
-			GP.AREA(String("b_stat/")+i, 7, String("Плата ")+ value, "100px");
+			GP.AREA(String("b_data/")+i, 6, String("Плата ") + value);
+			GP.AREA(String("b_stat/")+i, 7, String("Плата ")+ value);
 			GP.BLOCK_END();
 		}
 	}
@@ -75,11 +75,19 @@ void GP_target_build() {
 				list += "),";
 			}
 			list.remove(list.length() - 1);
-			GP.SELECT("b_sel", list, activeBoard, 0, 0, 1);
+			if (board.size() > 0) {
+				GP.SELECT("b_sel", list, activeBoard, 0, 0, 1);
+			}
+			
         GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.BUTTON("svlit_btn", "Сохранить");
+			if (board.size() > 0) {
+				GP.BUTTON("svlit_btn", "Сохранить");
+			} else {
+				GP.TITLE("Не обнаружено подключенных плат!");
+			}
+			
 			GP.RELOAD("reload");
 		GP.BLOCK_END();
 

@@ -2,19 +2,19 @@
 #include <EEManager.h>
 #include <Board.h>
 
-//#define RELEASE
+#define RELEASE
 
-#define AP_DEFAULT_SSID     "Stab_AP_FREE"            // Стандартное имя точки доступа ESP (До 20-ти символов)
-#define AP_DEFAULT_PASS     ""                      // Стандартный пароль точки доступа ESP (До 20-ти символов)
+#define AP_DEFAULT_SSID     "Stab_AP_FREE"			// Стандартное имя точки доступа ESP (До 20-ти символов)
+#define AP_DEFAULT_PASS     ""						// Стандартный пароль точки доступа ESP (До 20-ти символов)
 #ifdef RELEASE
-#define STA_DEFAULT_SSID    ""                      // Стандартное имя точки доступа роутера (До 20-ти символов)
-#define STA_DEFAULT_PASS    ""                      // Стандартный пароль точки доступа роутера (До 20-ти символов)
-#define STA_CONNECT_EN      0                       // 1/0 - вкл./выкл. подключение к роутеру 
+#define STA_DEFAULT_SSID    "honda"					// Стандартное имя точки доступа роутера (До 20-ти символов)
+#define STA_DEFAULT_PASS    "orteamoscow"			// Стандартный пароль точки доступа роутера (До 20-ти символов)
+#define STA_CONNECT_EN      1						// 1/0 - вкл./выкл. подключение к роутеру 
+#else
+#define STA_DEFAULT_SSID    "" 
+#define STA_DEFAULT_PASS    "" 
+#define STA_CONNECT_EN      0 
 #endif
-#define STA_DEFAULT_SSID    ""                      // Стандартное имя точки доступа роутера (До 20-ти символов)
-#define STA_DEFAULT_PASS    ""                      // Стандартный пароль точки доступа роутера (До 20-ти символов)
-#define STA_CONNECT_EN      1                       // 1/0 - вкл./выкл. подключение к роутеру 
-
 #define MEMORY_KEY          126                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
 
 struct wifisets {                                   // Структура со всеми настройками wifi

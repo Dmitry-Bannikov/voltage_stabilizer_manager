@@ -262,30 +262,28 @@ U выход  |
 	s += F("\nWork T: ");
 	s += getWorkTime(mainStats.workTimeMins);
 
-	s += F("\n           M  A  m");
-
 	s += F("\nU вход   | ");
 	s += String(mainStats.outVoltMax);
-	s += F("  ");
+	s += F("| ");
 	s += String(mainStats.outVoltAvg);
-	s += F("  ");
+	s += F("| ");
 	s += String(mainStats.outVoltMin);
 
 	s += F("\nU выход  | ");
 	s += String(mainStats.inVoltMax);
-	s += F("  ");
+	s += F("| ");
 	s += String(mainStats.inVoltAvg);
-	s += F("  ");
+	s += F("| ");
 	s += String(mainStats.inVoltMin);
 
 	s += F("\nВых. ток | ");
 	s += String(mainStats.outLoadMax, 1);
-	s += F("  ");
+	s += F("| ");
 	s += String(mainStats.outLoadAvg, 1);
 
 	s += F("\nМощность | ");
 	s += String(maxPwr,1);
-	s += F("  ");
+	s += F("| ");
 	s += String(avgPwr,1);
 
 	s += F("\nСобытия  | ");

@@ -18,10 +18,12 @@ void setup() {
 void loop() {
 	boardTick();
 	portalTick();
-	if (WiFi.status() == WL_CONNECTED) {
+	if (WiFi.status() == WL_CONNECTED && WiFi.getMode() == WIFI_STA) {
 		LED_blink(100, 2000);
-	} else {
+	} else if (WiFi.getMode() == WIFI_AP){
 		LED_blink(1000);
+	} else {
+		LED_blink(200);
 	}
 	#ifdef RELEASE
 	esp_task_wdt_reset();

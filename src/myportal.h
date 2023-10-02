@@ -121,7 +121,7 @@ void portalInit() {
 	}
 	ui.attachBuild(portalBuild);
 	ui.attach(portalActions);
-	ui.start("stab_stm32");
+	ui.start("stab_webserver");
 	Serial.println(WiFi.localIP());
 	ui.enableOTA("admin", "012343210");
 }
@@ -197,7 +197,7 @@ void clicksHandler() {
 		String liter = ui.getString();
 		board[num].setLiteral(liter);
 	}
-	
+
 	ui.clickInt("b_sel", activeBoard);
 	ui.clickBool("mset_ignor", board[activeBoard].mainSets.ignoreSetsFlag);
 	ui.clickInt("mset_trgtV", board[activeBoard].mainSets.targetVolt);
