@@ -1,19 +1,29 @@
 #include <Arduino.h>
-#include <portal.h>
+#include <myportal.h>
 #include <service.h>
+#ifdef RELEASE
 #include <esp_task_wdt.h>
+#endif
 
 void setup() {
 	connectionInit();
 	memoryInit();
 	portalInit();
-	esp_task_wdt_init(5, true);
+	#ifdef RELEASE
+	esp_task_wdt_init(20, true);
 	esp_task_wdt_add(NULL);
+	#endif
 }
 
 void loop() {
 	boardTick();
-	memoryTick();
 	portalTick();
+	if (WiFi.status() == WL_CONNECTED) {
+		LED_blink(100, 2000);
+	} else {
+		LED_blink(1000);
+	}
+	#ifdef RELEASE
 	esp_task_wdt_reset();
+	#endif
 }

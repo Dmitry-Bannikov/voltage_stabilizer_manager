@@ -16,33 +16,35 @@
 
 
 #include <Arduino.h>
-
+#include <EEManager.h>
+#include <vector>
 
 #define I2C_DATA_START						0x30
-#define I2C_TRIM_START						0x35
-#define I2C_BSET_START						0x40
+#define I2C_MAINSETS_START					0x35
+#define I2C_ADDSETS_START					0x40
 #define I2C_STAT_START						0x45
-#define I2C_SET_STARTKEY					0x50
-#define I2C_TERMINATOR						-255
 
-#define I2C_REQUEST_TRIMS					0x21
-#define I2C_REQUEST_DATA					0x22
-#define I2C_REQUEST_STAT					0x23
-#define I2C_REQUEST_REBOOT					0x24
-#define I2C_REQUEST_NOREG					0x25
+#define I2C_REQUEST_MAINSETS				0x21
+#define I2C_REQUEST_ADDSETS					0x22
+#define I2C_REQUEST_DATA					0x23
+#define I2C_REQUEST_STAT					0x24
+#define I2C_REQUEST_REBOOT					0x25
+#define I2C_REQUEST_NOREG					0x26
+#define I2C_REQUEST_SMARTCONNECT			0x27
 
 #define RX_BUF_SIZE							100
 #define TX_BUF_SIZE							100
 
 struct data {
-	int16_t inputVoltage;
-	int16_t outputVoltage;
-	float 	outputCurrent;
-	float 	outputPower;
-	float 	cosfi;
-	uint32_t events;
-	uint8_t structSize;
-	uint8_t* buffer = nullptr;
+	int16_t 	inputVoltage;
+	int16_t 	outputVoltage;
+	float 		outputCurrent;
+	float 		outputPower;
+	float 		cosfi;
+	uint32_t 	events;
+	uint8_t 	structSize;
+	String 		Str;
+	uint8_t* 	buffer = nullptr;
 	data() {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
@@ -57,19 +59,20 @@ struct data {
 };
 
 struct stats {
-	uint32_t workTimeMins;
-	uint32_t boardEvents;
-	int16_t outVoltMax;
-	int16_t outVoltAvg;
-	int16_t outVoltMin;
-	int16_t inVoltMax;
-	int16_t inVoltAvg;
-	int16_t inVoltMin;
-	float 	outLoadMax;
-	float 	outLoadAvg;
-	float	powerMax;
-	float 	powerAvg;
-	uint8_t structSize;
+	uint32_t 	workTimeMins;
+	uint32_t 	boardEvents;
+	int16_t 	outVoltMax;
+	int16_t 	outVoltAvg;
+	int16_t 	outVoltMin;
+	int16_t 	inVoltMax;
+	int16_t 	inVoltAvg;
+	int16_t 	inVoltMin;
+	float 		outLoadMax;
+	float 		outLoadAvg;
+	float		powerMax;
+	float 		powerAvg;
+	uint8_t 	structSize;
+	String  	Str;
 	uint8_t* buffer = nullptr;
 	stats() {
 		structSize = offsetof(struct stats, structSize);
@@ -102,14 +105,14 @@ struct mainsets {
 	mainsets() {
 		structSize = offsetof(struct mainsets, structSize); //вычисляем размер структуры
 		buffer = new uint8_t[structSize];					//выделяем место под буфер
-		ignoreSetsFlag = DEF_IGNORE_SETS_FLG;
-		precision = DEF_TRIM_PRECISION;
-		tuneInVolt = DEF_TRIM_TUNEIN;
-		tuneOutVolt = DEF_TRIM_TUNEOUT;
-		targetVolt = DEF_TRIM_TARGETVOLT;
-		relaySet = DEF_TRIM_RELSET;
-		motorType = DEF_TRIM_MOTTYPE;
-		transRatio = DEF_TRIM_TCRATIO;
+		ignoreSetsFlag = 0;
+		precision = 3;
+		tuneInVolt = 0;
+		tuneOutVolt = 0;
+		targetVolt = 220;
+		relaySet = 1;
+		motorType = 1;
+		transRatio = 60;
 		motorStartPwr = 100;
 		motorMaxCurr = 3000;
 	}
@@ -136,15 +139,16 @@ struct addsets {
 	addsets() {
 		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
 		buffer = new uint8_t[structSize];//выделяем место под буфер
-		minVoltRelative = DEF_VMIN_TERM;
-		maxVoltRelative = DEF_VMAX_TERM;
-		emergencyTOFF = DEF_EMERG_TIMEOFF;
-		emergencyTON = DEF_EMERG_TIMEON;
-		motKoef_0 = DEF_MOTOR0_KOEF;
-		motKoef_1 = DEF_MOTOR1_KOEF;
-		motKoef_2 = DEF_MOTOR2_KOEF;
-		motKoef_3 = DEF_MOTOR3_KOEF;
+		minVoltRelative = -22;
+		maxVoltRelative = 22;
+		emergencyTOFF = 500;
+		emergencyTON = 2000;
+		motKoef_0 = 40;
+		motKoef_1 = 100;
+		motKoef_2 = 150;
+		motKoef_3 = 200;
 		motorDefPwr = 100;
+		packData();
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*) &minVoltRelative, structSize);
@@ -154,61 +158,89 @@ struct addsets {
 	}
 };
 
-struct boardData
-{
-	data mainData;
-	stats mainStats;
-	mainsets mainSets;
-	addsets addSets;
-};
+
+
+
+// =======================================================================================//
+
 
 class Board
 {
 private:
+	enum Error_type {
+		ERR_NO = 0,
+		ERR_INIT,
+		ERR_CONNECT,
+		ERR_TIMEOUT,
+		ERR_STARTCODE
+	};
+	enum EventsFormat {
+		EVENTS_FULL,
+		EVENTS_SHORT
+	};
 	enum BufferType {
 		RXBUF,
 		TXBUF
 	};
-	
-	int8_t _txbuffer[TX_BUF_SIZE];
-	int8_t _rxbuffer[RX_BUF_SIZE];
+	EEManager memMainSets;
+	EEManager memAddSets;
+
+	String _literal = "";
+	uint8_t _txbuffer[100];
+	uint8_t _rxbuffer[100];
 	uint8_t _board_addr = 0;
-	const int32_t _flush_val = 0;
-	const int _poll = 500;
+	static const int _poll = 500;
 	bool startFlag = false;
-	int32_t _workTime_mins = 0;
 	uint32_t _dataUpdatePrd = 1000UL;		//период обновления значений
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
+	bool _active = false;
+	uint8_t _disconnected = 0;
+	uint16_t _memoryAddr = 0;
+	uint8_t _memoryKey = 1;
 
 	void flush(BufferType type);
 	bool pollForDataRx();
-	uint8_t getStatisRaw(int32_t* arr, size_t size = 12);
-	uint8_t getDataRaw(int32_t* arr, size_t size = 5);
-	static String errorsToStr(const int32_t errors);
-	static String getWorkTime(const uint32_t mins);
+	uint8_t getStatisRaw();
+	uint8_t getDataRaw();
+	String errorsToStr(const int32_t errors, EventsFormat f);
+	String getWorkTime(const uint32_t mins);
 	
 public:
-	Board();
-	Board(const uint8_t addr);
-	bool 	attach(const uint8_t addr);								//подключить плату (указать адрес)
-	bool 	isOnline();												//проверить, онлайн ли плата
-	uint8_t getAddress();											//получить адрес платы		
-	void 	setAddress(const uint8_t addr);							//установить адрес плате
-	uint8_t 	getData(int32_t* arr, size_t size = 5);				//получить данные с платы
-	uint8_t 	getTrimmers(int32_t* arr, size_t size = 8);			//получить триммеры с платы
-	uint8_t 	getStatis(int32_t* arr, size_t size = 12);			//получить статистику
-	uint8_t 	sendTrimmers(int32_t* arr, size_t size = 8);		//отправить триммеры
-	uint8_t 	sendBSets(int32_t* arr, size_t size = 8);			//отправить настройки
-	uint8_t		reboot();									//перезагрузить плату
-	uint8_t 	toggleRegulation();							//вкл/откл регуляцию напряжения
-	int32_t 	getWorkTime();
-	void 	getDataStr(String& out);
-	void 	getStatisStr(String& out);
-	void 	tick();
-	void 	detach();
-	~Board();
-	boardData bdata;
+	Board() : memMainSets(mainSets.buffer), memAddSets(addSets.buffer) {attach(0x10);}
+	Board(const uint8_t addr)  : memMainSets(mainSets.buffer), memAddSets(addSets.buffer) {attach(addr);};
+	bool 		attach(const uint8_t addr);								//подключить плату (указать адрес)
+	static bool isBoard(const uint8_t addr);
+	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);
+	bool 		isOnline();												//проверить, онлайн ли плата
+	uint8_t 	getAddress() {return _board_addr;};							//получить адрес платы		
+	bool 		setAddress(const uint8_t addr) ;							//установить адрес плате
+	void 		setMemAddr(uint16_t memaddr) { _memoryAddr = memaddr;}
+	uint16_t 	getEndMemAddr() { return _memoryAddr + memMainSets.blockSize() + memAddSets.blockSize(); };
+	void 		setMemoryKey(const uint8_t key) { _memoryKey = key; }
 
+	void 		saveSettings();
+	void 		readSettings();
+	uint8_t 	getData();												//получить данные с платы
+	uint8_t 	getMainSets();											//получить осн настройки с платы
+	uint8_t 	getAddSets();											//получить доп настройки с платы
+	uint8_t 	getStatis();											//получить статистику
+	uint8_t 	sendMainSets();											//отправить триммеры
+	uint8_t 	sendAddSets();											//отправить настройки
+	uint8_t		reboot();												//перезагрузить плату
+	uint8_t 	toggleRegulation();										//вкл/откл регуляцию напряжения
+	void 		getDataStr();
+	void 		getStatisStr();
+	String 		getLiteral() {return _literal;};
+	void 		setLiteral(String lit) {_literal = lit;};
+	void 		tick();
+	void 		detach();
+	~Board();
+
+	data mainData;
+	stats mainStats;
+	mainsets mainSets;
+	addsets addSets;
+	
 
 };
 

@@ -4,12 +4,6 @@
 
 //==================Public=================//
 
-Board::Board(){}
-
-Board::Board(const uint8_t addr)
-{
-	attach(addr);
-}
 
 bool Board::attach(const uint8_t addr) {
 	if (addr == 0 || addr > 127) return false;
@@ -19,158 +13,198 @@ bool Board::attach(const uint8_t addr) {
 	return isOnline();
 }
 
+bool Board::isBoard(uint8_t addr) {
+	Wire.clearWriteError();
+	Wire.beginTransmission(addr);
+	if (Wire.endTransmission()) return false;
+
+	uint8_t txbuf[100] = {0x20, 0};
+	uint8_t rxbuf[100] = {0};
+	Wire.beginTransmission(addr);
+	Wire.write(txbuf,100);
+	uint8_t err = Wire.endTransmission();
+	if (err != 0) return false;
+	Wire.requestFrom(addr, (size_t)100);
+	uint32_t tmr = millis();
+	while (millis() - tmr < 50) {
+		if (Wire.available()) {
+			Wire.readBytes(rxbuf, 100);
+			if (*rxbuf == 0xFF) return true;
+			else return false;	
+		}	
+		yield();
+	}
+	return false;
+}
+
 bool Board::isOnline() {
+	Wire.clearWriteError();
 	Wire.beginTransmission(_board_addr);
-	bool error = !!Wire.endTransmission();	//если вернет > 1, то будет true
-	return !error;							//нужно вернуть значение обратное ошибке
+	uint8_t error = Wire.endTransmission();	
+	if (error && _disconnected > 3) {
+		return false;
+	}
+	_disconnected = 0;
+	return true;							
 }
 
-uint8_t Board::getAddress() {
-	return _board_addr;
-}
-
-void Board::setAddress(const uint8_t addr) {
+bool Board::setAddress(const uint8_t addr) {
+	if (addr == 0 || addr > 127) return false;
 	_board_addr = addr;
+	return true;
 }
 
-uint8_t Board::getDataRaw(int32_t* arr, size_t size) {
-	if (!startFlag) return 1;
+uint8_t Board::getDataRaw() {
+	if (!startFlag) return ERR_INIT;
 	flush(TXBUF);
 	*_txbuffer = I2C_REQUEST_DATA;
+	Wire.clearWriteError();
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+	if (error != 0) return ERR_CONNECT;
 	flush(RXBUF);
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
-	uint8_t* p = reinterpret_cast<uint8_t*>(_rxbuffer);
 	if (pollForDataRx()) {
-		Wire.readBytes(p, sizeof(_rxbuffer));
+		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return 3;
+		return ERR_TIMEOUT;
 	}
-	if (*_rxbuffer != I2C_DATA_START) return 4;
-	for (int i = 1; i <= size || _rxbuffer[i] != I2C_TERMINATOR; i++) { 
-		arr[i - 1] = _rxbuffer[i];
-	}
-	return 0;
+	if (*_rxbuffer != I2C_DATA_START) return ERR_STARTCODE;
+	memcpy(mainData.buffer, _rxbuffer + 1, mainData.structSize);
+	mainData.unpackData();
+	return ERR_NO;
 }
 
-uint8_t Board::getTrimmers(int32_t* arr, size_t size) {
-	if (!startFlag) return 1;
+uint8_t Board::getMainSets() {
+	if (!startFlag) return ERR_INIT;
 	flush(TXBUF);
-	*_txbuffer = I2C_REQUEST_TRIMS;
+	*_txbuffer = I2C_REQUEST_MAINSETS;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+	if (error != 0) return ERR_CONNECT;
 	flush(RXBUF);
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
-	uint8_t* p = reinterpret_cast<uint8_t*>(_rxbuffer);
 	if (pollForDataRx()) {
-		Wire.readBytes(p, sizeof(_rxbuffer));
+		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return 3;
+		return ERR_TIMEOUT;
 	}
-	if (*_rxbuffer != I2C_TRIM_START) return 4;
-	for (int i = 1; i <= size || _rxbuffer[i] != I2C_TERMINATOR; i++) { 
-		arr[i - 1] = _rxbuffer[i];
-	}
-	return 0;
+	if (*_rxbuffer != I2C_MAINSETS_START) return ERR_STARTCODE;
+	memcpy(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
+	mainSets.unpackData();
+	return ERR_NO;
 }
 
-uint8_t Board::getStatisRaw(int32_t* arr, size_t size) {
+uint8_t Board::getAddSets() {
+	if (!startFlag) return ERR_INIT;
+	flush(TXBUF);
+	*_txbuffer = I2C_REQUEST_ADDSETS;
+	Wire.beginTransmission(_board_addr);
+	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
+	uint8_t error = Wire.endTransmission();
+	if (error != 0) return ERR_CONNECT;
+	flush(RXBUF);
+	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
+	if (pollForDataRx()) {
+		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
+	} else {
+		return ERR_TIMEOUT;
+	}
+	if (*_rxbuffer != I2C_ADDSETS_START) return ERR_STARTCODE;
+	memcpy(addSets.buffer, _rxbuffer + 1, addSets.structSize);
+	addSets.unpackData();
+	return ERR_NO;
+}
+
+uint8_t Board::getStatisRaw() {
+	Wire.clearWriteError();
 	flush(TXBUF);
 	*_txbuffer = I2C_REQUEST_STAT;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+	if (error != 0) return ERR_CONNECT;
 	flush(RXBUF);
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
-	uint8_t* p = reinterpret_cast<uint8_t*>(_rxbuffer);
 	if (pollForDataRx()) {
-		Wire.readBytes(p, sizeof(_rxbuffer));
+		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return 3;
+		return ERR_TIMEOUT;
 	}
-	if (*_rxbuffer != I2C_STAT_START) return 4;
-	for (int i = 1; i <= size || _rxbuffer[i] != I2C_TERMINATOR; i++) { 
-		arr[i - 1] = _rxbuffer[i];
-	}
-	return 0;
+	if (*_rxbuffer != I2C_STAT_START) return ERR_STARTCODE;
+	memcpy(mainStats.buffer, _rxbuffer + 1, mainStats.structSize);
+	mainStats.unpackData();
+	return ERR_NO;
 }
 
-uint8_t Board::getStatis(int32_t* arr, size_t size ) {
-	if (!startFlag) return 1;
+uint8_t Board::getStatis() {
+	if (!startFlag) return ERR_INIT;
 	static uint32_t last_update = 0;
-	static int32_t statis[12] = {0};
-	int error = 0;
+	uint8_t error = 0;
 	if (millis() - last_update >= _statisUpdatePrd) {
-		error = getStatisRaw(statis);
-		_workTime_mins = statis[0];
+		error = getStatisRaw();
+		getStatisStr();
 		last_update = millis();
-	}
-	for (int i = 0; i < size; i++) {
-		arr[i] = statis[i];
+		
 	}
 	return error;
 	
 }
 
-uint8_t Board::getData(int32_t* arr, size_t size) {
-	if (!startFlag) return 1;
+uint8_t Board::getData() {
+	if (!startFlag) return ERR_INIT;
 	static uint32_t last_update = 0;
-	static int32_t data[5] = {0};
-	int error = 0;
+	uint8_t error = 0;
 	if (millis() - last_update >= _dataUpdatePrd) {
-		error = getDataRaw(data);
-	}
-	for (int i = 0; i < size; i++) {
-		arr[i] = data[i];
+		error = getDataRaw();
+		getDataStr();
+		last_update = millis();
+		if (error) {
+			_disconnected++;
+		} else {
+			_disconnected = 0;
+		}
 	}
 	return error;
 }
 
-uint8_t Board::sendTrimmers(int32_t* arr, size_t size) {
-	if (!startFlag) return 1;
+uint8_t Board::sendMainSets() {
+	if (!startFlag) return ERR_INIT;
 	flush(TXBUF);
-	*_txbuffer = I2C_TRIM_START;
-	for (int i = 1; i <= size; i++) {
-		_txbuffer[i] = arr[i - 1];
-	}
-	_txbuffer[size + 1] = I2C_TERMINATOR;
+	*_txbuffer = I2C_MAINSETS_START;
+	mainSets.packData();
+	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
 	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
+	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
-	return 0;
+	if (error != 0) return ERR_CONNECT;
+	return ERR_NO;
 }
 
-uint8_t Board::sendBSets(int32_t* arr, size_t size) {
-	if (!startFlag) return 1;
+uint8_t Board::sendAddSets() {
+	if (!startFlag) return ERR_INIT;
 	flush(TXBUF);
-	*_txbuffer = I2C_BSET_START;
-	for (int i = 1; i <= size; i++) {
-		_txbuffer[i] = arr[i - 1];
-	}
-	_txbuffer[size + 1] = I2C_TERMINATOR;
+	*_txbuffer = I2C_ADDSETS_START;
+	addSets.packData();
+	memcpy(_txbuffer+1, addSets.buffer, addSets.structSize);
 	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
+	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
-	return 0;
+	if (error != 0) return ERR_CONNECT;
+	return ERR_NO;
 }
 
 uint8_t Board::reboot() {
-	if (!startFlag) return 1;
+	if (!startFlag) return ERR_INIT;
 	flush(TXBUF);
 	*_txbuffer = I2C_REQUEST_REBOOT;
 	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
+	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
-	return 0;
+	if (error != 0) return ERR_CONNECT;
+	return ERR_NO;
 }
 
 uint8_t Board::toggleRegulation() {
@@ -178,93 +212,126 @@ uint8_t Board::toggleRegulation() {
 	flush(TXBUF);
 	*_txbuffer = I2C_REQUEST_NOREG;
 	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
+	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
 	if (error != 0) return 2;
 	return 0;
 }
 
-void Board::getDataStr(String& out) {
-	int32_t gData[5] = {0};
-	getData(gData);
-	float fullPwr_kVA = (float)(gData[4])/1000.0;
-	float load_Amps = (float)(gData[2])/1000.0;
-
+void Board::getDataStr() {
+	float full_pwr = mainData.outputPower/mainData.cosfi/1000.0;
 	String s = "";
-	s += F(" Board Data: 0x");
+	s += F(" Данные: ");
+	s += _literal;
+	s += F(", 0x");
 	s += String(_board_addr, HEX);
-	s += F("\nInput V    : ");
-	s += String(gData[0]);
-	s += F("\nOutput V   : ");
-	s += String(gData[1]);
-	s += F("\nOutput Load: ");
-	s += String(load_Amps, 1);
-	s += F("\nFull Power : ");
-	s += String(fullPwr_kVA, 1);
-	s += F("\nErrors     : ");
-	s += errorsToStr(gData[3]);
-	out = s;
+	s += F("\nU вход   : ");
+	s += String(mainData.inputVoltage);
+	s += F("\nU выход  : ");
+	s += String(mainData.outputVoltage);
+	s += F("\nI выход  : ");
+	s += String(mainData.outputCurrent, 1);
+	s += F("\nP полн.  : ");
+	s += String(full_pwr, 1);
+	s += F("\nP актив. : ");
+	s += String(mainData.outputPower/1000.0, 1);
+	s += F("\nСобытия  : ");
+	s += errorsToStr(mainData.events, EVENTS_FULL);
+	mainData.Str = s;
 }
 
-void Board::getStatisStr(String& out) {
-	int32_t gStatis[12] = {0};
-	getStatis(gStatis);
+void Board::getStatisStr() {
+/*
+
+            Max	Avg	Min
+U вход   |	220	220	220
+U выход  | 
+Вых. Ток |	
+Мощность |
+События  | A01, A03, A04
+
+*/
+
+	float maxPwr = mainStats.powerMax/1000.0;
+	float avgPwr = mainStats.powerAvg/1000.0;
 	String s = "";
-	s += F(" Board Stats: 0x");
+	s += F("Cтат. : ");
+	s += _literal;
+	s += F(", 0x");
 	s += String(_board_addr, HEX);
 	s += F("\nWork T: ");
-	s += getWorkTime(_workTime_mins);
-	s += F("\nMax output V : ");
-	s += String(gStatis[1]);
-	s += F("\nAvg output V : ");
-	s += String(gStatis[2]);
-	s += F("\nMin output V : ");
-	s += String(gStatis[3]);
+	s += getWorkTime(mainStats.workTimeMins);
 
-	s += F("\nMax input V  : ");
-	s += String(gStatis[4]);
-	s += F("\nAvg input V  : ");
-	s += String(gStatis[5]);
-	s += F("\nMin input V  : ");
-	s += String(gStatis[6]);
+	s += F("\n           M  A  m");
 
-	float max_load = (float)(gStatis[7])/1000.0;
-	float avg_load = (float)(gStatis[8])/1000.0;
-	s += F("\nMax load A   : ");
-	s += String(max_load, 1);
-	s += F("\nAvg load A   : ");
-	s += String(avg_load, 1);
+	s += F("\nU вход   | ");
+	s += String(mainStats.outVoltMax);
+	s += F("  ");
+	s += String(mainStats.outVoltAvg);
+	s += F("  ");
+	s += String(mainStats.outVoltMin);
+
+	s += F("\nU выход  | ");
+	s += String(mainStats.inVoltMax);
+	s += F("  ");
+	s += String(mainStats.inVoltAvg);
+	s += F("  ");
+	s += String(mainStats.inVoltMin);
+
+	s += F("\nВых. ток | ");
+	s += String(mainStats.outLoadMax, 1);
+	s += F("  ");
+	s += String(mainStats.outLoadAvg, 1);
+
+	s += F("\nМощность | ");
+	s += String(maxPwr,1);
+	s += F("  ");
+	s += String(avgPwr,1);
+
+	s += F("\nСобытия  | ");
+	s += errorsToStr(mainStats.boardEvents, EVENTS_SHORT);
 	
-	float max_pwr = (float)(gStatis[9])/1000.0;
-	float avg_pwr = (float)(gStatis[10])/1000.0;
-	s += F("\nMax power    : ");
-	s += String(max_pwr, 1);
-	s += F("\nAvg power    : ");
-	s += String(avg_pwr, 1);
-
-	s += F("\nErrors: ");
-	s += errorsToStr(gStatis[11]);
-	out = s;
+	mainStats.Str = s;
 }
 
 void Board::tick() {
 	static uint32_t tmr = 0;
-	if (millis() - tmr > 1000) {
-		int32_t statis[12];
-		getStatis(statis);
+	memMainSets.tick();
+	memAddSets.tick();
+	if (millis() - tmr >= 1000) {
+		getData();
+		getStatis();
 		tmr = millis();
 	}
 
-}
-
-int32_t Board::getWorkTime() {
-	return _workTime_mins;
 }
 
 void Board::detach() {
 	if (!startFlag) return;
 	startFlag = false;
 }
+
+void Board::saveSettings() {
+	mainSets.packData();
+	addSets.packData();
+	memMainSets.updateNow();
+	memAddSets.updateNow();
+}
+
+void Board::readSettings() {
+	memMainSets.begin(_memoryAddr, _memoryKey);
+	delay(1);
+	memAddSets.begin(_memoryAddr + mainSets.structSize + 1, _memoryKey);
+	delay(1);
+	mainSets.unpackData();
+	addSets.unpackData();
+}
+
+
+
+
+
+
 
 
 
@@ -292,27 +359,77 @@ bool Board::pollForDataRx() {
 	return false;
 }
 
-String Board::errorsToStr(const int32_t errors) {
+String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 	String s = "";
 	if (errors <= 1) {
 		s = "No";
 		return s;
 	}
-	for (uint8_t i = 0; i < 16; i++) {
-		if (errors & (1<<i)) {
-		if (i < 10) {
-			s += "A0";
-			s += String(i);
-		} else {
-			s += "A";
-			s += String(i);
+	if (f == EVENTS_SHORT) {
+		for (uint8_t i = 0; i < 32; i++) {
+			if (errors & (1<<i)) {
+				if (i < 10) {
+					s += "A0";
+					s += String(i);
+				} else {
+					s += "A";
+					s += String(i);
+				}
+				s += ", ";
+			}
 		}
-		s += ", ";
+		if (s.length()) {
+			s.remove(s.length() - 2);
+		}
+	} else {
+		for (uint8_t i = 0; i < 32; i++) {
+			if (errors & (1<<i)) {
+				switch (i)
+				{
+				case 1:
+					s += "перегрузка";
+					break;
+				case 2:
+					s += "внеш.авария";
+					break;
+				case 3:
+					s += "меньше 80";
+					break;
+				case 4:
+					s += "недонапряжение";
+					break;
+				case 5:
+					s += "перенапряжение";
+					break;
+				case 6:
+					s += "концевик";
+					break;
+				case 7:
+					s += "температура";
+					break;
+				case 8:
+					s += "заклинило";
+					break;
+				case 9:
+					s += "";
+					break;
+				case 10:
+					s += "";
+					break;
+				
+				default:
+					break;
+				}
+				s += ", ";
+			}
+
+		}
+		if (s.length()) {
+			s.remove(s.length() - 2);
 		}
 	}
-	if (s.length()) {
-		s.remove(s.length() - 2);
-	}
+	
+	
 	return s;
 }
 
@@ -337,8 +454,23 @@ String Board::getWorkTime(const uint32_t mins) {
 
 Board::~Board(){}
 
-
-
+uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
+	for (uint8_t i = 0; i < brd.size(); i++) {
+		if (!brd[i].isOnline()) { 					//если плата под номером i не онлайн
+			brd.erase(brd.begin() + i);				//удаляем 
+			delay(1);
+		}
+	}
+	for (uint8_t i = 0; i < brd.size(); i++) {
+		for (uint8_t addr = 1; addr < 128; addr++) {
+			if (brd[i].getAddress() == addr) continue;
+			if (Board::isBoard(addr) && brd.size() < max) {
+				brd.emplace_back(addr);
+			}
+		}
+	}
+	return brd.size();
+}
 
 
 

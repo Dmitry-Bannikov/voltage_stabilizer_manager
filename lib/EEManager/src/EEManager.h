@@ -31,12 +31,26 @@
 
 class EEManager {
 public:
+
+
+	//стандартный конструктор
+	EEManager() {
+		_tout = 5000;
+	} 
+
     // передать данные любого типа, опционально таймаут обновления в мс
     template <typename T> EEManager(T &data, uint16_t tout = 5000) {
         _data = (uint8_t*)&data;
         _size = sizeof(T);
         _tout = tout;
     }
+
+	// передать данные, работать с новыми данными
+	template <typename T> void setData(T &data, uint16_t tout = 5000) {
+		_data = (uint8_t*)&data;
+		_size = sizeof(T);
+		_tout = tout;
+	}
     
     // сменить таймаут
     void setTimeout(uint16_t tout = 5000) {
@@ -69,7 +83,7 @@ public:
         }
     }
     
-    // отложить обновление и сбросить таймер
+    // обновить данные через установленное время
     void update() {
         _tmr = millis();
         _update = 1;
