@@ -256,8 +256,8 @@ U выход  |
 	float maxPwr = mainStats.powerMax/1000.0;
 	float avgPwr = mainStats.powerAvg/1000.0;
 	String s = "";
-	s += F("Cтат. : ");
-	if (mainSets.liter != '\0') {
+	s += F("Cтатистика : ");
+	if (mainSets.liter > 0) {
 		s += getLiteral();
 	} else {
 		s += String(_board_addr);

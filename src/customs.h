@@ -137,6 +137,7 @@ void GP_mainsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Тип реле"); GP.SELECT("mset_relset", "Откл,Вкл/откл,Не откл", brd.mainSets.relaySet) );
 	M_BOX(GP_EDGES, 
 		GP.BUTTON_MINI("mset_disreg", "Переключить регуляцию");
+		GP.BUTTON_MINI("rst_btn", "Перезапустить ESP");
 		GP.BUTTON_MINI("mset_reboot", "Перезагрузить плату");	
 	);
 	GP.BLOCK_END();
