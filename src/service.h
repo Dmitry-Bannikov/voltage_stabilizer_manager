@@ -59,12 +59,27 @@ void memoryInit() {
 	EEPROM.begin(512);
 	memoryWIFI.begin(0, 127);
 	LED_switch(0);
+	for (uint8_t i = 0; i < board.size(); i++) {
+		uint8_t attempts = 0;
+		while (board[i].getMainSets() || board[i].getAddSets()  || attempts < 5) {
+			attempts++;
+		}
+	}
+	for (uint8_t i = 0; i < board.size();i++) {
+		if (i > 1) {
+			board[i].setMemAddr(board[i-1].getEndMemAddr());
+		} else {
+			board[0].setMemAddr(100);
+		}
+		
+	}
 }
 
 void boardTick() {
 	static uint32_t tmr = 0;
 	memoryWIFI.tick();
 	for (uint8_t i = 0; i < board.size(); i++) {
+		Wire.clearWriteError();
 		board[i].tick();
 	}
 	if (millis() -  tmr > 60000) {
@@ -74,9 +89,13 @@ void boardTick() {
 }
 
 void scanNewBoards() {
-	static uint8_t old_amount = 2; 
+	static uint8_t old_amount = 0; 
+
 	Board::scanBoards(board, MAX_BOARDS);
 	if (old_amount != board.size()) {
 		webRefresh = true;
+		old_amount = board.size();
+		Serial.println(String("Boards found: ") + board.size());
 	}
+	
 }

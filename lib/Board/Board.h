@@ -96,6 +96,7 @@ struct mainsets {
 	int16_t relaySet;			//поведение реле (0...2)
 	int16_t motorType;			//тип мотора (0...3)
 	int16_t transRatio;			//коэффициент трансворматора тока
+	char 	liter;
 	uint8_t structSize;
 
 	int16_t motorStartPwr;
@@ -115,6 +116,7 @@ struct mainsets {
 		transRatio = 60;
 		motorStartPwr = 100;
 		motorMaxCurr = 3000;
+		liter = '\0';
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*) &ignoreSetsFlag, structSize);
@@ -185,7 +187,6 @@ private:
 	EEManager memMainSets;
 	EEManager memAddSets;
 
-	String _literal = "";
 	uint8_t _txbuffer[100];
 	uint8_t _rxbuffer[100];
 	uint8_t _board_addr = 0;
@@ -195,7 +196,7 @@ private:
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 	bool _active = false;
 	uint8_t _disconnected = 0;
-	uint16_t _memoryAddr = 0;
+	uint16_t _memoryAddr = 100;
 	uint8_t _memoryKey = 1;
 
 	void flush(BufferType type);
@@ -230,8 +231,8 @@ public:
 	uint8_t 	toggleRegulation();										//вкл/откл регуляцию напряжения
 	void 		getDataStr();
 	void 		getStatisStr();
-	String 		getLiteral() {return _literal;};
-	void 		setLiteral(String lit) {_literal = lit;};
+	String 		getLiteral();
+	void 		setLiteral(String lit);
 	void 		tick();
 	void 		detach();
 	~Board();

@@ -10,9 +10,9 @@ void portalActions();
 void portalInit();
 void portalTick();
 void createUpdateList(String &list);
-uint8_t formsHandler();
-void clicksHandler();
-void updatesHandler(uint8_t &txSuccess);
+void formsHandler();
+void clicksHandler(uint8_t &result);
+void updatesHandler(uint8_t &result);
 
 GyverPortal ui(&LittleFS);
 
@@ -86,13 +86,9 @@ void portalBuild() {
 
 void portalActions() {
 	static uint8_t txSuccess = 0;
-	uint8_t temp = formsHandler();
-	if (temp == 1 || temp == 2) {
-		txSuccess = temp;
-	}
-	
+	formsHandler();	
 	updatesHandler(txSuccess);
-	clicksHandler();	
+	clicksHandler(txSuccess);	
 }
 
 void portalInit() {
@@ -112,17 +108,23 @@ void portalInit() {
 			}
 			delay(1000);
 		}
+		Serial.println(WiFi.localIP());
 	} 
 	// Иначе создаем свою сеть
 	else {
 		WiFi.mode(WIFI_AP);
 		WiFi.softAP(wifi_settings.apSsid, wifi_settings.apPass);
 		delay(1000);
+		Serial.println(WiFi.softAPIP());
 	}
 	ui.attachBuild(portalBuild);
 	ui.attach(portalActions);
-	ui.start("stab_webserver");
-	Serial.println(WiFi.localIP());
+	if (WiFi.getMode() == WIFI_MODE_STA) {
+		ui.start("stab_webserver");
+	} else {
+		ui.start();
+	}
+	
 	ui.enableOTA("admin", "012343210");
 }
 
@@ -143,8 +145,7 @@ void createUpdateList(String &list) {
 	list += "reload";
 }
 
-uint8_t formsHandler() {
-	uint8_t saveResult = 0;
+void formsHandler() {
 	if (ui.form("/wificfg")) { // Если есть сабмит формы - копируем все в переменные
 			
 		ui.copyStr("apSsid", wifi_settings.apSsid);
@@ -163,22 +164,31 @@ uint8_t formsHandler() {
 		ESP.restart();
 	}
 
-		
-		//board[activeBoard].saveSettings();
-		//saveResult = 1;
-		//if (!board[activeBoard].sendAddSets()) saveResult = 2; 
-  return saveResult;
 }
 
-void clicksHandler() {
-	if (ui.clickUp("rset_btn") || ui.clickUp("rset_btn1")) {
+void clicksHandler(uint8_t &result) {
+	if (ui.clickUp("rset_btn") || ui.clickUp("rset_btn1")) {	//кнопка прочитать настройки
 		board[activeBoard].readSettings();
+		result = 1;
 		webRefresh = true;
 	}
-	if (ui.clickUp("wset_btn") || ui.clickUp("wset_btn1")) {
-		board[activeBoard].sendMainSets();
-		board[activeBoard].sendAddSets();
-		webRefresh = true;
+	if (ui.clickUp("wset_btn") || ui.clickUp("wset_btn1")) {	//кнопка записать настройки
+		if (!board[activeBoard].sendMainSets() || !board[activeBoard].sendAddSets()) {
+			result = 2;
+			webRefresh = true;
+		}
+	}
+	if (ui.clickUp("mset_disreg")) {	//кнопка переключить регуляцию
+		if (!board[activeBoard].reboot()) {
+			result = 4;
+			webRefresh = true;
+		}
+	}
+	if (ui.clickUp("mset_reboot")) {	//кнопка перезагрузить плату
+		if (!board[activeBoard].reboot()) {
+			result = 5;
+			webRefresh = true;
+		}
 	}
 	if (ui.clickUp("rst_btn")) {
 		ESP.restart();
@@ -189,6 +199,7 @@ void clicksHandler() {
 	}
 	if (ui.clickUp("svlit_btn")) {
 		board[activeBoard].saveSettings();
+		result = 3;
 		webRefresh = true;
 	}
 	if (ui.clickSub("brdLit")) {
@@ -207,9 +218,7 @@ void clicksHandler() {
 	ui.clickInt("mset_tratio", board[activeBoard].mainSets.transRatio);
 	ui.clickInt("mset_mottype", board[activeBoard].mainSets.motorType);
 	ui.clickInt("mset_relset", board[activeBoard].mainSets.relaySet);
-		//board[activeBoard].saveSettings();
-		//saveResult = 1;
-		//if (!board[activeBoard].sendMainSets()) saveResult = 2;				
+						
 	ui.clickInt("aset_maxV", board[activeBoard].addSets.maxVoltRelative);
 	ui.clickInt("aset_minV", board[activeBoard].addSets.minVoltRelative);
 	ui.clickInt("aset_toff", board[activeBoard].addSets.emergencyTOFF);
@@ -220,19 +229,34 @@ void clicksHandler() {
 	ui.clickInt("aset_motK_3", board[activeBoard].addSets.motKoef_3);	
 }
 
-void updatesHandler(uint8_t &txSuccess) {
+void updatesHandler(uint8_t &result) {
 	if (!ui.update()) return;
 	if (ui.update("reload") && webRefresh) {
 		webRefresh = false;
 		ui.answer(1);
 	}
 	if (ui.update("setsalt")) {
-		if (txSuccess == 1)
-			ui.answer("Настройки сохранены!");
-		if (txSuccess == 2) {
-			ui.answer("Настройки сохранены и переданы!");
+		switch (result)
+		{
+		case 1:
+			ui.answer("Настройки прочитаны из памяти!");
+			break;
+		case 2:
+			ui.answer("Настройки переданы на плату!");
+			break;
+		case 3:
+			ui.answer("Настройки сохранены в память!");
+			break;
+		case 4:
+			ui.answer("Переключена регулировка!");
+			break;
+		case 5:
+			ui.answer("Плата перезагружена!");
+			break;
+		default:
+			break;
 		}
-		txSuccess = 0;
+		result = 0;
 	}
 	for (uint8_t i = 0; i < board.size(); i++) {
 		board[i].getDataStr();

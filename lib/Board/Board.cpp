@@ -17,7 +17,6 @@ bool Board::isBoard(uint8_t addr) {
 	Wire.clearWriteError();
 	Wire.beginTransmission(addr);
 	if (Wire.endTransmission()) return false;
-
 	uint8_t txbuf[100] = {0x20, 0};
 	uint8_t rxbuf[100] = {0};
 	Wire.beginTransmission(addr);
@@ -208,23 +207,26 @@ uint8_t Board::reboot() {
 }
 
 uint8_t Board::toggleRegulation() {
-	if (!startFlag) return 1;
+	if (!startFlag) return ERR_INIT;
 	flush(TXBUF);
 	*_txbuffer = I2C_REQUEST_NOREG;
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
-	return 0;
+	if (error != 0) return ERR_CONNECT;
+	return ERR_NO;
 }
 
 void Board::getDataStr() {
 	float full_pwr = mainData.outputPower/mainData.cosfi/1000.0;
 	String s = "";
 	s += F(" Данные: ");
-	s += _literal;
-	s += F(", 0x");
-	s += String(_board_addr, HEX);
+	if (mainSets.liter != '\0') {
+		s += getLiteral();
+	} else {
+		s += String(_board_addr);
+	}
+
 	s += F("\nU вход   : ");
 	s += String(mainData.inputVoltage);
 	s += F("\nU выход  : ");
@@ -243,7 +245,6 @@ void Board::getDataStr() {
 void Board::getStatisStr() {
 /*
 
-            Max	Avg	Min
 U вход   |	220	220	220
 U выход  | 
 Вых. Ток |	
@@ -256,37 +257,39 @@ U выход  |
 	float avgPwr = mainStats.powerAvg/1000.0;
 	String s = "";
 	s += F("Cтат. : ");
-	s += _literal;
-	s += F(", 0x");
-	s += String(_board_addr, HEX);
+	if (mainSets.liter != '\0') {
+		s += getLiteral();
+	} else {
+		s += String(_board_addr);
+	}
 	s += F("\nWork T: ");
 	s += getWorkTime(mainStats.workTimeMins);
 
-	s += F("\nU вход   | ");
+	s += F("\nU вход   |");
 	s += String(mainStats.outVoltMax);
-	s += F("| ");
+	s += F("|");
 	s += String(mainStats.outVoltAvg);
-	s += F("| ");
+	s += F("|");
 	s += String(mainStats.outVoltMin);
 
-	s += F("\nU выход  | ");
+	s += F("\nU выход  |");
 	s += String(mainStats.inVoltMax);
-	s += F("| ");
+	s += F("|");
 	s += String(mainStats.inVoltAvg);
-	s += F("| ");
+	s += F("|");
 	s += String(mainStats.inVoltMin);
 
-	s += F("\nВых. ток | ");
+	s += F("\nВых. ток |");
 	s += String(mainStats.outLoadMax, 1);
-	s += F("| ");
+	s += F("|");
 	s += String(mainStats.outLoadAvg, 1);
 
-	s += F("\nМощность | ");
+	s += F("\nМощность |");
 	s += String(maxPwr,1);
-	s += F("| ");
+	s += F("|");
 	s += String(avgPwr,1);
 
-	s += F("\nСобытия  | ");
+	s += F("\nСобытия  |");
 	s += errorsToStr(mainStats.boardEvents, EVENTS_SHORT);
 	
 	mainStats.Str = s;
@@ -325,7 +328,13 @@ void Board::readSettings() {
 	addSets.unpackData();
 }
 
+String 	Board::getLiteral() {
+	return String(mainSets.liter);
+}
 
+void Board::setLiteral(String lit) {
+	mainSets.liter = lit.charAt(0);
+}
 
 
 
@@ -459,14 +468,27 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			delay(1);
 		}
 	}
-	for (uint8_t i = 0; i < brd.size(); i++) {
-		for (uint8_t addr = 1; addr < 128; addr++) {
-			if (brd[i].getAddress() == addr) continue;
-			if (Board::isBoard(addr) && brd.size() < max) {
+
+	for (uint8_t addr = 1; addr < 128; addr++) {
+		if (Board::isBoard(addr) && brd.size() < max) {
+			if (!brd.size()) {
 				brd.emplace_back(addr);
+				continue;
 			}
+			else {
+				bool reserved = false;
+				for (uint8_t i = 0; i < brd.size(); i++) {
+					if (brd[i].getAddress() == addr) {
+						reserved = true;
+						break;
+					}
+				}
+				if (!reserved) brd.emplace_back(addr);
+			}
+			delay(10);
 		}
 	}
+	
 	return brd.size();
 }
 

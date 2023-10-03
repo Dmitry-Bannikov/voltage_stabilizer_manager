@@ -123,7 +123,9 @@ void GP_mainsets_build(Board &brd) {
 	motorList += String(" (") + brd.addSets.motKoef_3 + String("),");
 
 	//------------------------------------------------//
-	GP.BLOCK_BEGIN(GP_DIV, "", String("Настройка платы ")+ brd.getLiteral() + String("(") + brd.getAddress() + String(")"));
+	String title = "Настройка платы ";
+	title += (brd.mainSets.liter > 0 ? brd.getLiteral() : String(brd.getAddress()));
+	GP.BLOCK_BEGIN(GP_DIV_RAW, "", title);
 	M_BOX(GP.BUTTON_MINI("rset_btn", "Прочитать"); GP.BUTTON_MINI("wset_btn", "Записать"));
 	M_BOX(GP_EDGES, GP.LABEL("Игнорировать настройки"); GP.CHECK("mset_ignor", brd.mainSets.ignoreSetsFlag));
 	M_BOX(GP_EDGES, GP.LABEL("Целевое напряжение");  GP.NUMBER("mset_trgtV", "", brd.mainSets.targetVolt, "100px"));
@@ -133,11 +135,17 @@ void GP_mainsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Коэффициент трансформатора");  GP.NUMBER("mset_tratio", "", brd.mainSets.transRatio, "100px"));
 	M_BOX(GP_EDGES, GP.LABEL("Тип мотора"); GP.SELECT("mset_mottype", motorList, brd.mainSets.motorType) );
 	M_BOX(GP_EDGES, GP.LABEL("Тип реле"); GP.SELECT("mset_relset", "Откл,Вкл/откл,Не откл", brd.mainSets.relaySet) );
+	M_BOX(GP_EDGES, 
+		GP.BUTTON_MINI("mset_disreg", "Переключить регуляцию");
+		GP.BUTTON_MINI("mset_reboot", "Перезагрузить плату");	
+	);
 	GP.BLOCK_END();
 }
 
 void GP_addsets_build(Board &brd) {
-	GP.BLOCK_BEGIN(GP_DIV_RAW, "", String("Настройка платы ")+ String(brd.getLiteral()) + String("(") + brd.getAddress() + String(")"));
+	String title = "Настройка платы ";
+	title += (brd.mainSets.liter > 0 ? brd.getLiteral() : String(brd.getAddress()));
+	GP.BLOCK_BEGIN(GP_DIV_RAW, "", title);
 	M_BOX(GP.BUTTON_MINI("rset_btn1", "Прочитать"); GP.BUTTON_MINI("wset_btn1", "Записать"));
 	M_BOX(GP_EDGES, GP.LABEL("Максимальное напряжение");  GP.NUMBER("aset_maxV", "", brd.addSets.maxVoltRelative, "100px"));
 	M_BOX(GP_EDGES, GP.LABEL("Минимальное напряжение");  GP.NUMBER("aset_minV", "", brd.addSets.minVoltRelative, "100px"));
