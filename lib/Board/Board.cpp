@@ -297,8 +297,7 @@ U выход  |
 
 void Board::tick() {
 	static uint32_t tmr = 0;
-	memMainSets.tick();
-	memAddSets.tick();
+	memSets.tick();
 	if (millis() - tmr >= 1000) {
 		getData();
 		getStatis();
@@ -312,20 +311,25 @@ void Board::detach() {
 	startFlag = false;
 }
 
-void Board::saveSettings() {
+uint8_t Board::saveSettings() {
 	mainSets.packData();
 	addSets.packData();
-	memMainSets.updateNow();
-	memAddSets.updateNow();
+	memcpy(_memsets_buf, mainSets.buffer, mainSets.structSize);
+	memcpy(_memsets_buf + mainSets.structSize, addSets.buffer, addSets.structSize);
+	uint8_t result = memcmp(_memsets_buf, mainSets.buffer, mainSets.structSize);
+	memSets.updateNow();
+	return result;
 }
 
-void Board::readSettings() {
-	memMainSets.begin(_memoryAddr, _memoryKey);
-	delay(1);
-	memAddSets.begin(_memoryAddr + mainSets.structSize + 1, _memoryKey);
-	delay(1);
+uint8_t Board::readSettings() {
+	mainSets.packData();
+	memSets.begin(_memoryAddr, _memoryKey);
+	delay(10);
+	memcpy(mainSets.buffer, _memsets_buf, mainSets.structSize);
+	memcpy(addSets.buffer, _memsets_buf + mainSets.structSize, addSets.structSize);
 	mainSets.unpackData();
 	addSets.unpackData();
+	return 0;
 }
 
 String 	Board::getLiteral() {

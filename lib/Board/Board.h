@@ -184,11 +184,11 @@ private:
 		RXBUF,
 		TXBUF
 	};
-	EEManager memMainSets;
-	EEManager memAddSets;
+	EEManager memSets;
 
 	uint8_t _txbuffer[100];
 	uint8_t _rxbuffer[100];
+	uint8_t _memsets_buf[33] = {0};
 	uint8_t _board_addr = 0;
 	static const int _poll = 500;
 	bool startFlag = false;
@@ -197,7 +197,7 @@ private:
 	bool _active = false;
 	uint8_t _disconnected = 0;
 	uint16_t _memoryAddr = 100;
-	uint8_t _memoryKey = 1;
+	uint8_t _memoryKey = 10;
 
 	void flush(BufferType type);
 	bool pollForDataRx();
@@ -207,8 +207,8 @@ private:
 	String getWorkTime(const uint32_t mins);
 	
 public:
-	Board() : memMainSets(mainSets.buffer), memAddSets(addSets.buffer) {attach(0x10);}
-	Board(const uint8_t addr)  : memMainSets(mainSets.buffer), memAddSets(addSets.buffer) {attach(addr);};
+	Board() : memSets(_memsets_buf) {attach(0x10);}
+	Board(const uint8_t addr)  : memSets(_memsets_buf) {attach(addr);};
 	bool 		attach(const uint8_t addr);								//подключить плату (указать адрес)
 	static bool isBoard(const uint8_t addr);
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);
@@ -216,11 +216,11 @@ public:
 	uint8_t 	getAddress() {return _board_addr;};							//получить адрес платы		
 	bool 		setAddress(const uint8_t addr) ;							//установить адрес плате
 	void 		setMemAddr(uint16_t memaddr) { _memoryAddr = memaddr;}
-	uint16_t 	getEndMemAddr() { return _memoryAddr + memMainSets.blockSize() + memAddSets.blockSize(); };
+	uint16_t 	getEndMemAddr() { return _memoryAddr + memSets.blockSize(); };
 	void 		setMemoryKey(const uint8_t key) { _memoryKey = key; }
 
-	void 		saveSettings();
-	void 		readSettings();
+	uint8_t 	saveSettings();
+	uint8_t 	readSettings();
 	uint8_t 	getData();												//получить данные с платы
 	uint8_t 	getMainSets();											//получить осн настройки с платы
 	uint8_t 	getAddSets();											//получить доп настройки с платы
