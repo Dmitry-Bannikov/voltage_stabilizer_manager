@@ -84,6 +84,9 @@ struct stats {
 		buffer = new uint8_t[structSize];
 		workTimeMins = 0;
 		boardEvents = 0;
+		inVoltAvg = 0;
+		inVoltMax = 0;
+		inVoltMin = 0;
 		outVoltAvg = 0;
 		outVoltMax = 0;
 		outVoltMin = 0;

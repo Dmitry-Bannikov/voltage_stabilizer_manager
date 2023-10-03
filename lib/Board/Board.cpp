@@ -289,7 +289,7 @@ U выход  |
 	s += F("|");
 	s += String(avgPwr,1);
 
-	s += F("\nСобытия  |");
+	s += F("\nСобытия: ");
 	s += errorsToStr(mainStats.boardEvents, EVENTS_SHORT);
 	
 	mainStats.Str = s;
