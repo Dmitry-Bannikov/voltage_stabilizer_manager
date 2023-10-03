@@ -168,9 +168,11 @@ void formsHandler() {
 
 void clicksHandler(uint8_t &result) {
 	if (ui.clickUp("rset_btn") || ui.clickUp("rset_btn1")) {	//кнопка прочитать настройки
-		board[activeBoard].readSettings();
-		result = 1;
-		webRefresh = true;
+		if (!board[activeBoard].readSettings()) {
+			result = 1;
+			webRefresh = true;
+		}
+		
 	}
 	if (ui.clickUp("wset_btn") || ui.clickUp("wset_btn1")) {	//кнопка записать настройки
 		if (!board[activeBoard].sendMainSets() || !board[activeBoard].sendAddSets()) {
