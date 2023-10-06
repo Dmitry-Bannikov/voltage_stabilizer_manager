@@ -9,28 +9,83 @@
 #pragma once
 #include <Arduino.h>
 
+struct dwinsets {
+	// auto
+	uint8_t* autoWdata;
+	uint16_t autoWaddr;
+	uint8_t autoWsize;
+
+	uint8_t* autoRdata;
+	uint16_t autoRaddr;
+
+	uint8_t inited;
+	uint8_t readComplete;
+
+};
+
+struct dwindata {
+	uint8_t header1;			//5A
+	uint8_t header2;			//A5
+	uint8_t byte_cnt;			//{кол-во данных}
+	uint8_t command;			//0x82 -write/0x83 - read
+	uint16_t address;			//0x1000 {address 2bytes}
+	uint8_t data[250];			//data
+	//------------------//
+	uint8_t buffer[256];
+	uint8_t dataPointer;
+	uint8_t wordsToRead;
+	dwindata() {
+		header1 = 0x5A;
+		header2 = 0xA5;
+		byte_cnt = 0;
+		command = 0;
+		address = 0;
+		dataPointer = 0;
+		wordsToRead = 0;
+	}
+	void packData() {
+		header1 = 0x5A;
+		header2 = 0xA5;
+		memcpy(buffer, (uint8_t*)&header1, dataPointer + 6);
+	}
+	void unpackData() {
+		memcpy(buffer, (uint8_t*)&header1, 256);
+	}
+};
 
 class Display
 {
 private:
 	
-	uint8_t* rxbuf;
-	uint8_t* txbuf;
-	const int16_t nullTerm = -256;
-	HardwareSerial* userSerial = nullptr;
+	uint8_t rxbuf[255];
+	uint8_t txbuf[255];
+	HardwareSerial* userSerial;
+	uint8_t header1 = 0x5A;
+	uint8_t header2 = 0xA5;
+	uint8_t pointer = 0;
 
-	uint8_t getDataFromAddr(uint16_t addr, int16_t* out, uint8_t length);
-	void writeValue(uint16_t addr, int16_t value);
-	void writeValue(uint16_t addr, float value);
-	void writeValuesSeq(uint16_t startAddr, int16_t* values, uint8_t dsize);
-	void writeValuesSeq(uint16_t startAddr, float* values, uint8_t dsize);
-	uint8_t readValue(uint16_t addr, int16_t& value);
-	int16_t* readValuesSeq(uint16_t startAddr, void (*callback)(), uint8_t dsize);
+	dwindata dwinDataTx;
+	dwindata dwinDataRx;
+	
 
 	bool pollForDataRx();
 
 
 public:
+	Display();
+	Display(HardwareSerial *Serial) {
+		userSerial = Serial;
+		userSerial->begin(115200);
+	}
+	~Display();
+	template<typename T>
+	void addNewValue(T value) {
+		
+	}
+
+
+
+	void Test(int16_t value);
 	void tick();
 	void displayVoltage(int32_t* voltages);
 	void displayCurrent(float* currents);
@@ -38,51 +93,7 @@ public:
 	void displayEvents(int32_t* events);
 	int32_t* readTrimmers();
 	int32_t* readSettings();
-	Display();
-	Display(uint8_t SerialNumber);
-	~Display();
+	
+
 };
 
-Display::Display()
-{
-	readData.read_addr = 0;
-	readData.length = 0;
-	readData.readCallback = nullptr;
-	rxbuf = nullptr;
-	txbuf = nullptr;
-	userSerial = nullptr;
-	userSerial = &Serial1;
-}
-
-Display::Display(uint8_t SerialNumber)
-{
-	readData.read_addr = 0;
-	readData.length = 0;
-	readData.readCallback = nullptr;
-	rxbuf = nullptr;
-	txbuf = nullptr;
-	userSerial = nullptr;
-    switch (SerialNumber) {
-        case 0:
-          	userSerial = &Serial;
-          	break;
-        case 1:
-          	userSerial = &Serial1;
-          	break;
-        case 2:
-          	userSerial = &Serial2;
-          	break;
-		default: 
-			userSerial = &Serial1;
-          // Добавьте другие ваши варианты по мере необходимости
-    }
-	userSerial->begin(9600, SERIAL_8N1);
-}
-
-Display::~Display()
-{
-	delete(rxbuf);
-	delete(txbuf);
-	userSerial->end();
-	delete(userSerial);
-}

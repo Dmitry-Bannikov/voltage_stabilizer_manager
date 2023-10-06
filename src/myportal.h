@@ -181,7 +181,7 @@ void clicksHandler(uint8_t &result) {
 		}
 	}
 	if (ui.clickUp("mset_disreg")) {	//кнопка переключить регуляцию
-		if (!board[activeBoard].reboot()) {
+		if (!board[activeBoard].toggleRegulation()) {
 			result = 4;
 			webRefresh = true;
 		}

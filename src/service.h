@@ -4,12 +4,14 @@
 #include <data.h>
 #include <Wire.h>
 
+
 void connectionInit();
 void memoryInit();
 void LED_switch(bool state);
 void LED_blink(uint16_t period_on, uint16_t period_off);
 void scanNewBoards();
 void boardTick();
+void SerialTest(int16_t value);
 
 
 void LED_switch(bool state) {
@@ -43,6 +45,7 @@ void connectionInit() {
 	Wire.setTimeout(500);
 	delay(10);
 	Serial.begin(115200);
+	Serial2.begin(115200);
 	delay(10);
 	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
@@ -79,6 +82,8 @@ void memoryInit() {
 void boardTick() {
 	static uint32_t tmr = 0;
 	memoryWIFI.tick();
+	SerialTest(board[0].mainData.outputVoltage);
+	//Dwin.tick();
 	for (uint8_t i = 0; i < board.size(); i++) {
 		Wire.clearWriteError();
 		board[i].tick();
@@ -99,4 +104,21 @@ void scanNewBoards() {
 		Serial.println(String("Boards found: ") + board.size());
 	}
 	
+}
+
+
+void SerialTest(int16_t value) {
+	static uint32_t tmr = 0;
+	if (millis() - tmr < 1000) return;
+	uint8_t buffer[8];
+	buffer[0] = 0x5A;
+	buffer[1] = 0xA5;
+	buffer[2] = 0x05;
+	buffer[3] = 0x82;
+	buffer[4] = 0x50;
+	buffer[5] = 0x00;
+	buffer[6] = (uint8_t)(value >> 8);
+	buffer[7] = (uint8_t)(value & 0xFF);
+	Serial2.write(buffer, sizeof(buffer));
+	tmr = millis();
 }
