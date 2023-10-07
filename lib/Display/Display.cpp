@@ -68,7 +68,7 @@ uint8_t Display::readValue(uint16_t addr, int16_t& value) {
 void Display::tick() {
 	
 	if (userSerial->available()) {
-		size_t rxSize = 7 + 2*readData.length;
+		size_t rxSize = 7 + 2*readData.length();
 		rxbuf = new uint8_t[rxSize];
 		userSerial->readBytes(rxbuf, rxSize);
 		int16_t addr = int16_t(rxbuf[4]<<8)|rxbuf[5];
