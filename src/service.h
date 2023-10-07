@@ -59,15 +59,16 @@ void memoryInit() {
 	EEPROM.begin(512);
 	memoryWIFI.begin(0, 127);
 	LED_switch(0);
-	for (uint8_t i = 0; i < board.size(); i++) {
+	for (uint8_t i = 0; i < board.size(); i++) {	
 		uint8_t attempts = 0;
+		// пробуем считать настройки с платы
 		while (board[i].getMainSets() || board[i].getAddSets()  || attempts < 5) {
 			attempts++;
 		}
 	}
-	for (uint8_t i = 0; i < board.size();i++) {
+	for (uint8_t i = 0; i < board.size();i++) {	//раздаем адреса памяти платам
 		if (i > 1) {
-			board[i].setMemAddr(board[i-1].getEndMemAddr());
+			board[i].setMemAddr(board[i-1].getEndMemAddr()); //или board[i].setMemAddr(i*100+100);
 		} else {
 			board[0].setMemAddr(100);
 		}

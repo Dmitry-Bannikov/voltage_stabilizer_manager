@@ -49,6 +49,11 @@ struct data {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
 		cosfi = 1.0;
+		inputVoltage = 0;
+		outputVoltage = 0;
+		outputCurrent = 0;
+		outputPower = 0;
+		events = 0;
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&inputVoltage, structSize);
@@ -77,6 +82,18 @@ struct stats {
 	stats() {
 		structSize = offsetof(struct stats, structSize);
 		buffer = new uint8_t[structSize];
+		workTimeMins = 0;
+		boardEvents = 0;
+		inVoltAvg = 0;
+		inVoltMax = 0;
+		inVoltMin = 0;
+		outVoltAvg = 0;
+		outVoltMax = 0;
+		outVoltMin = 0;
+		outLoadMax = 0;
+		outLoadAvg = 0;
+		powerAvg = 0;
+		powerMax = 0;
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&workTimeMins, structSize);
@@ -207,8 +224,8 @@ private:
 	String getWorkTime(const uint32_t mins);
 	
 public:
-	Board() : memSets(_memsets_buf) {attach(0x10);}
-	Board(const uint8_t addr)  : memSets(_memsets_buf) {attach(addr);};
+	Board() : memSets(_memsets_buf,20000) {attach(0);}
+	Board(const uint8_t addr)  : memSets(_memsets_buf,20000) {attach(addr);};
 	bool 		attach(const uint8_t addr);								//подключить плату (указать адрес)
 	static bool isBoard(const uint8_t addr);
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);

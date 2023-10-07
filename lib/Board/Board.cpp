@@ -265,31 +265,31 @@ U выход  |
 	s += F("\nWork T: ");
 	s += getWorkTime(mainStats.workTimeMins);
 
-	s += F("\nU вход   |");
+	s += F("\nU вх  |");
 	s += String(mainStats.outVoltMax);
 	s += F("|");
 	s += String(mainStats.outVoltAvg);
 	s += F("|");
 	s += String(mainStats.outVoltMin);
 
-	s += F("\nU выход  |");
+	s += F("\nU вых |");
 	s += String(mainStats.inVoltMax);
 	s += F("|");
 	s += String(mainStats.inVoltAvg);
 	s += F("|");
 	s += String(mainStats.inVoltMin);
 
-	s += F("\nВых. ток |");
+	s += F("\nI вых |");
 	s += String(mainStats.outLoadMax, 1);
 	s += F("|");
 	s += String(mainStats.outLoadAvg, 1);
 
-	s += F("\nМощность |");
+	s += F("\nP акт |");
 	s += String(maxPwr,1);
 	s += F("|");
 	s += String(avgPwr,1);
 
-	s += F("\nСобытия  |");
+	s += F("\nСобытия: ");
 	s += errorsToStr(mainStats.boardEvents, EVENTS_SHORT);
 	
 	mainStats.Str = s;
