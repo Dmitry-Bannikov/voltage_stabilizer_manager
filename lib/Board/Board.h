@@ -141,6 +141,12 @@ struct mainsets {
 	void unpackData() {
 		memcpy((uint8_t*) &ignoreSetsFlag, buffer, structSize);
 	}
+	void convertData() {
+        uint8_t size = structSize;
+        for (size_t i = 0; i < size; i += 2) {
+            std::swap(buffer[i], buffer[i + 1]);
+        }
+    }
 };
 
 struct addsets {
@@ -175,6 +181,12 @@ struct addsets {
 	void unpackData() {
 		memcpy((uint8_t*) &minVoltRelative, buffer, structSize);
 	}
+	void convertData() {
+        uint8_t size = structSize;
+        for (size_t i = 0; i < size; i += 2) {
+            std::swap(buffer[i], buffer[i + 1]);
+        }
+    }
 };
 
 
