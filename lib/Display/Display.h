@@ -113,5 +113,7 @@ public:
 	void requestFrom(const uint16_t addr, const uint8_t words);
 	void tick();
 	void waitUntillTx() {userSerial->flush();}
+	uint16_t parseAddress(const uint8_t* buffer);
+
 };
 
