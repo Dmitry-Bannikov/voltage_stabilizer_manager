@@ -84,7 +84,7 @@ void memoryInit() {
 void boardTick() {
 	static uint32_t tmr = 0;
 	memoryWIFI.tick();
-	
+	sendDwinData();
 	for (uint8_t i = 0; i < board.size(); i++) {
 		Wire.clearWriteError();
 		board[i].tick();
