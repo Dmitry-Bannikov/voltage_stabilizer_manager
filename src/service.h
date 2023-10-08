@@ -12,6 +12,8 @@ void LED_blink(uint16_t period_on, uint16_t period_off);
 void scanNewBoards();
 void boardTick();
 void SerialTest(int16_t value);
+void processData();
+void sendDwinData();
 
 
 void LED_switch(bool state) {
@@ -45,7 +47,7 @@ void connectionInit() {
 	Wire.setTimeout(500);
 	delay(10);
 	Serial.begin(115200);
-	Serial2.begin(115200);
+	Dwin.begin(&Serial2, processData);
 	delay(10);
 	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
@@ -82,8 +84,7 @@ void memoryInit() {
 void boardTick() {
 	static uint32_t tmr = 0;
 	memoryWIFI.tick();
-	SerialTest(board[0].mainData.outputVoltage);
-	//Dwin.tick();
+	
 	for (uint8_t i = 0; i < board.size(); i++) {
 		Wire.clearWriteError();
 		board[i].tick();
@@ -121,4 +122,21 @@ void SerialTest(int16_t value) {
 	buffer[7] = (uint8_t)(value & 0xFF);
 	Serial2.write(buffer, sizeof(buffer));
 	tmr = millis();
+}
+
+void processData() {
+	
+}
+void sendDwinData() {
+	static uint32_t tmr;
+	if (millis() - tmr < 1000) return;
+	for (uint8_t i = 0; i < board.size(); i++) {
+		Dwin.addNewValue(board[i].mainData.inputVoltage);
+		Dwin.addNewValue(board[i].mainData.outputVoltage);
+		Dwin.addNewValue(board[i].mainData.outputCurrent);
+		Dwin.addNewValue(board[i].mainData.outputPower);
+		Dwin.writeAddedValues(0x5000 + i*256);
+		Dwin.waitUntillTx();
+	}
+	
 }

@@ -8,6 +8,7 @@
 
 #pragma once
 #include <Arduino.h>
+#include <cstring>
 
 struct dwinsets {
 	// auto
@@ -56,44 +57,61 @@ struct dwindata {
 class Display
 {
 private:
-	
+	bool _inited = false;
 	uint8_t rxbuf[255];
 	uint8_t txbuf[255];
-	HardwareSerial* userSerial;
+	
 	uint8_t header1 = 0x5A;
 	uint8_t header2 = 0xA5;
 	uint8_t pointer = 0;
-
-	dwindata dwinDataTx;
-	dwindata dwinDataRx;
-	
-
 	bool pollForDataRx();
 
-
-public:
-	Display();
-	Display(HardwareSerial *Serial) {
-		userSerial = Serial;
-		userSerial->begin(115200);
+	template<typename T>
+	uint8_t* convertData(T value) {
+		uint8_t *bytes = new uint8_t[sizeof(T)];
+		std::memcpy(bytes, &value, sizeof(T));
+		for (size_t i = 0; i < sizeof(T) / 2; i++) {
+			std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
+		}
+		return bytes;
 	}
+	typedef void (*CallbackFunction)(void);
+	//CallbackFunction onDataReceived;
+	HardwareSerial* userSerial = nullptr;
+public:
+
+	Display() {};
 	~Display();
+
+	void begin(HardwareSerial *Ser, CallbackFunction callback);
+
 	template<typename T>
 	void addNewValue(T value) {
-		
+		if (!_inited) return;
+		uint8_t* bytes = convertData(value);
+		uint8_t size = sizeof(T);
+		memcpy(txbuf + 6 + pointer, bytes, size);
+		pointer += size;
 	}
 
-
-
+	template<typename T>
+	void writeValue(const uint16_t addr, T value) {
+		if (!_inited) return;
+		uint8_t tx_buf[255];
+		uint8_t* addrPtr = convertData(addr);
+		uint8_t* dataPtr = convertData(value);
+		tx_buf[0] = header1;
+		tx_buf[1] = header2;
+		tx_buf[2] = sizeof(T) + 3;
+		tx_buf[3] = 0x82;
+		memcpy(tx_buf + 4, addrPtr, 2);
+		memcpy(tx_buf + 6, dataPtr, sizeof(T));
+		userSerial->write(tx_buf, sizeof(T) + 6);
+	}
+	void writeAddedValues(const uint16_t addr);
 	void Test(int16_t value);
+	void requestFrom(const uint16_t addr, const uint8_t words);
 	void tick();
-	void displayVoltage(int32_t* voltages);
-	void displayCurrent(float* currents);
-	void displayPower(float* powers);
-	void displayEvents(int32_t* events);
-	int32_t* readTrimmers();
-	int32_t* readSettings();
-	
-
+	void waitUntillTx() {userSerial->flush();}
 };
 

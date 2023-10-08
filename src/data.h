@@ -29,7 +29,7 @@ struct wifisets {                                   // Структура со �
 #define MAX_BOARDS	3
 std::vector<Board> board;					//объекты плат
 EEManager memoryWIFI(wifi_settings, 20000);
-Display Dwin(&Serial);
+Display Dwin;
 
 uint8_t activeBoard = 0;
 
