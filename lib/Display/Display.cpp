@@ -81,26 +81,17 @@ uint16_t Display::parseAddress(const uint8_t* buffer) {
 	uint16_t res = ((uint16_t)(buffer[4]<<8)|buffer[5]);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void Display::sendRawData(const uint16_t addr, const uint8_t *data, uint8_t size) {
+	if (!_inited) return;
+	uint8_t tx_buf[255];
+	uint8_t *addrPtr = convertData(addr);
+	tx_buf[0] = header1;
+	tx_buf[1] = header2;
+	tx_buf[2] = sizeof(size) + 3;
+	tx_buf[3] = 0x82;
+	memcpy(tx_buf + 4, addrPtr, 2);
+	memcpy(tx_buf + 6, data, size);
+	userSerial->write(tx_buf, size + 6);
+}
 
 //

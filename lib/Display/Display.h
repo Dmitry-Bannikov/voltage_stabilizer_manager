@@ -114,6 +114,7 @@ public:
 	void tick();
 	void waitUntillTx() {userSerial->flush();}
 	uint16_t parseAddress(const uint8_t* buffer);
+	void sendRawData(const uint16_t addr, const uint8_t* data, uint8_t size);
 
 };
 
