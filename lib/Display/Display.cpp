@@ -79,6 +79,7 @@ void Display::begin(HardwareSerial *Ser, CallbackFunction callback) {
 uint16_t Display::parseAddress(const uint8_t* buffer) {
 	if (buffer[0] != 0x5A) return 0;
 	uint16_t res = ((uint16_t)(buffer[4]<<8)|buffer[5]);
+	return res;
 }
 
 void Display::sendRawData(const uint16_t addr, const uint8_t *data, uint8_t size) {
