@@ -43,7 +43,8 @@ bool Display::pollForDataRx() {
 
 void Display::writeAddedValues(const uint16_t addr) {
 	if (!pointer || !_inited) return;
-	uint8_t* addrPtr = convertData(addr);
+	uint8_t* addrPtr = new uint8_t[sizeof(addr)];
+	convertData(addr, addrPtr);
 	txbuf[0] = header1;
 	txbuf[1] = header2;
 	txbuf[2] = pointer + 3;
@@ -51,11 +52,13 @@ void Display::writeAddedValues(const uint16_t addr) {
 	memcpy(txbuf + 4, addrPtr, 2);
 	userSerial->write(txbuf, pointer + 6);
 	pointer = 0;
+	delete(addrPtr);
 }
 
 void Display::requestFrom(const uint16_t addr, const uint8_t words) {
 	if (!_inited) return;
-	uint8_t* addrPtr = convertData(addr);
+	uint8_t* addrPtr = new uint8_t[sizeof(addr)];
+	convertData(addr, addrPtr);
 	uint8_t tx_buf[50];
 	tx_buf[0] = header1;
 	tx_buf[1] = header2;
@@ -64,6 +67,7 @@ void Display::requestFrom(const uint16_t addr, const uint8_t words) {
 	memcpy(tx_buf + 4, addrPtr, 2);
 	tx_buf[6] = words;
 	userSerial->write(tx_buf, 7);
+	delete(addrPtr);
 }
 
 void Display::begin(HardwareSerial *Ser, CallbackFunction callback) {
@@ -85,7 +89,8 @@ uint16_t Display::parseAddress(const uint8_t* buffer) {
 void Display::sendRawData(const uint16_t addr, const uint8_t *data, uint8_t size) {
 	if (!_inited) return;
 	uint8_t tx_buf[255];
-	uint8_t *addrPtr = convertData(addr);
+	uint8_t* addrPtr = new uint8_t[sizeof(addr)];
+	convertData(addr, addrPtr);
 	tx_buf[0] = header1;
 	tx_buf[1] = header2;
 	tx_buf[2] = sizeof(size) + 3;
@@ -93,6 +98,7 @@ void Display::sendRawData(const uint16_t addr, const uint8_t *data, uint8_t size
 	memcpy(tx_buf + 4, addrPtr, 2);
 	memcpy(tx_buf + 6, data, size);
 	userSerial->write(tx_buf, size + 6);
+	delete(addrPtr);
 }
 
 //

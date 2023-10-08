@@ -1,3 +1,9 @@
+/*
+C:\Users\Viktoriya\.platformio\packages\framework-arduinoespressif32\libraries\WebServer\src 
+find WebServer.cpp at line 649 and comment log_e
+*/
+
+
 #include <Arduino.h>
 #include <myportal.h>
 #include <service.h>
