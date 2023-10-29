@@ -18,6 +18,8 @@
 #include <Arduino.h>
 #include <EEManager.h>
 #include <vector>
+#include <string>
+#include <sstream>
 
 #define I2C_DATA_START						0x30
 #define I2C_MAINSETS_START					0x35
@@ -34,6 +36,9 @@
 
 #define RX_BUF_SIZE							100
 #define TX_BUF_SIZE							100
+
+
+
 
 struct data {
 	int16_t 	inputVoltage;
@@ -105,35 +110,21 @@ struct stats {
 
 //----------------------BOARD MAIN SETS----------------------//
 struct mainsets {
-	int16_t ignoreSetsFlag;		//игнорировать настройки с платы (0...1)
-	int16_t precision;			//точность/гистерезис (1...6)
-	int16_t tuneInVolt;			//подстройка входа (-6...6)
-	int16_t tuneOutVolt;		//подстройка выхода (-6...6)
-	int16_t targetVolt;			//целевое напряжение (210, 220, 230, 240)
-	int16_t relaySet;			//поведение реле (0...2)
-	int16_t motorType;			//тип мотора (0...3)
-	int16_t transRatio;			//коэффициент трансворматора тока
-	char 	liter;
+	int8_t ignoreSetsFlag = 0;		//игнорировать настройки с платы (0...1)
+	int8_t precision = 3;			//точность/гистерезис (1...6)
+	int8_t tuneInVolt = 0;			//подстройка входа (-6...6)
+	int8_t tuneOutVolt = 0;			//подстройка выхода (-6...6)
+	int8_t targetVoltIndx = 1;			//целевое напряжение (0...3) смотри addSets
+	int8_t displayType = 1;				//выбор дисплея (1 - двин, 2, маленький, 0 -откл)
+	int8_t motorType = 1;				//тип мотора (0...3)
+	int8_t transRatioIndx = 2;			//коэффициент трансворматора тока (0...6) смотри addSets
+	int8_t	maxCurrentIndx = 1;      	//максимальный ток (0...4) смотри addSets
+	char liter = 'N';
 	uint8_t structSize;
-
-	int16_t motorStartPwr;
-	int16_t motorMaxCurr;
-
 	uint8_t *buffer = nullptr;
 	mainsets() {
 		structSize = offsetof(struct mainsets, structSize); //вычисляем размер структуры
 		buffer = new uint8_t[structSize];					//выделяем место под буфер
-		ignoreSetsFlag = 0;
-		precision = 3;
-		tuneInVolt = 0;
-		tuneOutVolt = 0;
-		targetVolt = 220;
-		relaySet = 1;
-		motorType = 1;
-		transRatio = 60;
-		motorStartPwr = 100;
-		motorMaxCurr = 3000;
-		liter = '\0';
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*) &ignoreSetsFlag, structSize);
@@ -141,52 +132,31 @@ struct mainsets {
 	void unpackData() {
 		memcpy((uint8_t*) &ignoreSetsFlag, buffer, structSize);
 	}
-	void convertData() {
-        uint8_t size = structSize;
-        for (size_t i = 0; i < size; i += 2) {
-            std::swap(buffer[i], buffer[i + 1]);
-        }
-    }
 };
 
 struct addsets {
-	int16_t minVoltRelative;	//мин напряжение относительно целевого
-	int16_t maxVoltRelative;	//макс напряжение относительно целевого
-	uint16_t emergencyTOFF;		//время аварийного отключения
-	uint16_t emergencyTON;		//время включения после аварии
-	uint16_t motKoef_0;			//коэффициент мощности мотора в %
-	uint16_t motKoef_1;
-	uint16_t motKoef_2;
-	uint16_t motKoef_3;
+	int16_t minVolt = 242;								//мин напряжение
+	int16_t maxVolt = 198;								//макс напряжение
+	int16_t emergencyTOFF = 500;						//время аварийного отключения
+	int16_t emergencyTON = 2000;						//время включения после аварии
+	int16_t overloadTransit = 1;						//транзит при перегрузке
+	int16_t motKoefsList[4] = {20,100,150,200};			//коэффициент мощности мотора в % от motorDefPwr
+	int16_t targetVotageList[4] = {210,220,230,240};	//список выходных напряжений
+	int16_t maxCurrentList[4] = {25,30,35,40};			//список максимальных токов выхода
+	int16_t tcRatioList[6] = {25,40,50,60,80,100};		//список коэффициентов трансов
 	uint8_t structSize;
-	int16_t motorDefPwr;
 	uint8_t *buffer = nullptr;
 	addsets() {
 		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
 		buffer = new uint8_t[structSize];//выделяем место под буфер
-		minVoltRelative = -22;
-		maxVoltRelative = 22;
-		emergencyTOFF = 500;
-		emergencyTON = 2000;
-		motKoef_0 = 40;
-		motKoef_1 = 100;
-		motKoef_2 = 150;
-		motKoef_3 = 200;
-		motorDefPwr = 100;
 		packData();
 	}
 	void packData() {
-		memcpy(buffer, (uint8_t*) &minVoltRelative, structSize);
+		memcpy(buffer, (uint8_t*) &minVolt, structSize);
 	}
 	void unpackData() {
-		memcpy((uint8_t*) &minVoltRelative, buffer, structSize);
+		memcpy((uint8_t*) &minVolt, buffer, structSize);
 	}
-	void convertData() {
-        uint8_t size = structSize;
-        for (size_t i = 0; i < size; i += 2) {
-            std::swap(buffer[i], buffer[i + 1]);
-        }
-    }
 };
 
 
@@ -209,15 +179,22 @@ private:
 		EVENTS_FULL,
 		EVENTS_SHORT
 	};
-	enum BufferType {
-		RXBUF,
-		TXBUF
-	};
 	EEManager memSets;
-
+	std::string PROGMEM gEventsList[10] = {
+	"Нет"
+	"Блок мотора", 
+	"Макс. напряжение",
+	"Мин. напряжение",
+	"Транзит",
+	"Перенапряжение",
+	"Перегрузка",
+	"Перегрев",
+	"",
+	""
+	};
 	uint8_t _txbuffer[100];
 	uint8_t _rxbuffer[100];
-	uint8_t _memsets_buf[33] = {0};
+	uint8_t _memsets_buf[60] = {0};//должен быть размером больше чем 2 структуры настроек
 	uint8_t _board_addr = 0;
 	static const int _poll = 500;
 	bool startFlag = false;
@@ -226,9 +203,8 @@ private:
 	bool _active = false;
 	uint8_t _disconnected = 0;
 	uint16_t _memoryAddr = 100;
-	uint8_t _memoryKey = 10;
+	uint8_t _memoryKey = 20;
 
-	void flush(BufferType type);
 	bool pollForDataRx();
 	uint8_t getStatisRaw();
 	uint8_t getDataRaw();
@@ -261,7 +237,12 @@ public:
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		getLiteral();
+	String		getMotKoefList();
+	String	 	getMaxCurrList();
+	String	 	getTargetVList();
+	String	 	getTcRatioList();
 	void 		setLiteral(String lit);
+	void 		setLiteral(char lit);
 	void 		tick();
 	void 		detach();
 	~Board();

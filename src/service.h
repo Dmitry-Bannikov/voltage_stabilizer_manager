@@ -47,7 +47,8 @@ void connectionInit() {
 	Wire.setTimeout(500);
 	delay(10);
 	Serial.begin(115200);
-	Dwin.begin(&Serial2, processData);
+	//HardwareSerial Serial2(115200);
+	Dwin.begin(&Serial, processData);
 	delay(10);
 	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
@@ -89,10 +90,14 @@ void boardTick() {
 		Wire.clearWriteError();
 		board[i].tick();
 	}
-	if (millis() -  tmr > 60000) {
+	if (board.size()) {
+		if (millis() -  tmr < 30000) return;
 		scanNewBoards();
-		tmr = millis();
+	} else {
+		if (millis() - tmr < 3000) return;
+		scanNewBoards();
 	}
+	tmr = millis();
 }
 
 void scanNewBoards() {
@@ -110,7 +115,7 @@ void scanNewBoards() {
 
 void SerialTest(int16_t value) {
 	static uint32_t tmr = 0;
-	if (millis() - tmr < 1000) return;
+	
 	uint8_t buffer[8];
 	buffer[0] = 0x5A;
 	buffer[1] = 0xA5;
@@ -118,10 +123,11 @@ void SerialTest(int16_t value) {
 	buffer[3] = 0x82;
 	buffer[4] = 0x50;
 	buffer[5] = 0x00;
-	buffer[6] = (uint8_t)(value >> 8);
-	buffer[7] = (uint8_t)(value & 0xFF);
+	buffer[6] = 0x00;
+	buffer[7] = 0x12;
 	Serial2.write(buffer, sizeof(buffer));
-	tmr = millis();
+	Serial1.write(buffer, sizeof(buffer));
+	
 }
 
 void processData() {
@@ -132,12 +138,17 @@ void sendDwinData() {
 	static uint32_t tmr;
 	if (millis() - tmr < 1000) return;
 	for (uint8_t i = 0; i < board.size(); i++) {
+		//SerialTest(0x1234);
+		Dwin.writeValue(0x5000, board[0].mainData.inputVoltage);
+		/*
 		Dwin.addNewValue(board[i].mainData.inputVoltage);
 		Dwin.addNewValue(board[i].mainData.outputVoltage);
 		Dwin.addNewValue(board[i].mainData.outputCurrent);
 		Dwin.addNewValue(board[i].mainData.outputPower);
 		Dwin.writeAddedValues(0x5000 + i*256);
 		Dwin.waitUntillTx();
+		*/
+		
 	}
-	
+	tmr = millis();
 }

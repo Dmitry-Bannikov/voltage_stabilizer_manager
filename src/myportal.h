@@ -167,15 +167,20 @@ void formsHandler() {
 }
 
 void clicksHandler(uint8_t &result) {
-	if (ui.clickUp("rset_btn") || ui.clickUp("rset_btn1")) {	//кнопка прочитать настройки
+	if (ui.clickUp("rset_btn") ) {	//кнопка прочитать настройки
 		if (!board[activeBoard].readSettings()) {
 			result = 1;
 			webRefresh = true;
 		}
-		
 	}
-	if (ui.clickUp("wset_btn") || ui.clickUp("wset_btn1")) {	//кнопка записать настройки
-		if (!board[activeBoard].sendMainSets() || !board[activeBoard].sendAddSets()) {
+	if (ui.clickUp("rboard_btn") ) {	//кнопка прочитать настройки
+		if (!board[activeBoard].getMainSets() && !board[activeBoard].getAddSets()) {
+			result = 1;
+			webRefresh = true;
+		}
+	}
+	if (ui.clickUp("wset_btn")) {	//кнопка записать настройки
+		if (!board[activeBoard].sendMainSets() && !board[activeBoard].sendAddSets()) {
 			result = 2;
 			webRefresh = true;
 		}
@@ -197,38 +202,37 @@ void clicksHandler(uint8_t &result) {
 	}
 	if (ui.clickUp("scan_btn")) {
 		scanNewBoards();
-		webRefresh = true;
 	}
 	if (ui.clickUp("svlit_btn")) {
 		board[activeBoard].saveSettings();
 		result = 3;
 		webRefresh = true;
 	}
-	if (ui.clickSub("brdLit")) {
-		String brdNum = ui.clickNameSub(1);
-		uint8_t num = brdNum.toInt();
-		String liter = ui.getString();
-		board[num].setLiteral(liter);
+
+	for (uint8_t i = 0; i < board.size();i++) {
+		uint8_t num = 0;
+		if (ui.clickInt(String("brdLit/")+i, num)) {
+			if (num != 0) board[i].setLiteral(64+num);
+			else board[i].setLiteral('N');
+		}
 	}
 
 	ui.clickInt("b_sel", activeBoard);
 	ui.clickBool("mset_ignor", board[activeBoard].mainSets.ignoreSetsFlag);
-	ui.clickInt("mset_trgtV", board[activeBoard].mainSets.targetVolt);
+	ui.clickInt("mset_trgtV_idx", board[activeBoard].mainSets.targetVoltIndx);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.precision);
 	ui.clickInt("mset_tunIn", board[activeBoard].mainSets.tuneInVolt);
 	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.tuneOutVolt);
-	ui.clickInt("mset_tratio", board[activeBoard].mainSets.transRatio);
+	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.transRatioIndx);
 	ui.clickInt("mset_mottype", board[activeBoard].mainSets.motorType);
-	ui.clickInt("mset_relset", board[activeBoard].mainSets.relaySet);
+	ui.clickInt("mset_disptype", board[activeBoard].mainSets.displayType);
+	ui.clickInt("mset_maxcurr_idx", board[activeBoard].mainSets.maxCurrentIndx);
 						
-	ui.clickInt("aset_maxV", board[activeBoard].addSets.maxVoltRelative);
-	ui.clickInt("aset_minV", board[activeBoard].addSets.minVoltRelative);
+	ui.clickInt("aset_maxV", board[activeBoard].addSets.maxVolt);
+	ui.clickInt("aset_minV", board[activeBoard].addSets.minVolt);
 	ui.clickInt("aset_toff", board[activeBoard].addSets.emergencyTOFF);
 	ui.clickInt("aset_ton", board[activeBoard].addSets.emergencyTON);
-	ui.clickInt("aset_motK_0", board[activeBoard].addSets.motKoef_0);
-	ui.clickInt("aset_motK_1", board[activeBoard].addSets.motKoef_1);
-	ui.clickInt("aset_motK_2", board[activeBoard].addSets.motKoef_2);
-	ui.clickInt("aset_motK_3", board[activeBoard].addSets.motKoef_3);	
+	//ui.clickStr
 }
 
 void updatesHandler(uint8_t &result) {

@@ -59,9 +59,9 @@ public:
 		if (!_inited) return;
 		uint8_t tx_buf[255];
 		uint8_t* addrPtr = new uint8_t[sizeof(addr)];
-		addrPtr = convertData(addr, addrPtr);
+		convertData(addr, addrPtr);
 		uint8_t* dataPtr = new uint8_t[sizeof(T)];
-		dataPtr = convertData(value, dataPtr);
+		convertData(value, dataPtr);
 		tx_buf[0] = header1;
 		tx_buf[1] = header2;
 		tx_buf[2] = sizeof(T) + 3;
