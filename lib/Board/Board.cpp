@@ -206,6 +206,18 @@ uint8_t Board::reboot() {
 	return ERR_NO;
 }
 
+uint8_t Board::saveSettings() {
+	if (!startFlag) return ERR_INIT;
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
+	*_txbuffer = I2C_SAVE_SETTINGS;
+	Wire.beginTransmission(_board_addr);
+	Wire.write(_txbuffer, sizeof(_txbuffer));
+	uint8_t error = Wire.endTransmission();
+	if (error != 0) return ERR_CONNECT;
+	return ERR_NO;
+}
+
+
 uint8_t Board::toggleRegulation() {
 	if (!startFlag) return ERR_INIT;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
@@ -253,8 +265,8 @@ U выход  |
 
 */
 
-	float maxPwr = mainStats.powerMax/1000.0;
-	float avgPwr = mainStats.powerAvg/1000.0;
+	float maxPwr = mainStats.power[0]/1000.0;
+	float avgPwr = mainStats.power[1]/1000.0;
 	String s = "";
 	s += F("Cтатистика : ");
 	if (mainSets.liter != 'N') {
@@ -266,23 +278,23 @@ U выход  |
 	s += getWorkTime(mainStats.workTimeMins);
 
 	s += F("\nU вх  |");
-	s += String(mainStats.outVoltMax);
+	s += String(mainStats.inVoltage[0]);
 	s += F("|");
-	s += String(mainStats.outVoltAvg);
+	s += String(mainStats.inVoltage[1]);
 	s += F("|");
-	s += String(mainStats.outVoltMin);
+	s += String(mainStats.inVoltage[2]);
 
 	s += F("\nU вых |");
-	s += String(mainStats.inVoltMax);
+	s += String(mainStats.outVoltage[0]);
 	s += F("|");
-	s += String(mainStats.inVoltAvg);
+	s += String(mainStats.outVoltage[1]);
 	s += F("|");
-	s += String(mainStats.inVoltMin);
+	s += String(mainStats.outVoltage[2]);
 
 	s += F("\nI вых |");
-	s += String(mainStats.outLoadMax, 1);
+	s += String(mainStats.outCurrent[0], 1);
 	s += F("|");
-	s += String(mainStats.outLoadAvg, 1);
+	s += String(mainStats.outCurrent[1], 1);
 
 	s += F("\nP акт |");
 	s += String(maxPwr,1);
@@ -297,7 +309,6 @@ U выход  |
 
 void Board::tick() {
 	static uint32_t tmr = 0;
-	memSets.tick();
 	if (millis() - tmr >= 1000) {
 		getData();
 		getStatis();
@@ -309,27 +320,6 @@ void Board::tick() {
 void Board::detach() {
 	if (!startFlag) return;
 	startFlag = false;
-}
-
-uint8_t Board::saveSettings() {
-	mainSets.packData();
-	addSets.packData();
-	memcpy(_memsets_buf, mainSets.buffer, mainSets.structSize);
-	memcpy(_memsets_buf + mainSets.structSize, addSets.buffer, addSets.structSize);
-	uint8_t result = memcmp(_memsets_buf, mainSets.buffer, mainSets.structSize);
-	memSets.updateNow();
-	return result;
-}
-
-uint8_t Board::readSettings() {
-	mainSets.packData();
-	memSets.begin(_memoryAddr, _memoryKey);
-	delay(10);
-	memcpy(mainSets.buffer, _memsets_buf, mainSets.structSize);
-	memcpy(addSets.buffer, _memsets_buf + mainSets.structSize, addSets.structSize);
-	mainSets.unpackData();
-	addSets.unpackData();
-	return 0;
 }
 
 String Board::getLiteral() {
@@ -348,24 +338,6 @@ String Board::getMotKoefList() {
 	String result = "";
 	for (uint8_t i = 0; i < sizeof(addSets.motKoefsList); i++) {
 		result += String(addSets.motKoefsList[i]);
-		result += String(",");
-	}
-	return result;
-}
-
-String Board::getMaxCurrList() {
-	String result = "";
-	for (uint8_t i = 0; i < sizeof(addSets.maxCurrentList); i++) {
-		result += String(addSets.maxCurrentList[i]);
-		result += String(",");
-	}
-	return result;
-}
-
-String Board::getTargetVList() {
-	String result = "";
-	for (uint8_t i = 0; i < sizeof(addSets.targetVotageList); i++) {
-		result += String(addSets.targetVotageList[i]);
 		result += String(",");
 	}
 	return result;
@@ -410,7 +382,7 @@ String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 					s += String(i);
 				}
 				s += ", ";
-			}
+			}  
 		}
 		if (s.length()) {
 			s.remove(s.length() - 2);
@@ -419,7 +391,7 @@ String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 		static uint8_t i = 0;
 		while (i <= 32) {
 			if (errors & (1<<i)) {
-				s = gEventsList[i].c_str();
+				s = gEventsList[i-1];
 				i++;
 				return s;
 			}

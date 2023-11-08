@@ -167,9 +167,9 @@ void formsHandler() {
 }
 
 void clicksHandler(uint8_t &result) {
-	if (ui.clickUp("rset_btn") ) {	//кнопка прочитать настройки
-		if (!board[activeBoard].readSettings()) {
-			result = 1;
+	if (ui.clickUp("svlit_btn")) {
+		if (!board[activeBoard].saveSettings()) {
+			result = 3;
 			webRefresh = true;
 		}
 	}
@@ -203,11 +203,6 @@ void clicksHandler(uint8_t &result) {
 	if (ui.clickUp("scan_btn")) {
 		scanNewBoards();
 	}
-	if (ui.clickUp("svlit_btn")) {
-		board[activeBoard].saveSettings();
-		result = 3;
-		webRefresh = true;
-	}
 
 	for (uint8_t i = 0; i < board.size();i++) {
 		uint8_t num = 0;
@@ -218,15 +213,14 @@ void clicksHandler(uint8_t &result) {
 	}
 
 	ui.clickInt("b_sel", activeBoard);
-	ui.clickBool("mset_ignor", board[activeBoard].mainSets.ignoreSetsFlag);
-	ui.clickInt("mset_trgtV_idx", board[activeBoard].mainSets.targetVoltIndx);
+	ui.clickBool("aset_transit", board[activeBoard].addSets.overloadTransit);
+	ui.clickInt("mset_targetV", board[activeBoard].mainSets.targetVoltage);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.precision);
 	ui.clickInt("mset_tunIn", board[activeBoard].mainSets.tuneInVolt);
 	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.tuneOutVolt);
 	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.transRatioIndx);
 	ui.clickInt("mset_mottype", board[activeBoard].mainSets.motorType);
-	ui.clickInt("mset_disptype", board[activeBoard].mainSets.displayType);
-	ui.clickInt("mset_maxcurr_idx", board[activeBoard].mainSets.maxCurrentIndx);
+	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.maxCurrent);
 						
 	ui.clickInt("aset_maxV", board[activeBoard].addSets.maxVolt);
 	ui.clickInt("aset_minV", board[activeBoard].addSets.minVolt);

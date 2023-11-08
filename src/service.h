@@ -72,14 +72,6 @@ void memoryInit() {
 			attempts++;
 		}
 	}
-	for (uint8_t i = 0; i < board.size();i++) {	//раздаем адреса памяти платам
-		if (i > 1) {
-			board[i].setMemAddr(board[i-1].getEndMemAddr()); //или board[i].setMemAddr(i*100+100);
-		} else {
-			board[0].setMemAddr(100);
-		}
-		
-	}
 }
 
 void boardTick() {
