@@ -94,7 +94,7 @@ void MqttPublishData() {
     uint8_t outV[30] = {header1,header2,byteCnt, modeTX};
     uint8_t outC[30] = {header1,header2,byteCnt, modeTX};
     uint8_t outP[30] = {header1,header2,byteCnt, modeTX};
-	
+
     Buffer_addNewValue(inV_addr, inV, 30, 1);
     for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.inputVoltage, inV, 30, 0);
 
@@ -140,7 +140,7 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
 void Mqtt_tick() {
     mqttClient.loop();
     MqttReconnect();
-    //MqttPublishData();
+    MqttPublishData();
 }
 
 
