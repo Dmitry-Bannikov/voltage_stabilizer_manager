@@ -35,3 +35,33 @@ uint8_t activeBoard = 0;
 
 bool webRefresh = true;  
 
+//#define bitRead(value, bit)					(value & (1<<(bit)))
+//#define bitSet(value, bit)					(value |= (1 << (bit)))
+//#define bitClear(value, bit)				(value &= ~(1 << (bit)))
+//#define bitWrite(value, bit, bitvalue) 		(bitvalue ? bitSet(value, bit) : bitClear(value, bit))
+#define unitBytes(byteH, byteL)				(byteH << 8 | byteL )
+#define getByteLow(value)						( value & 0xFF )
+#define getByteHigh(value)						( (value >> 8) & 0xFF )
+
+
+uint8_t global_add_pointer = 0;
+
+template<typename T>
+void reverseBytes(T& value) {
+    uint8_t* front = reinterpret_cast<uint8_t*>(&value);
+    uint8_t* back = front + sizeof(T) - 1;
+    while (front < back) {
+        std::swap(*front, *back);
+        ++front;
+        --back;
+    }
+}
+
+template<typename T>
+void Buffer_addNewValue(T value, uint8_t* buffer, size_t bufferSize, uint8_t reset) {
+    uint8_t size = sizeof(T);
+    if (reset || pointer + size >= bufferSize - 1) global_add_pointer = 0;
+    reverseBytes(value);
+    std::memcpy(buffer + 6 + global_add_pointer, &value, size);
+    global_add_pointer += size;
+}
