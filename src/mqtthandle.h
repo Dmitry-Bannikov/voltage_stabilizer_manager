@@ -29,6 +29,7 @@ data[]
 #define outP_addr   ((uint16_t)0x5030)
 
 
+/*
 const char *mqtt_broker = "m6.wqtt.ru";//185.64.76.226
 const char *topicToServer = "stab/toserver";
 const char *topicToStab = "stab/tostab";
@@ -36,7 +37,15 @@ const char *topicToStab = "stab/tostab";
 const char *mqtt_username = "u_J94WNP";
 const char *mqtt_password = "TvTRzLsh";
 const int mqtt_port = 15164;
+*/
 
+const char *mqtt_broker = "m6.wqtt.ru";//185.64.76.226
+const char *topicToServer = "stab/toserver";
+const char *topicToStab = "stab/tostab";
+//const char *mqtt_clientId = "mqttx_6a007db2";
+const char *mqtt_username = "u_J94WNP";
+const char *mqtt_password = "TvTRzLsh";
+const int mqtt_port = 15164;
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -80,7 +89,7 @@ void MqttReconnect() {
             
         }
     } else {
-        Serial.print("Mqtt server connected...");
+        Serial.print("Mqtt server connected: ");
         Serial.println(mqttClient.state());
     }
     tmr = millis();
@@ -88,7 +97,7 @@ void MqttReconnect() {
 
 void MqttPublishData() {
     static uint32_t tmr = 0;
-    if (millis() < tmr + 2000) return;
+    if (millis() < tmr + 10000) return;
     
     uint8_t inV[30] = {header1,header2,byteCnt, modeTX}; 
     uint8_t outV[30] = {header1,header2,byteCnt, modeTX};
@@ -102,10 +111,10 @@ void MqttPublishData() {
     for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputVoltage, outV, 30, 0);
 
     Buffer_addNewValue(outC_addr, outC, 30, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputCurrent, outC, 30, 0);
+    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue((int16_t)board[i].mainData.outputCurrent, outC, 30, 0);
 
     Buffer_addNewValue(outP_addr, outP, 30, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputPower, outP, 30, 0);
+    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue((int16_t)board[i].mainData.outputPower, outP, 30, 0);
 
     mqttClient.publish(topicToServer, inV, sizeof(inV));
     mqttClient.publish(topicToServer, outV, sizeof(inV));
@@ -116,7 +125,6 @@ void MqttPublishData() {
 
 void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
     if (strcmp(topic, topicToStab) != 0) {
-        Serial.println("Не та тема!");
         return;
     }
     Serial.println("\n Данные приняты.");
@@ -128,10 +136,12 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
     
     uint16_t addr = *(uint16_t*)(buffer+4);
     int16_t value = *(int16_t*)(buffer+7);
-    if (addr = 0x6000) {
+    if (addr == 0x6000) {
+        Serial.printf("\nАдрес: %d", addr);
         Serial.printf("\nАктивная плата: %d", value);
         activeBoard = value;
     } else if (addr == 0x6001) {
+        Serial.printf("\nАдрес: %d", addr);
         Serial.printf("\nЦелевое напряжение: %d", value);
         //board[activeBoard].mainSets.targetVoltage = value;
     }

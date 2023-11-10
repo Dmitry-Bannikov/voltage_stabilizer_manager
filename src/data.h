@@ -60,8 +60,8 @@ void reverseBytes(T& value) {
 template<typename T>
 void Buffer_addNewValue(T value, uint8_t* buffer, size_t bufferSize, uint8_t reset) {
     uint8_t size = sizeof(T);
-    if (reset || pointer + size >= bufferSize - 1) global_add_pointer = 0;
+    if (reset || global_add_pointer + size >= bufferSize - 1) global_add_pointer = 0;
     reverseBytes(value);
-    std::memcpy(buffer + 6 + global_add_pointer, &value, size);
+    std::memcpy(buffer + 4 + global_add_pointer, &value, size);
     global_add_pointer += size;
 }
