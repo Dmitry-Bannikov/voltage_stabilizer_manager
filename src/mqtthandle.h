@@ -90,29 +90,27 @@ void MqttPublishData() {
     static uint32_t tmr = 0;
     if (millis() < tmr + 2000) return;
     
-    uint8_t inV[20] = {header1,header2,byteCnt, modeTX}; 
-    uint8_t outV[20] = {header1,header2,byteCnt, modeTX};
-    uint8_t outC[20] = {header1,header2,byteCnt, modeTX};
-    uint8_t outP[20] = {header1,header2,byteCnt, modeTX};
-    Serial.print("\nГде-то здесь переполняется стек");
-    Serial.println("1...");
-    Mqtt_addNewValue(inV_addr, inV, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Mqtt_addNewValue(board[i].mainData.inputVoltage, inV, 0);
-    Serial.println("2...");
-    Mqtt_addNewValue(outV_addr, outV, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Mqtt_addNewValue(board[i].mainData.outputVoltage, outV, 0);
-    Serial.println("3...");
-    Mqtt_addNewValue(outC_addr, outC, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Mqtt_addNewValue(board[i].mainData.outputCurrent, outC, 0);
-    Serial.println("4...");
-    Mqtt_addNewValue(outP_addr, outP, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Mqtt_addNewValue(board[i].mainData.outputPower, outP, 0);
-    Serial.println("5...");
+    uint8_t inV[30] = {header1,header2,byteCnt, modeTX}; 
+    uint8_t outV[30] = {header1,header2,byteCnt, modeTX};
+    uint8_t outC[30] = {header1,header2,byteCnt, modeTX};
+    uint8_t outP[30] = {header1,header2,byteCnt, modeTX};
+	
+    Buffer_addNewValue(inV_addr, inV, 30, 1);
+    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.inputVoltage, inV, 30, 0);
+
+    Buffer_addNewValue(outV_addr, outV, 30, 1);
+    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputVoltage, outV, 30, 0);
+
+    Buffer_addNewValue(outC_addr, outC, 30, 1);
+    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputCurrent, outC, 30, 0);
+
+    Buffer_addNewValue(outP_addr, outP, 30, 1);
+    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputPower, outP, 30, 0);
+
     mqttClient.publish(topicToServer, inV, sizeof(inV));
     mqttClient.publish(topicToServer, outV, sizeof(inV));
     mqttClient.publish(topicToServer, outC, sizeof(inV));
     mqttClient.publish(topicToServer, outP, sizeof(inV));
-    Serial.println("6...");
     tmr = millis();
 }
 
