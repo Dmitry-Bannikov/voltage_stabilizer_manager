@@ -4,12 +4,16 @@
 #include <data.h>
 #include <Wire.h>
 
+
 void connectionInit();
 void memoryInit();
 void LED_switch(bool state);
 void LED_blink(uint16_t period_on, uint16_t period_off);
 void scanNewBoards();
 void boardTick();
+void SerialTest(int16_t value);
+void processData();
+void sendDwinData();
 
 
 void LED_switch(bool state) {
@@ -43,6 +47,8 @@ void connectionInit() {
 	Wire.setTimeout(500);
 	delay(10);
 	Serial.begin(115200);
+	//HardwareSerial Serial2(115200);
+	Dwin.begin(&Serial, processData);
 	delay(10);
 	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
@@ -66,27 +72,24 @@ void memoryInit() {
 			attempts++;
 		}
 	}
-	for (uint8_t i = 0; i < board.size();i++) {	//раздаем адреса памяти платам
-		if (i > 1) {
-			board[i].setMemAddr(board[i-1].getEndMemAddr()); //или board[i].setMemAddr(i*100+100);
-		} else {
-			board[0].setMemAddr(100);
-		}
-		
-	}
 }
 
 void boardTick() {
 	static uint32_t tmr = 0;
 	memoryWIFI.tick();
+	sendDwinData();
 	for (uint8_t i = 0; i < board.size(); i++) {
 		Wire.clearWriteError();
 		board[i].tick();
 	}
-	if (millis() -  tmr > 60000) {
+	if (board.size()) {
+		if (millis() -  tmr < 30000) return;
 		scanNewBoards();
-		tmr = millis();
+	} else {
+		if (millis() - tmr < 3000) return;
+		scanNewBoards();
 	}
+	tmr = millis();
 }
 
 void scanNewBoards() {
@@ -99,4 +102,45 @@ void scanNewBoards() {
 		Serial.println(String("Boards found: ") + board.size());
 	}
 	
+}
+
+
+void SerialTest(int16_t value) {
+	static uint32_t tmr = 0;
+	
+	uint8_t buffer[8];
+	buffer[0] = 0x5A;
+	buffer[1] = 0xA5;
+	buffer[2] = 0x05;
+	buffer[3] = 0x82;
+	buffer[4] = 0x50;
+	buffer[5] = 0x00;
+	buffer[6] = 0x00;
+	buffer[7] = 0x12;
+	Serial2.write(buffer, sizeof(buffer));
+	Serial1.write(buffer, sizeof(buffer));
+	
+}
+
+void processData() {
+	
+}
+
+void sendDwinData() {
+	static uint32_t tmr;
+	if (millis() - tmr < 1000) return;
+	for (uint8_t i = 0; i < board.size(); i++) {
+		//SerialTest(0x1234);
+		Dwin.writeValue(0x5000, board[0].mainData.inputVoltage);
+		/*
+		Dwin.addNewValue(board[i].mainData.inputVoltage);
+		Dwin.addNewValue(board[i].mainData.outputVoltage);
+		Dwin.addNewValue(board[i].mainData.outputCurrent);
+		Dwin.addNewValue(board[i].mainData.outputPower);
+		Dwin.writeAddedValues(0x5000 + i*256);
+		Dwin.waitUntillTx();
+		*/
+		
+	}
+	tmr = millis();
 }

@@ -1,78 +1,32 @@
 #include <Display.h>
 
 
-void Display::writeValue(uint16_t addr, int16_t value) {
-	uint8_t size = 1 + sizeof(addr) + sizeof(value);
-	uint8_t totalSize = size + 3;
-	txbuf = new uint8_t[totalSize];
-	uint8_t header[4] = {0x5A, 0xA5, size, 0x82};
-	memcpy(txbuf, header, 4);
-	memcpy(txbuf + 4, &addr, 2);
-	memcpy(txbuf + 6, &value, 4);
-	userSerial->write(txbuf, totalSize);
-	delete(txbuf);
+
+Display::~Display()
+{
+	userSerial->end();
+	delete(userSerial);
 }
 
-void Display::writeValue(uint16_t addr, float value) {
-	uint8_t size = 1 + sizeof(addr) + sizeof(value);
-	uint8_t totalSize = size + 3;
-	txbuf = new uint8_t[totalSize];
-	uint8_t header[4] = {0x5A, 0xA5, size, 0x82};
-	memcpy(txbuf, header, 4);
-	memcpy(txbuf + 4, &addr, 2);
-	memcpy(txbuf + 6, &value, 4);
-	userSerial->write(txbuf, totalSize);
-	delete(txbuf);
+void Display::Test(int16_t value) {
+	uint8_t buffer[8];
+	buffer[0] = 0x5A;
+	buffer[1] = 0xA5;
+	buffer[2] = 0x05;
+	buffer[3] = 0x82;
+	buffer[4] = 0x50;
+	buffer[5] = 0x00;
+	buffer[6] = (uint8_t)(value >> 8);
+	buffer[7] = (uint8_t)(value & 0xFF);
+	userSerial->write(buffer, sizeof(buffer));
 }
-
-void Display::writeValuesSeq(uint16_t startAddr, int16_t* values, uint8_t dsize) {
-	uint8_t size = 1 + sizeof(startAddr) + dsize*sizeof(*values);
-	uint8_t totalSize = size + 3;
-	txbuf = new uint8_t[totalSize];
-	uint8_t header[4] = {0x5A, 0xA5, size, 0x82};
-	memcpy(txbuf, header, 4);
-	memcpy(txbuf + 4, &startAddr, 2);
-	memcpy(txbuf + 6, values, totalSize - 4);
-	userSerial->write(txbuf, totalSize);
-	delete(txbuf);
-}
-
-void Display::writeValuesSeq(uint16_t startAddr, float* values, uint8_t dsize) {
-	uint8_t size = 1 + sizeof(startAddr) + dsize*sizeof(*values);
-	uint8_t totalSize = size + 3;
-	txbuf = new uint8_t[totalSize];
-	uint8_t header[4] = {0x5A, 0xA5, size, 0x82};
-	memcpy(txbuf, header, 4);
-	memcpy(txbuf + 4, &startAddr, 2);
-	memcpy(txbuf + 6, values, totalSize - 4);
-	userSerial->write(txbuf, totalSize);
-	delete(txbuf);
-}
-
-uint8_t Display::readValue(uint16_t addr, int16_t& value) {
-	txbuf = new uint8_t[7];
-	uint8_t header[4] = {0x5A, 0xA5, 0x04, 0x83};
-	memcpy(txbuf, header, 4);
-	memcpy(txbuf + 4, &addr, 2);
-	*(txbuf + 6) = 0x01;
-	userSerial->write(txbuf, 7);
-	delete(txbuf);
-	uint8_t res;
-	if (pollForDataRx()) {
-		res = getDataFromAddr(addr, 1);
-	}
-}
-
-
 
 void Display::tick() {
-	
-	if (userSerial->available()) {
-		size_t rxSize = 7 + 2*readData.length();
-		rxbuf = new uint8_t[rxSize];
-		userSerial->readBytes(rxbuf, rxSize);
-		int16_t addr = int16_t(rxbuf[4]<<8)|rxbuf[5];
-		uint8_t length = rxbuf[6];
+
+	static uint32_t tmr = 0;
+	if (millis() - tmr > 1000) {
+		//Test(255);
+		tmr = millis();
 	}
 }
 
@@ -86,57 +40,65 @@ bool Display::pollForDataRx() {
 	return false;
 }
 
-uint8_t Display::getDataFromAddr(uint16_t addr, int16_t* out, uint8_t length) {
-	int16_t* values = nullptr;	//указатель куда будут писатьс прочитанные значения
-	uint16_t address = 0;		//адрес, который будет считан с порта
-	uint8_t command = 0;		//команда чтения
-	uint8_t headerH = userSerial->read();	//get header
-	uint8_t headerL = userSerial->read();	//get header
-	if (headerL != 0xA5)		//если хедер не валидный
-		return 1;
-	uint8_t rxSize = userSerial->read();	//get data size in bytes
-	rxbuf = new uint8_t[rxSize];			//выделяем буфер размером = (команда + адрес + данные)
-	userSerial->readBytes(rxbuf, rxSize);
-	command = *rxbuf;
-	address = uint16_t( *(rxbuf+1) << 8)|*(rxbuf+2);
-	values = new int16_t[1 + length];
-	memcpy(values, rxbuf + 3, length*2);
-	values[length] = nullTerm;
-	delete(rxbuf);
-	if (address == addr && command == 0x83) {
-		for(int i = 0; i < length + 1 || values[i] != nullTerm; i++) {
-			out[i] = values[i];
-		}
-		return 0;
-	}
-	return 2;
+
+void Display::writeAddedValues(const uint16_t addr) {
+	if (!pointer || !_inited) return;
+	uint8_t* addrPtr = new uint8_t[sizeof(addr)];
+	convertData(addr, addrPtr);
+	txbuf[0] = header1;
+	txbuf[1] = header2;
+	txbuf[2] = pointer + 3;
+	txbuf[3] = 0x82;
+	memcpy(txbuf + 4, addrPtr, 2);
+	userSerial->write(txbuf, pointer + 6);
+	pointer = 0;
+	delete(addrPtr);
 }
 
+void Display::requestFrom(const uint16_t addr, const uint8_t words) {
+	if (!_inited) return;
+	uint8_t* addrPtr = new uint8_t[sizeof(addr)];
+	convertData(addr, addrPtr);
+	uint8_t tx_buf[50];
+	tx_buf[0] = header1;
+	tx_buf[1] = header2;
+	tx_buf[2] = 0x04;
+	tx_buf[3] = 0x83;
+	memcpy(tx_buf + 4, addrPtr, 2);
+	tx_buf[6] = words;
+	userSerial->write(tx_buf, 7);
+	delete(addrPtr);
+}
 
+void Display::begin(HardwareSerial *Ser, CallbackFunction callback) {
+	userSerial = Ser;
+	userSerial->begin(115200, SERIAL_8N1);
+	//onDataReceived = callback;
+	userSerial->setRxTimeout(10);
+	userSerial->setRxFIFOFull(255);
+	userSerial->onReceive(callback);
+	_inited = true;
+}
 
+uint16_t Display::parseAddress(const uint8_t* buffer) {
+	if (buffer[0] != 0x5A) return 0;
+	uint16_t res = ((uint16_t)(buffer[4]<<8)|buffer[5]);
+	return res;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void Display::sendRawData(const uint16_t addr, const uint8_t *data, uint8_t size) {
+	if (!_inited) return;
+	uint8_t tx_buf[255];
+	uint8_t* addrPtr = new uint8_t[sizeof(addr)];
+	convertData(addr, addrPtr);
+	tx_buf[0] = header1;
+	tx_buf[1] = header2;
+	tx_buf[2] = sizeof(size) + 3;
+	tx_buf[3] = 0x82;
+	memcpy(tx_buf + 4, addrPtr, 2);
+	memcpy(tx_buf + 6, data, size);
+	userSerial->write(tx_buf, size + 6);
+	delete(addrPtr);
+}
 
 //

@@ -1,3 +1,9 @@
+/*
+C:\Users\Viktoriya\.platformio\packages\framework-arduinoespressif32\libraries\WebServer\src 
+find WebServer.cpp at line 649 and comment log_e
+*/
+
+
 #include <Arduino.h>
 #include <myportal.h>
 #include <service.h>
@@ -7,6 +13,7 @@
 
 void setup() {
 	connectionInit();
+	//инициализация мктт
 	memoryInit();
 	portalInit();
 	#ifdef RELEASE
@@ -18,6 +25,7 @@ void setup() {
 void loop() {
 	boardTick();
 	portalTick();
+	//обработка мктт
 	if (WiFi.status() == WL_CONNECTED && WiFi.getMode() == WIFI_STA) {
 		LED_blink(100, 2000);
 	} else if (WiFi.getMode() == WIFI_AP){

@@ -55,14 +55,14 @@ bool Board::setAddress(const uint8_t addr) {
 
 uint8_t Board::getDataRaw() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_DATA;
 	Wire.clearWriteError();
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
 	if (error != 0) return ERR_CONNECT;
-	flush(RXBUF);
+	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
@@ -77,13 +77,13 @@ uint8_t Board::getDataRaw() {
 
 uint8_t Board::getMainSets() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_MAINSETS;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
 	if (error != 0) return ERR_CONNECT;
-	flush(RXBUF);
+	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
@@ -98,13 +98,13 @@ uint8_t Board::getMainSets() {
 
 uint8_t Board::getAddSets() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_ADDSETS;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
 	if (error != 0) return ERR_CONNECT;
-	flush(RXBUF);
+	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
@@ -119,13 +119,13 @@ uint8_t Board::getAddSets() {
 
 uint8_t Board::getStatisRaw() {
 	Wire.clearWriteError();
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_STAT;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
 	if (error != 0) return ERR_CONNECT;
-	flush(RXBUF);
+	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
@@ -171,7 +171,7 @@ uint8_t Board::getData() {
 
 uint8_t Board::sendMainSets() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
 	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
@@ -184,7 +184,7 @@ uint8_t Board::sendMainSets() {
 
 uint8_t Board::sendAddSets() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_ADDSETS_START;
 	addSets.packData();
 	memcpy(_txbuffer+1, addSets.buffer, addSets.structSize);
@@ -197,7 +197,7 @@ uint8_t Board::sendAddSets() {
 
 uint8_t Board::reboot() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_REBOOT;
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
@@ -206,9 +206,21 @@ uint8_t Board::reboot() {
 	return ERR_NO;
 }
 
+uint8_t Board::saveSettings() {
+	if (!startFlag) return ERR_INIT;
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
+	*_txbuffer = I2C_SAVE_SETTINGS;
+	Wire.beginTransmission(_board_addr);
+	Wire.write(_txbuffer, sizeof(_txbuffer));
+	uint8_t error = Wire.endTransmission();
+	if (error != 0) return ERR_CONNECT;
+	return ERR_NO;
+}
+
+
 uint8_t Board::toggleRegulation() {
 	if (!startFlag) return ERR_INIT;
-	flush(TXBUF);
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_NOREG;
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
@@ -253,11 +265,11 @@ U выход  |
 
 */
 
-	float maxPwr = mainStats.powerMax/1000.0;
-	float avgPwr = mainStats.powerAvg/1000.0;
+	float maxPwr = mainStats.power[0]/1000.0;
+	float avgPwr = mainStats.power[1]/1000.0;
 	String s = "";
 	s += F("Cтатистика : ");
-	if (mainSets.liter > 0) {
+	if (mainSets.liter != 'N') {
 		s += getLiteral();
 	} else {
 		s += String(_board_addr);
@@ -266,23 +278,23 @@ U выход  |
 	s += getWorkTime(mainStats.workTimeMins);
 
 	s += F("\nU вх  |");
-	s += String(mainStats.outVoltMax);
+	s += String(mainStats.inVoltage[0]);
 	s += F("|");
-	s += String(mainStats.outVoltAvg);
+	s += String(mainStats.inVoltage[1]);
 	s += F("|");
-	s += String(mainStats.outVoltMin);
+	s += String(mainStats.inVoltage[2]);
 
 	s += F("\nU вых |");
-	s += String(mainStats.inVoltMax);
+	s += String(mainStats.outVoltage[0]);
 	s += F("|");
-	s += String(mainStats.inVoltAvg);
+	s += String(mainStats.outVoltage[1]);
 	s += F("|");
-	s += String(mainStats.inVoltMin);
+	s += String(mainStats.outVoltage[2]);
 
 	s += F("\nI вых |");
-	s += String(mainStats.outLoadMax, 1);
+	s += String(mainStats.outCurrent[0], 1);
 	s += F("|");
-	s += String(mainStats.outLoadAvg, 1);
+	s += String(mainStats.outCurrent[1], 1);
 
 	s += F("\nP акт |");
 	s += String(maxPwr,1);
@@ -297,7 +309,6 @@ U выход  |
 
 void Board::tick() {
 	static uint32_t tmr = 0;
-	memSets.tick();
 	if (millis() - tmr >= 1000) {
 		getData();
 		getStatis();
@@ -311,28 +322,7 @@ void Board::detach() {
 	startFlag = false;
 }
 
-uint8_t Board::saveSettings() {
-	mainSets.packData();
-	addSets.packData();
-	memcpy(_memsets_buf, mainSets.buffer, mainSets.structSize);
-	memcpy(_memsets_buf + mainSets.structSize, addSets.buffer, addSets.structSize);
-	uint8_t result = memcmp(_memsets_buf, mainSets.buffer, mainSets.structSize);
-	memSets.updateNow();
-	return result;
-}
-
-uint8_t Board::readSettings() {
-	mainSets.packData();
-	memSets.begin(_memoryAddr, _memoryKey);
-	delay(10);
-	memcpy(mainSets.buffer, _memsets_buf, mainSets.structSize);
-	memcpy(addSets.buffer, _memsets_buf + mainSets.structSize, addSets.structSize);
-	mainSets.unpackData();
-	addSets.unpackData();
-	return 0;
-}
-
-String 	Board::getLiteral() {
+String Board::getLiteral() {
 	return String(mainSets.liter);
 }
 
@@ -340,25 +330,30 @@ void Board::setLiteral(String lit) {
 	mainSets.liter = lit.charAt(0);
 }
 
+void Board::setLiteral(char lit) {
+	mainSets.liter = lit;
+}
 
+String Board::getMotKoefList() {
+	String result = "";
+	for (uint8_t i = 0; i < sizeof(addSets.motKoefsList); i++) {
+		result += String(addSets.motKoefsList[i]);
+		result += String(",");
+	}
+	return result;
+}
 
-
-
-
-
-
-
-
+String Board::getTcRatioList() {
+	String result = "";
+	for (uint8_t i = 0; i < sizeof(addSets.tcRatioList); i++) {
+		result += String(addSets.tcRatioList[i]);
+		result += String(",");
+	}
+	
+	return result;
+}
 
 //========Private=======//
-
-void Board::flush(BufferType type) {
-	if (type == RXBUF) {
-		memset(_rxbuffer, 0, sizeof(_rxbuffer));
-	} else {
-		memset(_txbuffer, 0, sizeof(_txbuffer));
-	}
-}
 
 bool Board::pollForDataRx() {
 	uint32_t tmr = millis();
@@ -373,7 +368,7 @@ bool Board::pollForDataRx() {
 String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 	String s = "";
 	if (errors <= 1) {
-		s = "No";
+		s = "Нет";
 		return s;
 	}
 	if (f == EVENTS_SHORT) {
@@ -387,60 +382,22 @@ String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 					s += String(i);
 				}
 				s += ", ";
-			}
+			}  
 		}
 		if (s.length()) {
 			s.remove(s.length() - 2);
 		}
 	} else {
-		for (uint8_t i = 0; i < 32; i++) {
+		static uint8_t i = 0;
+		while (i <= 32) {
 			if (errors & (1<<i)) {
-				switch (i)
-				{
-				case 1:
-					s += "перегрузка";
-					break;
-				case 2:
-					s += "внеш.авария";
-					break;
-				case 3:
-					s += "меньше 80";
-					break;
-				case 4:
-					s += "недонапряжение";
-					break;
-				case 5:
-					s += "перенапряжение";
-					break;
-				case 6:
-					s += "концевик";
-					break;
-				case 7:
-					s += "температура";
-					break;
-				case 8:
-					s += "заклинило";
-					break;
-				case 9:
-					s += "";
-					break;
-				case 10:
-					s += "";
-					break;
-				
-				default:
-					break;
-				}
-				s += ", ";
+				s = gEventsList[i-1];
+				i++;
+				return s;
 			}
-
-		}
-		if (s.length()) {
-			s.remove(s.length() - 2);
+			i < 32 ? i++ : (i = 0);
 		}
 	}
-	
-	
 	return s;
 }
 
