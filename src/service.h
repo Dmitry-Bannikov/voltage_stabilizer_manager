@@ -3,40 +3,39 @@
 #include <Arduino.h>
 #include <data.h>
 #include <Wire.h>
+#include <mqtthandle.h>
 
 
 void connectionInit();
 void memoryInit();
-void LED_switch(bool state);
 void LED_blink(uint16_t period_on, uint16_t period_off);
 void scanNewBoards();
 void boardTick();
 void SerialTest(int16_t value);
-void processData();
 void sendDwinData();
-
-
-void LED_switch(bool state) {
-	if (state) {
-		digitalWrite(LED_BUILTIN, LOW);
-	}
-	else {
-		digitalWrite(LED_BUILTIN, HIGH);
-	}  
-}
+void WiFi_Init();
+void WiFi_tick();
 
 void LED_blink(uint16_t period_on, uint16_t period_off = 0) {
   	static uint64_t tick = 0;
 	static bool led_state = false;
+	if (!period_on) {
+		digitalWrite(LED_BUILTIN, HIGH);
+		return;
+	} 
+	if (period_on == 1) {
+		digitalWrite(LED_BUILTIN, LOW);
+		return;
+	}
 	if (!period_off) {
 		if (millis() - tick > period_on) {
-		LED_switch(led_state = !led_state);
-		tick = millis();
+			digitalWrite(LED_BUILTIN, (led_state = !led_state));
+			tick = millis();
 		}
 	} else {
 		if (millis() - tick > (led_state ? period_on : period_off)) {
-		LED_switch(led_state = !led_state);
-		tick = millis();
+			digitalWrite(LED_BUILTIN, (led_state = !led_state));
+			tick = millis();
 		}
 	}
 }
@@ -48,7 +47,7 @@ void connectionInit() {
 	delay(10);
 	Serial.begin(115200);
 	//HardwareSerial Serial2(115200);
-	Dwin.begin(&Serial, processData);
+	//Dwin.begin(&Serial, processData);
 	delay(10);
 	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
@@ -61,15 +60,16 @@ void connectionInit() {
 }
 
 void memoryInit() {
-	LED_switch(1);
+	LED_blink(1);
 	EEPROM.begin(512);
 	memoryWIFI.begin(0, 127);
-	LED_switch(0);
+	LED_blink(0);
 	for (uint8_t i = 0; i < board.size(); i++) {	
 		uint8_t attempts = 0;
 		// пробуем считать настройки с платы
 		while (board[i].getMainSets() || board[i].getAddSets()  || attempts < 5) {
 			attempts++;
+			delay(1000);
 		}
 	}
 }
@@ -104,28 +104,6 @@ void scanNewBoards() {
 	
 }
 
-
-void SerialTest(int16_t value) {
-	static uint32_t tmr = 0;
-	
-	uint8_t buffer[8];
-	buffer[0] = 0x5A;
-	buffer[1] = 0xA5;
-	buffer[2] = 0x05;
-	buffer[3] = 0x82;
-	buffer[4] = 0x50;
-	buffer[5] = 0x00;
-	buffer[6] = 0x00;
-	buffer[7] = 0x12;
-	Serial2.write(buffer, sizeof(buffer));
-	Serial1.write(buffer, sizeof(buffer));
-	
-}
-
-void processData() {
-	
-}
-
 void sendDwinData() {
 	static uint32_t tmr;
 	if (millis() - tmr < 1000) return;
@@ -144,3 +122,68 @@ void sendDwinData() {
 	}
 	tmr = millis();
 }
+
+void WiFi_Init() {
+	if (wifi_settings.staModeEn)
+	{
+		WiFi.mode(WIFI_STA);
+		WiFi.begin(wifi_settings.staSsid, wifi_settings.staPass);
+		int attemptCount = 0;
+		while (WiFi.status() != WL_CONNECTED)
+		{
+			LED_blink(100);
+			if (++attemptCount == 10)
+			{
+				LED_blink(0);
+				wifi_settings.staModeEn = 0; // переключаемся на режим точки доступа
+				memoryWIFI.updateNow();		 // сохраняемся
+				ESP.restart();				 // перезапускаем есп
+				return;
+			}
+			delay(1000);
+		}
+		Serial.println(WiFi.localIP());
+	}
+	// Иначе создаем свою сеть
+	else
+	{
+		WiFi.mode(WIFI_AP);
+		WiFi.softAP(wifi_settings.apSsid, wifi_settings.apPass);
+		delay(1000);
+		Serial.println(WiFi.softAPIP());
+	}
+}
+
+void WiFi_tick() {
+	if (WiFi.status() == WL_CONNECTED && WiFi.getMode() == WIFI_STA) {
+		LED_blink(100, 2000);
+	} else if (WiFi.getMode() == WIFI_AP){
+		LED_blink(1000);
+	} else {
+		//WiFi_Init(); //test
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-------------------------------------------------------------//

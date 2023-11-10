@@ -92,31 +92,6 @@ void portalActions() {
 }
 
 void portalInit() {
-	// Пытаемся подключиться к роутеру
-	if (wifi_settings.staModeEn) {
-		WiFi.mode(WIFI_STA);
-		WiFi.begin(wifi_settings.staSsid, wifi_settings.staPass);
-		int attemptCount = 0;
-		while (WiFi.status() != WL_CONNECTED) {
-			LED_blink(100);
-			if (++attemptCount == 10) {
-				LED_switch(0);
-				wifi_settings.staModeEn = 0;  //переключаемся на режим точки доступа
-				memoryWIFI.updateNow();       //сохраняемся
-				ESP.restart();                //перезапускаем есп
-				return;
-			}
-			delay(1000);
-		}
-		Serial.println(WiFi.localIP());
-	} 
-	// Иначе создаем свою сеть
-	else {
-		WiFi.mode(WIFI_AP);
-		WiFi.softAP(wifi_settings.apSsid, wifi_settings.apPass);
-		delay(1000);
-		Serial.println(WiFi.softAPIP());
-	}
 	ui.attachBuild(portalBuild);
 	ui.attach(portalActions);
 	if (WiFi.getMode() == WIFI_MODE_STA) {
@@ -158,7 +133,7 @@ void formsHandler() {
 		} else {
 		wifi_settings.staModeEn = 0;
 		}
-		LED_switch(1);
+		LED_blink(1);
 		memoryWIFI.updateNow();
 		delay(1000);
 		ESP.restart();
