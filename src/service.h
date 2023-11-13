@@ -94,14 +94,21 @@ void boardTick() {
 
 void scanNewBoards() {
 	static uint8_t old_amount = 0; 
-
+	static uint8_t counter = 0;
+	counter++;
 	Board::scanBoards(board, MAX_BOARDS);
 	if (old_amount != board.size()) {
 		webRefresh = true;
 		old_amount = board.size();
 		Serial.println(String("Boards found: ") + board.size());
 	}
-	
+	if (counter == 3) {
+		counter = 0;
+		if (!board[activeBoard].getMainSets() && !board[activeBoard].getAddSets())
+		{
+			webRefresh = true;
+		}
+	}
 }
 
 void sendDwinData() {

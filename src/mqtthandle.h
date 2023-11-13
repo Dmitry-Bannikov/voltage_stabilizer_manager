@@ -28,25 +28,25 @@ data[]
 #define outC_addr   ((uint16_t)0x5020)
 #define outP_addr   ((uint16_t)0x5030)
 
+#define USE_ORTEA
 
-/*
-const char *mqtt_broker = "m6.wqtt.ru";//185.64.76.226
+#ifdef USE_ORTEA
+const char *mqtt_broker = "ortea.ru";//185.64.76.226
 const char *topicToServer = "stab/toserver";
 const char *topicToStab = "stab/tostab";
-//const char *mqtt_clientId = "mqttx_6a007db2";
+const char *mqtt_clientId = "esp32mqtt_client";
+const char *mqtt_username = "device_stab";
+const char *mqtt_password = "2#r]V\\r]+(Dw@WnAd5Kq";
+const int mqtt_port = 8880;
+#else
+const char *mqtt_broker = "m6.wqtt.ru";
+const char *topicToServer = "stab/toserver";
+const char *topicToStab = "stab/tostab";
+const char *mqtt_clientId = "esp32_stab_manager";
 const char *mqtt_username = "u_J94WNP";
 const char *mqtt_password = "TvTRzLsh";
 const int mqtt_port = 15164;
-*/
-
-const char *mqtt_broker = "m6.wqtt.ru";//185.64.76.226
-const char *topicToServer = "stab/toserver";
-const char *topicToStab = "stab/tostab";
-//const char *mqtt_clientId = "mqttx_6a007db2";
-const char *mqtt_username = "u_J94WNP";
-const char *mqtt_password = "TvTRzLsh";
-const int mqtt_port = 15164;
-
+#endif
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
@@ -77,10 +77,9 @@ void MqttReconnect() {
     {
         period = 60000;
         Serial.print("Attempting MQTT connection.");
-        //String clientId = "ESP32-" + WiFi.macAddress();
-        String clientId = "mqttx_6a007db2";
+        
         Serial.print("..");
-        if (mqttClient.connect(clientId.c_str(), mqtt_username, mqtt_password)){
+        if (mqttClient.connect(mqtt_clientId, mqtt_username, mqtt_password)){
             Serial.println("connected");
             return;
         } else {
@@ -97,8 +96,20 @@ void MqttReconnect() {
 
 void MqttPublishData() {
     static uint32_t tmr = 0;
-    if (millis() < tmr + 10000) return;
-    
+    if (millis() < tmr + 1000) return;
+    String inV = String(board[0].mainData.inputVoltage);
+    mqttClient.publish("stab/toserver/uin", inV.c_str());
+
+    String outV = String(board[0].mainData.outputVoltage);
+    mqttClient.publish("stab/toserver/uout", outV.c_str());
+
+    String outC = String(board[0].mainData.outputCurrent, 1);
+    mqttClient.publish("stab/toserver/cout", outC.c_str());
+
+    String outP = String((board[0].mainData.outputPower/1000), 1);
+    mqttClient.publish("stab/toserver/pout", outP.c_str());
+
+    /*
     uint8_t inV[30] = {header1,header2,byteCnt, modeTX}; 
     uint8_t outV[30] = {header1,header2,byteCnt, modeTX};
     uint8_t outC[30] = {header1,header2,byteCnt, modeTX};
@@ -120,6 +131,7 @@ void MqttPublishData() {
     mqttClient.publish(topicToServer, outV, sizeof(inV));
     mqttClient.publish(topicToServer, outC, sizeof(inV));
     mqttClient.publish(topicToServer, outP, sizeof(inV));
+    */
     tmr = millis();
 }
 
@@ -133,15 +145,23 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
         buffer[i] = payload[i];
     }
     if (buffer[0] != 0x5A) return;
-    
-    uint16_t addr = *(uint16_t*)(buffer+4);
-    int16_t value = *(int16_t*)(buffer+7);
+    uint16_t addr = 0; int16_t value = 0; int32_t value4B = 0;
+    if (len >= 6) {
+        addr = reverseBytes(*(uint16_t*)(buffer+4));
+        Serial.printf("\nAddress: %d", addr);
+    }
+    if (len >= 9) {
+        value = reverseBytes(*(int16_t*)(buffer+7));
+        Serial.printf("\nData: %d", value);
+    }
+    if (len >= 11) {
+        value4B = reverseBytes(*(int32_t*)(buffer+9));
+        Serial.printf("\nData: %d", value);
+    }
     if (addr == 0x6000) {
-        Serial.printf("\nАдрес: %d", addr);
         Serial.printf("\nАктивная плата: %d", value);
-        activeBoard = value;
+        //activeBoard = value;
     } else if (addr == 0x6001) {
-        Serial.printf("\nАдрес: %d", addr);
         Serial.printf("\nЦелевое напряжение: %d", value);
         //board[activeBoard].mainSets.targetVoltage = value;
     }

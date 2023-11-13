@@ -47,7 +47,7 @@ bool webRefresh = true;
 uint8_t global_add_pointer = 0;
 
 template<typename T>
-void reverseBytes(T& value) {
+T reverseBytes(T& value) {
     uint8_t* front = reinterpret_cast<uint8_t*>(&value);
     uint8_t* back = front + sizeof(T) - 1;
     while (front < back) {
@@ -55,6 +55,7 @@ void reverseBytes(T& value) {
         ++front;
         --back;
     }
+    return value;
 }
 
 template<typename T>
