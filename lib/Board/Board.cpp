@@ -54,67 +54,67 @@ bool Board::setAddress(const uint8_t addr) {
 }
 
 uint8_t Board::getDataRaw() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_DATA;
 	Wire.clearWriteError();
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
+	if (error != 0) return 2;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return ERR_TIMEOUT;
+		return 3;
 	}
-	if (*_rxbuffer != I2C_DATA_START) return ERR_STARTCODE;
+	if (*_rxbuffer != I2C_DATA_START) return 4;
 	memcpy(mainData.buffer, _rxbuffer + 1, mainData.structSize);
 	mainData.unpackData();
-	return ERR_NO;
+	return 0;
 }
 
 uint8_t Board::getMainSets() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_MAINSETS;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
+	if (error != 0) return 2;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return ERR_TIMEOUT;
+		return 3;
 	}
-	if (*_rxbuffer != I2C_MAINSETS_START) return ERR_STARTCODE;
+	if (*_rxbuffer != I2C_MAINSETS_START) return 4;
 	memcpy(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
 	mainSets.unpackData();
-	return ERR_NO;
+	return 0;
 }
 
 uint8_t Board::getAddSets() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_ADDSETS;
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
+	if (error != 0) return 2;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return ERR_TIMEOUT;
+		return 3;
 	}
-	if (*_rxbuffer != I2C_ADDSETS_START) return ERR_STARTCODE;
+	if (*_rxbuffer != I2C_ADDSETS_START) return 4;
 	memcpy(addSets.buffer, _rxbuffer + 1, addSets.structSize);
 	addSets.unpackData();
-	return ERR_NO;
+	return 0;
 }
 
 uint8_t Board::getStatisRaw() {
@@ -124,22 +124,22 @@ uint8_t Board::getStatisRaw() {
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
+	if (error != 0) return 2;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
 		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
 	} else {
-		return ERR_TIMEOUT;
+		return 3;
 	}
-	if (*_rxbuffer != I2C_STAT_START) return ERR_STARTCODE;
+	if (*_rxbuffer != I2C_STAT_START) return 4;
 	memcpy(mainStats.buffer, _rxbuffer + 1, mainStats.structSize);
 	mainStats.unpackData();
-	return ERR_NO;
+	return 0;
 }
 
 uint8_t Board::getStatis() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	static uint32_t last_update = 0;
 	uint8_t error = 0;
 	if (millis() - last_update >= _statisUpdatePrd) {
@@ -153,7 +153,7 @@ uint8_t Board::getStatis() {
 }
 
 uint8_t Board::getData() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	static uint32_t last_update = 0;
 	uint8_t error = 0;
 	if (millis() - last_update >= _dataUpdatePrd) {
@@ -170,7 +170,7 @@ uint8_t Board::getData() {
 }
 
 uint8_t Board::sendMainSets() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
@@ -178,12 +178,12 @@ uint8_t Board::sendMainSets() {
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
-	return ERR_NO;
+	if (error != 0) return 2;
+	return 0;
 }
 
 uint8_t Board::sendAddSets() {
-	if (!startFlag) return ERR_INIT;
+	if (!startFlag) return 1;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_ADDSETS_START;
 	addSets.packData();
@@ -191,42 +191,31 @@ uint8_t Board::sendAddSets() {
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
-	return ERR_NO;
-}
-
-uint8_t Board::reboot() {
-	if (!startFlag) return ERR_INIT;
-	memset(_rxbuffer, 0, sizeof(_txbuffer));
-	*_txbuffer = I2C_REQUEST_REBOOT;
-	Wire.beginTransmission(_board_addr);
-	Wire.write(_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
-	return ERR_NO;
-}
-
-uint8_t Board::saveSettings() {
-	if (!startFlag) return ERR_INIT;
-	memset(_rxbuffer, 0, sizeof(_txbuffer));
-	*_txbuffer = I2C_SAVE_SETTINGS;
-	Wire.beginTransmission(_board_addr);
-	Wire.write(_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
-	return ERR_NO;
+	if (error != 0) return 2;
+	return 0;
 }
 
 
-uint8_t Board::toggleRegulation() {
-	if (!startFlag) return ERR_INIT;
+
+uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
+	if (!startFlag) return 1;
+	if (command > (sizeof(addSets.Switches)*8)-1) {
+		return 1;
+	}
+	if (value) {
+		addSets.Switches |= (1<<command);
+	} else {
+		addSets.Switches &=~ (1<<command);
+	}
+	
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
-	*_txbuffer = I2C_REQUEST_NOREG;
+	*_txbuffer = I2C_SWITCHES_START;
+	memcpy(_txbuffer+1, (uint8_t*)&addSets.Switches, sizeof(addSets.Switches));
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return ERR_CONNECT;
-	return ERR_NO;
+	if (error != 0) return 2;
+	return 0;
 }
 
 void Board::getDataStr() {

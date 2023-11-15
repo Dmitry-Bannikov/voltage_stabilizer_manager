@@ -97,18 +97,20 @@ void MqttReconnect() {
 void MqttPublishData() {
     static uint32_t tmr = 0;
     if (millis() < tmr + 1000) return;
-    String inV = String(board[0].mainData.inputVoltage);
+    String inV = String(board[activeBoard].mainData.inputVoltage);
     mqttClient.publish("stab/toserver/uin", inV.c_str());
 
-    String outV = String(board[0].mainData.outputVoltage);
+    String outV = String(board[activeBoard].mainData.outputVoltage);
     mqttClient.publish("stab/toserver/uout", outV.c_str());
 
-    String outC = String(board[0].mainData.outputCurrent, 1);
+    String outC = String(board[activeBoard].mainData.outputCurrent, 1);
     mqttClient.publish("stab/toserver/cout", outC.c_str());
 
-    String outP = String((board[0].mainData.outputPower/1000), 1);
+    String outP = String((board[activeBoard].mainData.outputPower/1000), 1);
     mqttClient.publish("stab/toserver/pout", outP.c_str());
 
+    String alarm1 = String((uint8_t)(board[activeBoard].addSets.Switches&(1<<SW_ALARM)));
+    mqttClient.publish("stab/toserver/alarm1", alarm1.c_str());
     /*
     uint8_t inV[30] = {header1,header2,byteCnt, modeTX}; 
     uint8_t outV[30] = {header1,header2,byteCnt, modeTX};
@@ -136,10 +138,22 @@ void MqttPublishData() {
 }
 
 void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
-    if (strcmp(topic, topicToStab) != 0) {
-        return;
+
+    String topicStr = String(topic);
+    if (topicStr == "stab/tostab/alarm1") {
+        //Serial.println("\n Алярм");
+        if (String((char*)payload) == "1") {
+            board[activeBoard].sendCommand(0, 1);
+        } else {
+            board[activeBoard].sendCommand(0, 0);
+        }
     }
-    Serial.println("\n Данные приняты.");
+
+
+
+
+
+    /*
     uint8_t buffer[250];
     for (uint8_t i = 0; i < len || i < sizeof(buffer); i++) {
         buffer[i] = payload[i];
@@ -165,6 +179,7 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
         Serial.printf("\nЦелевое напряжение: %d", value);
         //board[activeBoard].mainSets.targetVoltage = value;
     }
+    */
 }
 
 void Mqtt_tick() {

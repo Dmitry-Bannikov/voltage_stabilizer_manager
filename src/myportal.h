@@ -117,7 +117,8 @@ void createUpdateList(String &list) {
 		list += ",";
 	}
 	list += "setsalt,";
-	list += "reload";
+	list += "reload,";
+	list += "aset_disreg, aset_alarm";
 }
 
 void formsHandler() {
@@ -143,7 +144,8 @@ void formsHandler() {
 
 void clicksHandler(uint8_t &result) {
 	if (ui.clickUp("svlit_btn")) {
-		if (!board[activeBoard].saveSettings()) {
+		if (!board[activeBoard].sendCommand(SW_SAVE, 1)) {
+			board[activeBoard].addSets.Switches &=~ (1<<SW_SAVE);
 			result = 3;
 			webRefresh = true;
 		}
@@ -161,13 +163,14 @@ void clicksHandler(uint8_t &result) {
 		}
 	}
 	if (ui.clickUp("mset_disreg")) {	//кнопка переключить регуляцию
-		if (!board[activeBoard].toggleRegulation()) {
+		if (!board[activeBoard].sendCommand(SW_REGDIS, 1)) {
 			result = 4;
 			webRefresh = true;
 		}
 	}
 	if (ui.clickUp("mset_reboot")) {	//кнопка перезагрузить плату
-		if (!board[activeBoard].reboot()) {
+		if (!board[activeBoard].sendCommand(SW_REBOOT, 1)) {
+			board[activeBoard].addSets.Switches &=~ (1<<SW_REBOOT);
 			result = 5;
 			webRefresh = true;
 		}
@@ -210,6 +213,8 @@ void updatesHandler(uint8_t &result) {
 		webRefresh = false;
 		ui.answer(1);
 	}
+	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches&(1<<SW_REGDIS)));
+	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches&(1<<SW_ALARM)));
 	if (ui.update("setsalt")) {
 		switch (result)
 		{

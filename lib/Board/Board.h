@@ -25,19 +25,21 @@
 #define I2C_MAINSETS_START					0x35
 #define I2C_ADDSETS_START					0x40
 #define I2C_STAT_START						0x45
+#define I2C_SWITCHES_START					0x46
 
 #define I2C_REQUEST_MAINSETS				0x21
 #define I2C_REQUEST_ADDSETS					0x22
 #define I2C_REQUEST_DATA					0x23
 #define I2C_REQUEST_STAT					0x24
-#define I2C_REQUEST_REBOOT					0x25
-#define I2C_REQUEST_NOREG					0x26
-#define I2C_REQUEST_SMARTCONNECT			0x27
-#define I2C_SAVE_SETTINGS					0x28
+#define I2C_REQUEST_SWITCHES				0x25
 
 #define RX_BUF_SIZE							100
 #define TX_BUF_SIZE							100
 
+#define SW_ALARM	0
+#define SW_REBOOT	1
+#define SW_REGDIS	2
+#define SW_SAVE		3
 
 
 
@@ -127,6 +129,7 @@ struct addsets {
 	int16_t tcRatioList[6] = {25,40,50,60,80,100};		//список коэффициентов трансов
 	int32_t SerialNumber[2] = {0, 0};
 	uint8_t structSize;
+	uint8_t Switches = 0;
 	uint8_t *buffer = nullptr;
 	addsets() {
 		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
@@ -150,13 +153,6 @@ struct addsets {
 class Board
 {
 private:
-	enum Error_type {
-		ERR_NO = 0,
-		ERR_INIT,
-		ERR_CONNECT,
-		ERR_TIMEOUT,
-		ERR_STARTCODE
-	};
 	enum EventsFormat {
 		EVENTS_FULL,
 		EVENTS_SHORT
@@ -175,7 +171,6 @@ private:
 	};
 	uint8_t _txbuffer[100];
 	uint8_t _rxbuffer[100];
-	uint8_t _memsets_buf[60] = {0};//должен быть размером больше чем 2 структуры настроек
 	uint8_t _board_addr = 0;
 	static const int _poll = 500;
 	bool startFlag = false;
@@ -183,8 +178,6 @@ private:
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 	bool _active = false;
 	uint8_t _disconnected = 0;
-	uint16_t _memoryAddr = 100;
-	uint8_t _memoryKey = 20;
 
 	bool pollForDataRx();
 	uint8_t getStatisRaw();
@@ -208,9 +201,7 @@ public:
 	uint8_t 	getStatis();											//получить статистику
 	uint8_t 	sendMainSets();											//отправить триммеры
 	uint8_t 	sendAddSets();											//отправить настройки
-	uint8_t		reboot();												//перезагрузить плату
-	uint8_t 	saveSettings();
-	uint8_t 	toggleRegulation();										//вкл/откл регуляцию напряжения
+	uint8_t 	sendCommand(uint8_t command, uint8_t value);
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		getLiteral();
