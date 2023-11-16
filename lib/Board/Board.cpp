@@ -197,20 +197,11 @@ uint8_t Board::sendAddSets() {
 
 
 
-uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
+uint8_t Board::sendCommand() {
 	if (!startFlag) return 1;
-	if (command > (sizeof(addSets.Switches)*8)-1) {
-		return 1;
-	}
-	if (value) {
-		addSets.Switches |= (1<<command);
-	} else {
-		addSets.Switches &=~ (1<<command);
-	}
-	
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
-	memcpy(_txbuffer+1, (uint8_t*)&addSets.Switches, sizeof(addSets.Switches));
+	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();

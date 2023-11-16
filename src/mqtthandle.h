@@ -65,8 +65,12 @@ void MqttInit() {
     mqttClient.setServer(mqtt_broker, mqtt_port);
     mqttClient.setCallback(onMqttMessage);
     MqttReconnect();
-    mqttClient.subscribe(topicToServer);
-    mqttClient.subscribe(topicToStab);
+    //mqttClient.subscribe(topicToServer);
+    //mqttClient.subscribe(topicToStab);
+    String topic1 = "stab/tostab/alarm1";
+    String topic2 = "stab/toserver/alarm1";
+    mqttClient.subscribe(topic1.c_str());
+    mqttClient.subscribe(topic2.c_str());
 }
 
 void MqttReconnect() {
@@ -75,21 +79,18 @@ void MqttReconnect() {
     if (millis() - tmr <= period) return;
     if (!mqttClient.connected())
     {
-        period = 60000;
-        Serial.print("Attempting MQTT connection.");
-        
-        Serial.print("..");
+        mqttConnected = false;
         if (mqttClient.connect(mqtt_clientId, mqtt_username, mqtt_password)){
-            Serial.println("connected");
-            return;
+            period = 10000;
+            mqttConnected = true;
         } else {
-            Serial.print("failed, rc=");
-            Serial.println(mqttClient.state());
-            
+            period = 60000;
+            mqttConnected = false;
+            //Serial.print("\n Mqtt failed, reason: ");
+            //Serial.println(mqttClient.state());  
         }
     } else {
-        Serial.print("Mqtt server connected: ");
-        Serial.println(mqttClient.state());
+        mqttConnected = true;
     }
     tmr = millis();
 }
@@ -109,7 +110,7 @@ void MqttPublishData() {
     String outP = String((board[activeBoard].mainData.outputPower/1000), 1);
     mqttClient.publish("stab/toserver/pout", outP.c_str());
 
-    String alarm1 = String((uint8_t)(board[activeBoard].addSets.Switches&(1<<SW_ALARM)));
+    String alarm1 = String(board[activeBoard].addSets.Switches[SW_ALARM]);
     mqttClient.publish("stab/toserver/alarm1", alarm1.c_str());
     /*
     uint8_t inV[30] = {header1,header2,byteCnt, modeTX}; 
@@ -138,14 +139,15 @@ void MqttPublishData() {
 }
 
 void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
-
     String topicStr = String(topic);
     if (topicStr == "stab/tostab/alarm1") {
         //Serial.println("\n Алярм");
         if (String((char*)payload) == "1") {
-            board[activeBoard].sendCommand(0, 1);
+            board[activeBoard].addSets.Switches[SW_ALARM] = 1;
+            board[activeBoard].sendCommand();
         } else {
-            board[activeBoard].sendCommand(0, 0);
+            board[activeBoard].addSets.Switches[SW_ALARM] = 0;
+            board[activeBoard].sendCommand();
         }
     }
 
@@ -188,7 +190,7 @@ void Mqtt_tick() {
     MqttPublishData();
 }
 
-
+void onMqttReceive(char* topic, char* payload) {}
 
 
 

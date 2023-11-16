@@ -37,6 +37,8 @@ void portalBuild() {
 	GP.NAV_TABS_LINKS("/,/brdcfg,/addcfg,/wificfg", "Главная,Настройки платы,Доп. настройки,Настройка подключения");
 	if (ui.uri("/")) {
 		GP.HR();
+		GP.LABEL("Соединение по MQTT");
+		GP.LED("mqttConnected_led", mqttConnected);
 		GP.BLOCK_BEGIN(GP_THIN, "", "Основные данные и статистика");
 			GP_data_build();
 		GP.BLOCK_END();
@@ -116,9 +118,8 @@ void createUpdateList(String &list) {
 		list += String("b_stat/")+i;
 		list += ",";
 	}
-	list += "setsalt,";
-	list += "reload,";
-	list += "aset_disreg, aset_alarm";
+	list += "setsalt,reload,";
+	list += "aset_disreg,aset_alarm,mqttConnected_led";
 }
 
 void formsHandler() {
@@ -144,9 +145,10 @@ void formsHandler() {
 
 void clicksHandler(uint8_t &result) {
 	if (ui.clickUp("svlit_btn")) {
-		if (!board[activeBoard].sendCommand(SW_SAVE, 1)) {
-			board[activeBoard].addSets.Switches &=~ (1<<SW_SAVE);
-			result = 3;
+		board[activeBoard].addSets.Switches[SW_SAVE] = 1;
+		if (!board[activeBoard].sendCommand()) {
+			board[activeBoard].addSets.Switches[SW_SAVE] = 0;
+			result = 1;
 			webRefresh = true;
 		}
 	}
@@ -158,20 +160,21 @@ void clicksHandler(uint8_t &result) {
 	}
 	if (ui.clickUp("wset_btn")) {	//кнопка записать настройки
 		if (!board[activeBoard].sendMainSets() && !board[activeBoard].sendAddSets()) {
-			result = 2;
+			result = 1;
 			webRefresh = true;
 		}
 	}
-	if (ui.clickUp("mset_disreg")) {	//кнопка переключить регуляцию
-		if (!board[activeBoard].sendCommand(SW_REGDIS, 1)) {
-			result = 4;
-			webRefresh = true;
-		}
+	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
+		board[activeBoard].sendCommand();
+	}
+	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_ALARM])) {
+		board[activeBoard].sendCommand();
 	}
 	if (ui.clickUp("mset_reboot")) {	//кнопка перезагрузить плату
-		if (!board[activeBoard].sendCommand(SW_REBOOT, 1)) {
-			board[activeBoard].addSets.Switches &=~ (1<<SW_REBOOT);
-			result = 5;
+		board[activeBoard].addSets.Switches[SW_REBOOT] = 1;
+		if (!board[activeBoard].sendCommand()) {
+			board[activeBoard].addSets.Switches[SW_REBOOT] = 0;
+			result = 1;
 			webRefresh = true;
 		}
 	}
@@ -213,28 +216,13 @@ void updatesHandler(uint8_t &result) {
 		webRefresh = false;
 		ui.answer(1);
 	}
-	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches&(1<<SW_REGDIS)));
-	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches&(1<<SW_ALARM)));
+	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches[SW_REGDIS]));
+	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_ALARM]));
+	ui.updateBool("mqttConnected_led", mqttConnected);
 	if (ui.update("setsalt")) {
-		switch (result)
+		if (result == 1)
 		{
-		case 1:
-			ui.answer("Настройки прочитаны из памяти!");
-			break;
-		case 2:
-			ui.answer("Настройки переданы на плату!");
-			break;
-		case 3:
-			ui.answer("Настройки сохранены в память!");
-			break;
-		case 4:
-			ui.answer("Переключена регулировка!");
-			break;
-		case 5:
-			ui.answer("Плата перезагружена!");
-			break;
-		default:
-			break;
+			ui.answer("Выполнено!");
 		}
 		result = 0;
 	}

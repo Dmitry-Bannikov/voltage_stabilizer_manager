@@ -32,7 +32,7 @@ EEManager memoryWIFI(wifi_settings, 20000);
 Display Dwin;
 
 uint8_t activeBoard = 0;
-
+bool mqttConnected = false;
 bool webRefresh = true;  
 
 //#define bitRead(value, bit)					(value & (1<<(bit)))

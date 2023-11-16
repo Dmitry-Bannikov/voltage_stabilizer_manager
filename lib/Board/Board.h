@@ -129,7 +129,7 @@ struct addsets {
 	int16_t tcRatioList[6] = {25,40,50,60,80,100};		//список коэффициентов трансов
 	int32_t SerialNumber[2] = {0, 0};
 	uint8_t structSize;
-	uint8_t Switches = 0;
+	uint8_t Switches[8] = {0,0,0,0};
 	uint8_t *buffer = nullptr;
 	addsets() {
 		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
@@ -201,7 +201,7 @@ public:
 	uint8_t 	getStatis();											//получить статистику
 	uint8_t 	sendMainSets();											//отправить триммеры
 	uint8_t 	sendAddSets();											//отправить настройки
-	uint8_t 	sendCommand(uint8_t command, uint8_t value);
+	uint8_t 	sendCommand();
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		getLiteral();
