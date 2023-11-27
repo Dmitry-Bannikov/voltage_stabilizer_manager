@@ -52,6 +52,7 @@ void connectionInit() {
 	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
 	#ifdef RELEASE
+	Serial.println("Scanning boards...");
 	scanNewBoards();
 	#else
 	board.emplace_back(0x10);
@@ -65,31 +66,28 @@ void memoryInit() {
 	memoryWIFI.begin(0, 127);
 	LED_blink(0);
 	for (uint8_t i = 0; i < board.size(); i++) {	
-		uint8_t attempts = 0;
-		// пробуем считать настройки с платы
-		while (board[i].getMainSets() || board[i].getAddSets()  || attempts < 5) {
-			attempts++;
-			delay(1000);
-		}
+		Serial.printf("Read settings: %d", board[i].getMainSets()); 
+		delay(500);
 	}
 }
 
 void boardTick() {
 	static uint32_t tmr = 0;
+	static uint32_t scanTmr = 0;
 	memoryWIFI.tick();
 	sendDwinData();
-	for (uint8_t i = 0; i < board.size(); i++) {
-		Wire.clearWriteError();
+	uint8_t boardsAmnt = board.size();
+
+	if (boardsAmnt && (millis() - tmr > 300) && !Wire.available()) {
+		static uint8_t i = 0;
 		board[i].tick();
+		(i == boardsAmnt-1 ? (i=0) : (i++));
+		tmr = millis();
 	}
-	if (board.size()) {
-		if (millis() -  tmr < 30000) return;
-		scanNewBoards();
-	} else {
-		if (millis() - tmr < 3000) return;
-		scanNewBoards();
-	}
-	tmr = millis();
+	
+	if (millis() -  scanTmr < 10000) return;
+	scanNewBoards();
+	scanTmr = millis();
 }
 
 void scanNewBoards() {
@@ -100,11 +98,11 @@ void scanNewBoards() {
 	if (old_amount != board.size()) {
 		webRefresh = true;
 		old_amount = board.size();
-		Serial.println(String("Boards found: ") + board.size());
-	}
-	if (counter == 3) {
+	} 
+	Serial.println(String("Boards found: ") + board.size());
+	if (counter == 3 && board.size()) {
 		counter = 0;
-		if (!board[activeBoard].getMainSets() && !board[activeBoard].getAddSets())
+		if (!board[activeBoard].getMainSets())
 		{
 			webRefresh = true;
 		}

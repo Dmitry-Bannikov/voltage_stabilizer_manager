@@ -6,27 +6,7 @@
 //#include <AsyncMqttClient.h>
 #include <PubSubClient.h>
 
-/*Структура пакета передачи/приема:
-header1
-header2
-bytesCnt
-modeRX/ modeTX
-addrH
-addrL
-data[]
 
-*/
-#define header1 0x5A
-#define header2 0xA5
-#define byteCnt 0x09
-#define footer1 0x5B
-#define footer2 0xB5
-#define modeTX  0x82
-#define modeRX  0x83
-#define inV_addr    ((uint16_t)0x5000)
-#define outV_addr   ((uint16_t)0x5010)
-#define outC_addr   ((uint16_t)0x5020)
-#define outP_addr   ((uint16_t)0x5030)
 
 #define USE_ORTEA
 
@@ -112,29 +92,7 @@ void MqttPublishData() {
 
     String alarm1 = String(board[activeBoard].addSets.Switches[SW_ALARM]);
     mqttClient.publish("stab/toserver/alarm1", alarm1.c_str());
-    /*
-    uint8_t inV[30] = {header1,header2,byteCnt, modeTX}; 
-    uint8_t outV[30] = {header1,header2,byteCnt, modeTX};
-    uint8_t outC[30] = {header1,header2,byteCnt, modeTX};
-    uint8_t outP[30] = {header1,header2,byteCnt, modeTX};
-
-    Buffer_addNewValue(inV_addr, inV, 30, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.inputVoltage, inV, 30, 0);
-
-    Buffer_addNewValue(outV_addr, outV, 30, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue(board[i].mainData.outputVoltage, outV, 30, 0);
-
-    Buffer_addNewValue(outC_addr, outC, 30, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue((int16_t)board[i].mainData.outputCurrent, outC, 30, 0);
-
-    Buffer_addNewValue(outP_addr, outP, 30, 1);
-    for (uint8_t i = 0; i < board.size(); i++) Buffer_addNewValue((int16_t)board[i].mainData.outputPower, outP, 30, 0);
-
-    mqttClient.publish(topicToServer, inV, sizeof(inV));
-    mqttClient.publish(topicToServer, outV, sizeof(inV));
-    mqttClient.publish(topicToServer, outC, sizeof(inV));
-    mqttClient.publish(topicToServer, outP, sizeof(inV));
-    */
+ 
     tmr = millis();
 }
 
@@ -148,7 +106,7 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
         } else {
             board[activeBoard].addSets.Switches[SW_ALARM] = 0;
             board[activeBoard].sendCommand();
-        }
+        } 
     }
 
 

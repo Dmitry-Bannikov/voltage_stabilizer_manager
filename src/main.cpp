@@ -24,11 +24,12 @@ void setup() {
 }
 
 void loop() {
+
 	boardTick();
 	portalTick();
 	WiFi_tick();
 	Mqtt_tick();
-	
+
 	#ifdef RELEASE
 	//esp_task_wdt_reset();
 	#endif

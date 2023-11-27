@@ -46,9 +46,10 @@ void GP_data_build() {
 		GP.BLOCK_END();
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
-			GP.BLOCK_BEGIN(GP_DIV_RAW, "31%");
+			GP.BLOCK_BEGIN(GP_DIV_RAW, "100%");
 			GP.AREA(String("b_data/")+i, 6, "Загрузка \nданных...");
 			GP.AREA(String("b_stat/")+i, 7, "Загрузка \nстатистики...");
+			GP.BUTTON_MINI(String("r_stat/")+i, "Сброс");
 			GP.BLOCK_END();
 		}
 	}

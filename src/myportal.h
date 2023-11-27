@@ -144,6 +144,7 @@ void formsHandler() {
 }
 
 void clicksHandler(uint8_t &result) {
+	if (!ui.click()) return;
 	if (ui.clickUp("svlit_btn")) {
 		board[activeBoard].addSets.Switches[SW_SAVE] = 1;
 		if (!board[activeBoard].sendCommand()) {
@@ -153,13 +154,16 @@ void clicksHandler(uint8_t &result) {
 		}
 	}
 	if (ui.clickUp("rboard_btn") ) {	//кнопка прочитать настройки
-		if (!board[activeBoard].getMainSets() && !board[activeBoard].getAddSets()) {
+		delay(30);
+		uint8_t res = board[activeBoard].getMainSets();
+		if (!res || res == 5) {
 			result = 1;
 			webRefresh = true;
 		}
 	}
 	if (ui.clickUp("wset_btn")) {	//кнопка записать настройки
-		if (!board[activeBoard].sendMainSets() && !board[activeBoard].sendAddSets()) {
+		delay(30);
+		if (!board[activeBoard].sendMainSets()) {
 			result = 1;
 			webRefresh = true;
 		}
@@ -232,5 +236,6 @@ void updatesHandler(uint8_t &result) {
 		ui.updateString(String("b_data/") + i, board[i].mainData.Str);
 		ui.updateString(String("b_stat/") + i, board[i].mainStats.Str);
 	}
+
 	
 }

@@ -172,7 +172,7 @@ private:
 	uint8_t _txbuffer[100];
 	uint8_t _rxbuffer[100];
 	uint8_t _board_addr = 0;
-	static const int _poll = 500;
+	static const int _poll = 200;
 	bool startFlag = false;
 	uint32_t _dataUpdatePrd = 1000UL;		//период обновления значений
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
@@ -180,7 +180,6 @@ private:
 	uint8_t _disconnected = 0;
 
 	bool pollForDataRx();
-	uint8_t getStatisRaw();
 	uint8_t getDataRaw();
 	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
@@ -191,16 +190,13 @@ public:
 	bool 		attach(const uint8_t addr);								//подключить плату (указать адрес)
 	static bool isBoard(const uint8_t addr);
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);
+	static void waitForReady();
 	bool 		isOnline();												//проверить, онлайн ли плата
 	uint8_t 	getAddress() {return _board_addr;};							//получить адрес платы		
-	bool 		setAddress(const uint8_t addr) ;							//установить адрес плате
 
 	uint8_t 	getData();												//получить данные с платы
-	uint8_t 	getMainSets();											//получить осн настройки с платы
-	uint8_t 	getAddSets();											//получить доп настройки с платы
-	uint8_t 	getStatis();											//получить статистику
-	uint8_t 	sendMainSets();											//отправить триммеры
-	uint8_t 	sendAddSets();											//отправить настройки
+	uint8_t 	getMainSets();											//получить настройки с платы
+	uint8_t 	sendMainSets();											//отправить настройки
 	uint8_t 	sendCommand();
 	void 		getDataStr();
 	void 		getStatisStr();
