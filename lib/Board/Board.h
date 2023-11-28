@@ -180,7 +180,7 @@ private:
 	uint8_t _disconnected = 0;
 
 	bool pollForDataRx();
-	uint8_t getDataRaw();
+	
 	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
 	
@@ -195,6 +195,7 @@ public:
 	uint8_t 	getAddress() {return _board_addr;};							//получить адрес платы		
 
 	uint8_t 	getData();												//получить данные с платы
+	uint8_t 	getDataRaw();
 	uint8_t 	getMainSets();											//получить настройки с платы
 	uint8_t 	sendMainSets();											//отправить настройки
 	uint8_t 	sendCommand();

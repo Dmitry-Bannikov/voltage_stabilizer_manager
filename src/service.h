@@ -4,7 +4,7 @@
 #include <data.h>
 #include <Wire.h>
 #include <mqtthandle.h>
-
+#include <esp32-hal-i2c.h>
 
 void connectionInit();
 void memoryInit();
@@ -66,19 +66,20 @@ void memoryInit() {
 	memoryWIFI.begin(0, 127);
 	LED_blink(0);
 	for (uint8_t i = 0; i < board.size(); i++) {	
-		Serial.printf("Read settings: %d", board[i].getMainSets()); 
-		delay(500);
+		Serial.printf("\n Read settings: %d", board[i].getMainSets()); 
+		delay(250);
+		Serial.printf("\n Read Data: %d", board[i].getDataRaw()); 
+		delay(250);
 	}
 }
 
 void boardTick() {
 	static uint32_t tmr = 0;
 	static uint32_t scanTmr = 0;
-	memoryWIFI.tick();
-	sendDwinData();
+	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
-
-	if (boardsAmnt && (millis() - tmr > 300) && !Wire.available()) {
+	
+	if (boardsAmnt && (millis() - tmr > 1000) && !Wire.available()) {
 		static uint8_t i = 0;
 		board[i].tick();
 		(i == boardsAmnt-1 ? (i=0) : (i++));
@@ -99,7 +100,6 @@ void scanNewBoards() {
 		webRefresh = true;
 		old_amount = board.size();
 	} 
-	Serial.println(String("Boards found: ") + board.size());
 	if (counter == 3 && board.size()) {
 		counter = 0;
 		if (!board[activeBoard].getMainSets())
@@ -160,6 +160,7 @@ void WiFi_Init() {
 }
 
 void WiFi_tick() {
+	memoryWIFI.tick();
 	if (WiFi.status() == WL_CONNECTED && WiFi.getMode() == WIFI_STA) {
 		LED_blink(100, 2000);
 	} else if (WiFi.getMode() == WIFI_AP){

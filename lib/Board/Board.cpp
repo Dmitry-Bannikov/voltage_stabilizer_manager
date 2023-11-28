@@ -22,7 +22,6 @@ bool Board::isBoard(uint8_t addr) {
 	Wire.setTimeOut(50);
 	Wire.beginTransmission(addr);
 	uint8_t res = Wire.endTransmission();
-	Serial.printf("\n Addr %d : %d |", addr, res);
 	if (res) return false;
 	uint8_t txbuf[sizeof(_txbuffer)] = {0x20, 0};
 	uint8_t rxbuf[sizeof(_rxbuffer)] = {0};
@@ -121,7 +120,7 @@ uint8_t Board::getMainSets() {
 uint8_t Board::getData() {
 	if (!startFlag) return 1;
 	static uint32_t last_update = 0;
-	uint8_t error = 0;
+	uint8_t error = 1;
 	if (millis() - last_update >= _dataUpdatePrd) {
 		error = getDataRaw();
 		getDataStr();
@@ -243,7 +242,7 @@ U выход  |
 	s += F("\nU вых.мин.  ");
 	s += String(mainStats.outVoltage[2]);
 	s += F("V");
-	
+
 	s += F("\nI вых |");
 	s += String(mainStats.outCurrent[0], 1);
 	s += F("|");
@@ -379,7 +378,6 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 	}
 	for (uint8_t addr = 1; addr < 128; addr++) {
 		if (Board::isBoard(addr) && brd.size() <= max) {
-			Serial.printf("\n Board at %d", addr);
 			if (!brd.size()) {
 				brd.emplace_back(addr);
 				continue;
@@ -396,7 +394,6 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			delay(10);
 		}
 	}
-	Serial.println("3");
 	return brd.size();
 }
 
