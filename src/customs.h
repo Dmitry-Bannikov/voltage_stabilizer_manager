@@ -127,7 +127,6 @@ void GP_mainsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Тип мотора"); GP.SELECT("mset_mottype", "20,90,150,200", brd.mainSets.motorType) );
 	M_BOX(GP_EDGES, GP.LABEL("Ток выхода макс"); GP.NUMBER("mset_maxcurr", "", brd.mainSets.maxCurrent, "100px") );
 	GP.GRID_BEGIN();
-		GP.BUTTON_MINI("mset_disreg", "Переключить регуляцию");
 		GP.BUTTON_MINI("rst_btn", "Перезапустить ESP");
 		GP.BUTTON_MINI("mset_reboot", "Перезагрузить плату");	
 	GP.GRID_END();

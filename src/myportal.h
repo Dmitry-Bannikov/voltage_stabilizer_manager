@@ -87,7 +87,7 @@ void portalBuild() {
 }
 
 void portalActions() {
-	static uint8_t txSuccess = 0;
+	static uint8_t txSuccess = 1;
 	formsHandler();	
 	updatesHandler(txSuccess);
 	clicksHandler(txSuccess);	
@@ -144,59 +144,35 @@ void formsHandler() {
 }
 
 void clicksHandler(uint8_t &result) {
-	if (!ui.click()) return;
-	if (ui.clickUp("svlit_btn")) {
-		board[activeBoard].addSets.Switches[SW_SAVE] = 1;
-		if (!board[activeBoard].sendCommand()) {
-			board[activeBoard].addSets.Switches[SW_SAVE] = 0;
-			result = 1;
-			webRefresh = true;
+	//if (!ui.click()) return;
+	
+
+	if (ui.clickSub("brdLit")) {
+		for (uint8_t i = 0; i < board.size();i++) {
+			uint8_t num = 0;
+			if (ui.clickInt(String("brdLit/")+i, num)) {
+				if (num != 0) board[i].setLiteral(64+num);
+				else board[i].setLiteral('N');
+			}
 		}
 	}
-	if (ui.clickUp("rboard_btn") ) {	//кнопка прочитать настройки
-		delay(30);
-		uint8_t res = board[activeBoard].getMainSets();
-		if (!res || res == 5) {
-			result = 1;
-			webRefresh = true;
-		}
-	}
-	if (ui.clickUp("wset_btn")) {	//кнопка записать настройки
-		delay(30);
-		if (!board[activeBoard].sendMainSets()) {
-			result = 1;
-			webRefresh = true;
-		}
-	}
+
+	if (ui.clickUp("svlit_btn")) result = board[activeBoard].sendCommand(SW_SAVE, 1); 
+	if (ui.clickUp("rboard_btn") ) result = board[activeBoard].getMainSets(); 
+	if (ui.clickUp("wset_btn")) result = board[activeBoard].sendMainSets(); 
+	if (ui.clickUp("rst_btn")) ESP.restart();
+	if (ui.clickUp("scan_btn")) scanNewBoards();
+	if (ui.clickUp("mset_reboot")) result = board[activeBoard].sendCommand(SW_REBOOT, 1);
+	if (ui.clickUp("r_stat/0")) result = board[0].sendCommand(SW_RSTST, 1);
+	if (ui.clickUp("r_stat/1")) result = board[1].sendCommand(SW_RSTST, 1);
+	if (ui.clickUp("r_stat/2")) result = board[2].sendCommand(SW_RSTST, 1);
+
 	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
-		board[activeBoard].sendCommand();
+		result = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
 	}
 	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_ALARM])) {
-		board[activeBoard].sendCommand();
+		result = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
 	}
-	if (ui.clickUp("mset_reboot")) {	//кнопка перезагрузить плату
-		board[activeBoard].addSets.Switches[SW_REBOOT] = 1;
-		if (!board[activeBoard].sendCommand()) {
-			board[activeBoard].addSets.Switches[SW_REBOOT] = 0;
-			result = 1;
-			webRefresh = true;
-		}
-	}
-	if (ui.clickUp("rst_btn")) {
-		ESP.restart();
-	}
-	if (ui.clickUp("scan_btn")) {
-		scanNewBoards();
-	}
-
-	for (uint8_t i = 0; i < board.size();i++) {
-		uint8_t num = 0;
-		if (ui.clickInt(String("brdLit/")+i, num)) {
-			if (num != 0) board[i].setLiteral(64+num);
-			else board[i].setLiteral('N');
-		}
-	}
-
 	ui.clickInt("b_sel", activeBoard);
 	ui.clickBool("aset_transit", board[activeBoard].addSets.overloadTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.targetVoltage);
@@ -216,6 +192,8 @@ void clicksHandler(uint8_t &result) {
 
 void updatesHandler(uint8_t &result) {
 	if (!ui.update()) return;
+	webRefresh = !result;
+
 	if (ui.update("reload") && webRefresh) {
 		webRefresh = false;
 		ui.answer(1);
@@ -224,15 +202,13 @@ void updatesHandler(uint8_t &result) {
 	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_ALARM]));
 	ui.updateBool("mqttConnected_led", mqttConnected);
 	if (ui.update("setsalt")) {
-		if (result == 1)
+		if (result == 0)
 		{
 			ui.answer("Выполнено!");
 		}
-		result = 0;
+		result = 1;
 	}
 	for (uint8_t i = 0; i < board.size(); i++) {
-		board[i].getDataStr();
-		board[i].getStatisStr();
 		ui.updateString(String("b_data/") + i, board[i].mainData.Str);
 		ui.updateString(String("b_stat/") + i, board[i].mainStats.Str);
 	}

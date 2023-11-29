@@ -79,7 +79,7 @@ void boardTick() {
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
 	
-	if (boardsAmnt && (millis() - tmr > 1000) && !Wire.available()) {
+	if (boardsAmnt && (millis() - tmr > 300)) {
 		static uint8_t i = 0;
 		board[i].tick();
 		(i == boardsAmnt-1 ? (i=0) : (i++));
@@ -100,11 +100,10 @@ void scanNewBoards() {
 		webRefresh = true;
 		old_amount = board.size();
 	} 
-	if (counter == 3 && board.size()) {
+	if (counter == 6 && board.size()) {
 		counter = 0;
-		if (!board[activeBoard].getMainSets())
-		{
-			webRefresh = true;
+		for (uint8_t i = 0; i < board.size(); i++) {
+			if(!board[i].getMainSets()) webRefresh = true;
 		}
 	}
 }

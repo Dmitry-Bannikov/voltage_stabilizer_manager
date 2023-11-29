@@ -40,6 +40,7 @@
 #define SW_REBOOT	1
 #define SW_REGDIS	2
 #define SW_SAVE		3
+#define SW_RSTST	4
 
 
 
@@ -198,7 +199,8 @@ public:
 	uint8_t 	getDataRaw();
 	uint8_t 	getMainSets();											//получить настройки с платы
 	uint8_t 	sendMainSets();											//отправить настройки
-	uint8_t 	sendCommand();
+	uint8_t 	sendCommand(uint8_t command, uint8_t value);
+	uint8_t 	sendCommand(uint8_t* command);
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		getLiteral();
