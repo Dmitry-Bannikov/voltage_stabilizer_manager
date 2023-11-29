@@ -101,45 +101,12 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
     if (topicStr == "stab/tostab/alarm1") {
         //Serial.println("\n Алярм");
         if (String((char*)payload) == "1") {
-            board[activeBoard].addSets.Switches[SW_ALARM] = 1;
-            board[activeBoard].sendCommand();
+            board[activeBoard].sendCommand(SW_ALARM, 1);
         } else {
-            board[activeBoard].addSets.Switches[SW_ALARM] = 0;
-            board[activeBoard].sendCommand();
+            board[activeBoard].sendCommand(SW_ALARM, 0);
         } 
     }
 
-
-
-
-
-    /*
-    uint8_t buffer[250];
-    for (uint8_t i = 0; i < len || i < sizeof(buffer); i++) {
-        buffer[i] = payload[i];
-    }
-    if (buffer[0] != 0x5A) return;
-    uint16_t addr = 0; int16_t value = 0; int32_t value4B = 0;
-    if (len >= 6) {
-        addr = reverseBytes(*(uint16_t*)(buffer+4));
-        Serial.printf("\nAddress: %d", addr);
-    }
-    if (len >= 9) {
-        value = reverseBytes(*(int16_t*)(buffer+7));
-        Serial.printf("\nData: %d", value);
-    }
-    if (len >= 11) {
-        value4B = reverseBytes(*(int32_t*)(buffer+9));
-        Serial.printf("\nData: %d", value);
-    }
-    if (addr == 0x6000) {
-        Serial.printf("\nАктивная плата: %d", value);
-        //activeBoard = value;
-    } else if (addr == 0x6001) {
-        Serial.printf("\nЦелевое напряжение: %d", value);
-        //board[activeBoard].mainSets.targetVoltage = value;
-    }
-    */
 }
 
 void Mqtt_tick() {

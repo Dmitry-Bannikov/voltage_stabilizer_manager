@@ -50,17 +50,13 @@ void Board::waitForReady() {
 			return;
 		}	
 		yield();
-	}
+	} 
 }
 
 bool Board::isOnline() {
-	Wire.clearWriteError();
-	Wire.beginTransmission(_board_addr);
-	uint8_t error = Wire.endTransmission();	
-	if (error && _disconnected > 3) {
+	if (_disconnected) {
 		return false;
 	}
-	_disconnected = 0;
 	return true;							
 }
 
@@ -72,7 +68,7 @@ uint8_t Board::getDataRaw() {
 	Wire.beginTransmission(_board_addr);
 	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+	if (error != 0) return 20+error;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
 	if (pollForDataRx()) {
@@ -105,11 +101,6 @@ uint8_t Board::getMainSets() {
 		return 3;
 	}
 	if (*_rxbuffer != I2C_MAINSETS_START) return 4;
-	int8_t update1 = memcmp(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
-	int8_t update2 = memcmp(addSets.buffer, _rxbuffer + 1 + mainSets.structSize, addSets.structSize);
-	if (!update1 && !update2) {
-		return 5;
-	} 
 	memcpy(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
 	memcpy(addSets.buffer, _rxbuffer + 1 + mainSets.structSize, addSets.structSize);
 	mainSets.unpackData();
@@ -119,7 +110,19 @@ uint8_t Board::getMainSets() {
 
 uint8_t Board::getData() {
 	if (!startFlag) return 1;
+	static uint8_t disconn = 0;
 	static uint32_t last_update = 0;
+	uint8_t error = getDataRaw();
+	getDataStr();
+	getStatisStr();
+	if (error) {
+		(disconn <= 3) ? (disconn++) : (disconn = 3, _disconnected = 1);
+	} else {
+		disconn = 0;
+		_disconnected = 0;
+	}
+	
+	/*
 	uint8_t error = 1;
 	if (millis() - last_update >= _dataUpdatePrd) {
 		error = getDataRaw();
@@ -131,6 +134,7 @@ uint8_t Board::getData() {
 			_disconnected = 0;
 		}
 	}
+	*/
 	return error;
 }
 
@@ -150,12 +154,26 @@ uint8_t Board::sendMainSets() {
 	return 0;
 }
 
-uint8_t Board::sendCommand() {
+uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
+	if (!startFlag) return 1;
+	Board::waitForReady();
+	addSets.Switches[command] = value;
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
+	*_txbuffer = I2C_SWITCHES_START;
+	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
+	Wire.beginTransmission(_board_addr);
+	Wire.write(_txbuffer, sizeof(_txbuffer));
+	uint8_t error = Wire.endTransmission();
+	if (error != 0) return 2;
+	return 0;
+}
+
+uint8_t Board::sendCommand(uint8_t* command) {
 	if (!startFlag) return 1;
 	Board::waitForReady();
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
-	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
+	memcpy(_txbuffer+1, command, 8);
 	Wire.beginTransmission(_board_addr);
 	Wire.write(_txbuffer, sizeof(_txbuffer));
 	uint8_t error = Wire.endTransmission();
@@ -243,15 +261,21 @@ U выход  |
 	s += String(mainStats.outVoltage[2]);
 	s += F("V");
 
-	s += F("\nI вых |");
+	s += F("\nI вых.  ");
 	s += String(mainStats.outCurrent[0], 1);
-	s += F("|");
-	s += String(mainStats.outCurrent[1], 1);
+	s += F("A");
 
-	s += F("\nP акт |");
+	s += F("\nI макс. ");
+	s += String(mainStats.outCurrent[1], 1);
+	s += F("A");
+
+	s += F("\nP макс. ");
 	s += String(maxPwr,1);
-	s += F("|");
+	s += F("kVA");
+
+	s += F("\nP сред. ");
 	s += String(avgPwr,1);
+	s += F("kVA");
 
 	s += F("\nСобытия: ");
 	s += errorsToStr(mainStats.boardEvents, EVENTS_SHORT);
@@ -260,7 +284,7 @@ U выход  |
 }
 
 void Board::tick() {
-	waitForReady();
+	//waitForReady();
 	getData();
 }
 

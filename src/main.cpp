@@ -18,8 +18,8 @@ void setup() {
 	memoryInit();
 	portalInit();
 	#ifdef RELEASE
-	//esp_task_wdt_init(20, true);
-	//esp_task_wdt_add(NULL);
+	esp_task_wdt_init(20, true);
+	esp_task_wdt_add(NULL);
 	#endif
 }
 
@@ -31,6 +31,6 @@ void loop() {
 	Mqtt_tick();
 
 	#ifdef RELEASE
-	//esp_task_wdt_reset();
+	esp_task_wdt_reset();
 	#endif
 }
