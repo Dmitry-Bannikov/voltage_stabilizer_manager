@@ -101,7 +101,7 @@ void portalInit() {
 	} else {
 		ui.start();
 	}
-	
+	LittleFS.begin();
 	ui.enableOTA("admin", "012343210");
 }
 
@@ -116,6 +116,8 @@ void createUpdateList(String &list) {
 		list += String("b_data/")+i;
 		list += ",";
 		list += String("b_stat/")+i;
+		list += ",";
+		list += String("b_led/")+i;
 		list += ",";
 	}
 	list += "setsalt,reload,";
@@ -211,6 +213,7 @@ void updatesHandler(uint8_t &result) {
 	for (uint8_t i = 0; i < board.size(); i++) {
 		ui.updateString(String("b_data/") + i, board[i].mainData.Str);
 		ui.updateString(String("b_stat/") + i, board[i].mainStats.Str);
+		ui.updateBool(String("b_led/") + i, board[i].isOnline());
 	}
 
 	

@@ -164,8 +164,6 @@ void WiFi_tick() {
 		LED_blink(100, 2000);
 	} else if (WiFi.getMode() == WIFI_AP){
 		LED_blink(1000);
-	} else {
-		//WiFi_Init(); //test
 	}
 }
 

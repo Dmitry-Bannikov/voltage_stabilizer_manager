@@ -49,7 +49,11 @@ void GP_data_build() {
 			GP.BLOCK_BEGIN(GP_DIV_RAW, "100%");
 			GP.AREA(String("b_data/")+i, 6, "Загрузка \nданных...");
 			GP.AREA(String("b_stat/")+i, 7, "Загрузка \nстатистики...");
-			GP.BUTTON_MINI(String("r_stat/")+i, "Сброс");
+			M_BOX(GP_AROUND,
+				GP.BUTTON_MINI(String("r_stat/")+i, "Сброс");
+				GP.LED(String("b_led/")+i, board[i].isOnline());
+			);
+			
 			GP.BLOCK_END();
 		}
 	}
@@ -118,14 +122,14 @@ void GP_mainsets_build(Board &brd) {
 		GP.BUTTON_MINI("rboard_btn", "Прочитать из платы"); 
 		GP.BUTTON_MINI("wset_btn", "Записать в плату")
 	);
-	M_BOX(GP_EDGES, GP.LABEL("Транзит при перегрузке"); GP.CHECK("aset_transit", brd.addSets.overloadTransit));
-	M_BOX(GP_EDGES, GP.LABEL("Точность/ гистерезис");  GP.NUMBER("mset_prec", "", brd.mainSets.precision, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Подстройка входа");  GP.NUMBER("mset_tunIn", "", brd.mainSets.tuneInVolt, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Подстройка выхода");  GP.NUMBER("mset_tunOut", "", brd.mainSets.tuneOutVolt, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Целевое напряжение");  GP.NUMBER("mset_targetV", "", brd.mainSets.targetVoltage, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Коэффициент трансформатора");  GP.SELECT("mset_tcratio_idx", "25,40,50,60,80,100", brd.mainSets.transRatioIndx));
-	M_BOX(GP_EDGES, GP.LABEL("Тип мотора"); GP.SELECT("mset_mottype", "20,90,150,200", brd.mainSets.motorType) );
-	M_BOX(GP_EDGES, GP.LABEL("Ток выхода макс"); GP.NUMBER("mset_maxcurr", "", brd.mainSets.maxCurrent, "100px") );
+	M_BOX(GP_EDGES, GP.LABEL("Транзит при перегрузке"); GP.CHECK("aset_transit", brd.addSets.overloadTransit););
+	M_BOX(GP_EDGES, GP.LABEL("Точность/ гистерезис");  GP.NUMBER("mset_prec", "", brd.mainSets.precision, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Подстройка входа");  GP.NUMBER("mset_tunIn", "", brd.mainSets.tuneInVolt, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Подстройка выхода");  GP.NUMBER("mset_tunOut", "", brd.mainSets.tuneOutVolt, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Целевое напряжение");  GP.NUMBER("mset_targetV", "", brd.mainSets.targetVoltage, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Коэффициент трансформатора");  GP.SELECT("mset_tcratio_idx", "25,40,50,60,80,100", brd.mainSets.transRatioIndx););
+	M_BOX(GP_EDGES, GP.LABEL("Тип мотора"); GP.SELECT("mset_mottype", "20,90,150,200", brd.mainSets.motorType););
+	M_BOX(GP_EDGES, GP.LABEL("Ток выхода макс"); GP.NUMBER("mset_maxcurr", "", brd.mainSets.maxCurrent, "100px"); );
 	GP.GRID_BEGIN();
 		GP.BUTTON_MINI("rst_btn", "Перезапустить ESP");
 		GP.BUTTON_MINI("mset_reboot", "Перезагрузить плату");	
@@ -138,12 +142,12 @@ void GP_addsets_build(Board &brd) {
 	title += (brd.mainSets.liter > 0 ? brd.getLiteral() : String(brd.getAddress()));
 	GP.BLOCK_BEGIN(GP_DIV_RAW, "", title);
 	
-	M_BOX(GP_EDGES, GP.LABEL("Максимальное напряжение");  GP.NUMBER("aset_maxV", "", brd.addSets.maxVolt, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Минимальное напряжение");  GP.NUMBER("aset_minV", "", brd.addSets.minVolt, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Время отключения, мс");  GP.NUMBER("aset_toff", "", brd.addSets.emergencyTOFF, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Время включения, мс");  GP.NUMBER("aset_ton", "", brd.addSets.emergencyTON, "100px"));
-	M_BOX(GP_EDGES, GP.LABEL("Отключить регуляцию"); GP.CHECK("aset_disreg", (bool)(brd.addSets.Switches[SW_REGDIS])));
-	M_BOX(GP_EDGES, GP.LABEL("Включить алярм"); GP.CHECK("aset_alarm", (bool)(brd.addSets.Switches[SW_ALARM])));
+	M_BOX(GP_EDGES, GP.LABEL("Максимальное напряжение");  GP.NUMBER("aset_maxV", "", brd.addSets.maxVolt, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Минимальное напряжение");  GP.NUMBER("aset_minV", "", brd.addSets.minVolt, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Время отключения, мс");  GP.NUMBER("aset_toff", "", brd.addSets.emergencyTOFF, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Время включения, мс");  GP.NUMBER("aset_ton", "", brd.addSets.emergencyTON, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Отключить регуляцию"); GP.CHECK("aset_disreg", (bool)(brd.addSets.Switches[SW_REGDIS])););
+	M_BOX(GP_EDGES, GP.LABEL("Включить алярм"); GP.CHECK("aset_alarm", (bool)(brd.addSets.Switches[SW_ALARM])););
 	//M_BOX(GP_EDGES, GP.LABEL("Коэф. моторов, %"); GP.TEXT("aset_motpwm", "30,100,150 и тд", brd.getMotKoefList(), "200px"); );
 	//M_BOX(GP_EDGES, GP.LABEL("Максимальные токи, A"); GP.TEXT("aset_maxcurr", "35,40,50 и тд", brd.getMaxCurrList(), "200px"); );
 	//M_BOX(GP_EDGES, GP.LABEL("Трансформаторы тока, X/5"); GP.TEXT("aset_tcratio", "40,50,60 и тд", brd.getTcRatioList(), "200px"); );
