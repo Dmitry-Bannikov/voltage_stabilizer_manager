@@ -83,8 +83,8 @@ void boardTick() {
 		tmr = millis();
 	}
 
-	if (millis() -  scanTmr < 30000) return;
-	scanNewBoards();
+	if (millis() -  scanTmr < 60000) return;
+	//scanNewBoards();
 	for (uint8_t i = 0; i < board.size(); i++) board[i].getMainSets();
 	scanTmr = millis();
 }
