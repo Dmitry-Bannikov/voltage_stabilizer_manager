@@ -11,8 +11,8 @@ void portalInit();
 void portalTick();
 void createUpdateList(String &list);
 void formsHandler();
-void clicksHandler(uint8_t &result);
-void updatesHandler(uint8_t &result);
+void clicksHandler(int8_t &error);
+void updatesHandler(int8_t &result);
 
 GyverPortal ui(&LittleFS);
 
@@ -87,10 +87,10 @@ void portalBuild() {
 }
 
 void portalActions() {
-	static uint8_t txSuccess = 1;
+	static int8_t result = 1;
 	formsHandler();	
-	updatesHandler(txSuccess);
-	clicksHandler(txSuccess);	
+	clicksHandler(result);
+	updatesHandler(result);	
 }
 
 void portalInit() {
@@ -145,8 +145,7 @@ void formsHandler() {
 
 }
 
-void clicksHandler(uint8_t &result) {
-	//if (!ui.click()) return;
+void clicksHandler(int8_t &error) {
 	
 
 	if (ui.clickSub("brdLit")) {
@@ -159,21 +158,41 @@ void clicksHandler(uint8_t &result) {
 		}
 	}
 
-	if (ui.clickUp("svlit_btn")) result = board[activeBoard].sendCommand(SW_SAVE, 1); 
-	if (ui.clickUp("rboard_btn") ) result = board[activeBoard].getMainSets(); 
-	if (ui.clickUp("wset_btn")) result = board[activeBoard].sendMainSets(); 
-	if (ui.clickUp("rst_btn")) ESP.restart();
+	if (ui.clickUp("saveall_btn")) {
+		error = 0;
+		for (uint8_t i = 0; i < board.size(); i++) {
+			
+			if (board[i].sendMainSets()) error = 1;
+			Board::waitForReady();
+		}
+	}
+	if (ui.clickUp("read_btn") ) {
+		error = 0;
+		for (uint8_t i = 0; i < board.size(); i++) {
+			if (board[i].getMainSets()) error = 1;
+			Board::waitForReady();
+		}
+	}
+	if (ui.clickUp("save_btn")) {
+		error = 0;
+		uint8_t res1 = board[activeBoard].sendMainSets();
+		Board::waitForReady();
+		uint8_t res2 = board[activeBoard].sendCommand(SW_SAVE,1);
+		Board::waitForReady();
+		if (res1 || res2) error = 1;
+	} 
+	if (ui.clickUp("rst_btn")) error = -1;
 	if (ui.clickUp("scan_btn")) scanNewBoards();
-	if (ui.clickUp("mset_reboot")) result = board[activeBoard].sendCommand(SW_REBOOT, 1);
-	if (ui.clickUp("r_stat/0")) result = board[0].sendCommand(SW_RSTST, 1);
-	if (ui.clickUp("r_stat/1")) result = board[1].sendCommand(SW_RSTST, 1);
-	if (ui.clickUp("r_stat/2")) result = board[2].sendCommand(SW_RSTST, 1);
+	if (ui.clickUp("mset_reboot")) error = board[activeBoard].sendCommand(SW_REBOOT, 1);
+	if (ui.clickUp("r_stat/0"))	error = board[0].sendCommand(SW_RSTST, 1);
+	if (ui.clickUp("r_stat/1")) error = board[1].sendCommand(SW_RSTST, 1);
+	if (ui.clickUp("r_stat/2")) error = board[2].sendCommand(SW_RSTST, 1);
 
 	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
-		result = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+		error = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
 	}
 	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_ALARM])) {
-		result = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+		error = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
 	}
 	ui.clickInt("b_sel", activeBoard);
 	ui.clickBool("aset_transit", board[activeBoard].addSets.overloadTransit);
@@ -183,23 +202,18 @@ void clicksHandler(uint8_t &result) {
 	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.tuneOutVolt);
 	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.transRatioIndx);
 	ui.clickInt("mset_mottype", board[activeBoard].mainSets.motorType);
-	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.maxCurrent);
-						
+	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.maxCurrent);					
 	ui.clickInt("aset_maxV", board[activeBoard].addSets.maxVolt);
 	ui.clickInt("aset_minV", board[activeBoard].addSets.minVolt);
 	ui.clickInt("aset_toff", board[activeBoard].addSets.emergencyTOFF);
 	ui.clickInt("aset_ton", board[activeBoard].addSets.emergencyTON);
-	//ui.clickStr
+	if (!error) webRefresh = true;
+	
 }
 
-void updatesHandler(uint8_t &result) {
+void updatesHandler(int8_t &result) {
 	if (!ui.update()) return;
-	webRefresh = !result;
 
-	if (ui.update("reload") && webRefresh) {
-		webRefresh = false;
-		ui.answer(1);
-	}
 	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches[SW_REGDIS]));
 	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_ALARM]));
 	ui.updateBool("mqttConnected_led", mqttConnected);
@@ -207,8 +221,16 @@ void updatesHandler(uint8_t &result) {
 		if (result == 0)
 		{
 			ui.answer("Выполнено!");
+			result = 1;
+		} else if (result == -1) {
+			ui.answer("ESP будет перезагружена");
+			result = 1;
+			ESP.restart();
 		}
-		result = 1;
+	}
+	if (ui.update("reload") && webRefresh) {
+		webRefresh = false;
+		ui.answer(1);
 	}
 	for (uint8_t i = 0; i < board.size(); i++) {
 		ui.updateString(String("b_data/") + i, board[i].mainData.Str);

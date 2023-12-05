@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <data.h>
 //#include <AsyncMqttClient.h>
+#include <ArduinoJson.h>
 #include <PubSubClient.h>
 
 
@@ -12,8 +13,6 @@
 
 #ifdef USE_ORTEA
 const char *mqtt_broker = "ortea.ru";//185.64.76.226
-const char *topicToServer = "stab/toserver";
-const char *topicToStab = "stab/tostab";
 const char *mqtt_clientId = "esp32mqtt_client";
 const char *mqtt_username = "device_stab";
 const char *mqtt_password = "2#r]V\\r]+(Dw@WnAd5Kq";
@@ -78,6 +77,9 @@ void MqttReconnect() {
 void MqttPublishData() {
     static uint32_t tmr = 0;
     if (millis() < tmr + 1000) return;
+    
+
+    //======================Старые===================================//
     String inV = String(board[activeBoard].mainData.inputVoltage);
     mqttClient.publish("stab/toserver/uin", inV.c_str());
 

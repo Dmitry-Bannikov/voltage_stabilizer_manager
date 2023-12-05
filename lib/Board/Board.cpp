@@ -46,7 +46,7 @@ void Board::waitForReady() {
 	//delay(5);
 	uint32_t tmr = millis();
 	while (millis() - tmr < 100) {
-		if (!Wire.available()) {
+		if (!Wire.available() && !Wire.availableForWrite()) {
 			return;
 		}	
 		yield();
@@ -54,14 +54,22 @@ void Board::waitForReady() {
 }
 
 bool Board::isOnline() {
-	if (_disconnected) {
+	Wire.beginTransmission(_board_addr);
+	uint8_t error = Wire.endTransmission();
+	if (error) {
 		return false;
 	}
 	return true;							
 }
 
+bool Board::isAnswer() {
+	if (_disconnected) return false;
+	return true;
+}
+
 uint8_t Board::getDataRaw() {
 	if (!startFlag) return 1;
+	Board::waitForReady();
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_DATA;
 	Wire.clearWriteError();
@@ -116,25 +124,11 @@ uint8_t Board::getData() {
 	getDataStr();
 	getStatisStr();
 	if (error) {
-		(disconn <= 3) ? (disconn++) : (disconn = 3, _disconnected = 1);
+		(disconn < 10) ? (disconn++) : (disconn = 10, _disconnected = 1);
 	} else {
 		disconn = 0;
 		_disconnected = 0;
 	}
-	
-	/*
-	uint8_t error = 1;
-	if (millis() - last_update >= _dataUpdatePrd) {
-		error = getDataRaw();
-		getDataStr();
-		last_update = millis();
-		if (error) {
-			_disconnected++;
-		} else {
-			_disconnected = 0;
-		}
-	}
-	*/
 	return error;
 }
 
@@ -237,45 +231,38 @@ U выход  |
 	s += F("\nt работы:");
 	s += getWorkTime(mainStats.workTimeMins);
 
-	s += F("\nU вх.макс. ");
+	s += F("\nU вх.макс : ");
 	s += String(mainStats.inVoltage[0]);
-	s += F("V");
 
-	s += F("\nU вх.сред. ");
+	s += F("\nU вх.сред : ");
 	s += String(mainStats.inVoltage[1]);
-	s += F("V");
 
-	s += F("\nU вх.мин.  ");
+	s += F("\nU вх.мин  : ");
 	s += String(mainStats.inVoltage[2]);
-	s += F("V");
 
-	s += F("\nU вых.макс. ");
+	s += F("\nU вых.макс: ");
 	s += String(mainStats.outVoltage[0]);
-	s += F("V");
 
-	s += F("\nU вых.сред. ");
+	s += F("\nU вых.сред: ");
 	s += String(mainStats.outVoltage[1]);
-	s += F("V");
 
-	s += F("\nU вых.мин.  ");
+	s += F("\nU вых.мин : ");
 	s += String(mainStats.outVoltage[2]);
 	s += F("V");
 
-	s += F("\nI вых.  ");
+	s += F("\nI макс, А : ");
 	s += String(mainStats.outCurrent[0], 1);
 	s += F("A");
 
-	s += F("\nI макс. ");
+	s += F("\nI сред, А : ");
 	s += String(mainStats.outCurrent[1], 1);
 	s += F("A");
 
-	s += F("\nP макс. ");
+	s += F("\nP макс,kVA: ");
 	s += String(maxPwr,1);
-	s += F("kVA");
 
-	s += F("\nP сред. ");
+	s += F("\nP сред,kVA: ");
 	s += String(avgPwr,1);
-	s += F("kVA");
 
 	s += F("\nСобытия: ");
 	s += errorsToStr(mainStats.boardEvents, EVENTS_SHORT);
@@ -284,12 +271,12 @@ U выход  |
 }
 
 void Board::tick() {
-	//waitForReady();
 	getData();
 }
 
 void Board::detach() {
 	if (!startFlag) return;
+	_board_addr = 0;
 	startFlag = false;
 }
 
@@ -400,23 +387,18 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			delay(1);
 		}
 	}
-	for (uint8_t addr = 1; addr < 128; addr++) {
-		if (Board::isBoard(addr) && brd.size() <= max) {
-			if (!brd.size()) {
-				brd.emplace_back(addr);
-				continue;
-			} else {
-				bool reserved = false;
-				for (uint8_t i = 0; i < brd.size(); i++) {
-					if (brd[i].getAddress() == addr) {
-						reserved = true;
-						break;
-					}
+	if (brd.size() == max) return brd.size();
+	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
+		if (Board::isBoard(addr)) {				//если на этом адресе есть плата, и кол-во плат < макс
+			bool reserved = false;	
+			for (uint8_t i = 0; i < brd.size(); i++) {				//проходимся по уже существующим платам
+				if (brd[i].getAddress() == addr) {						//если эта плата уже имеет этот адрес
+					reserved = true;									//то отмечаем как зарезервировано
 				}
-				if (!reserved) brd.emplace_back(addr);
 			}
-			delay(10);
+			if (!reserved) brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
 		}
+
 	}
 	return brd.size();
 }

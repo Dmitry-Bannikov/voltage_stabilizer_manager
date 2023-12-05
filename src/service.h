@@ -78,16 +78,14 @@ void boardTick() {
 	static uint32_t scanTmr = 0;
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
-	
-	if (boardsAmnt && (millis() - tmr > 300)) {
-		static uint8_t i = 0;
-		board[i].tick();
-		(i == boardsAmnt-1 ? (i=0) : (i++));
+	if (millis() - tmr > 500) {
+		for (uint8_t i = 0; i < board.size(); i++) board[i].tick();
 		tmr = millis();
 	}
-	
-	if (millis() -  scanTmr < 10000) return;
+
+	if (millis() -  scanTmr < 30000) return;
 	scanNewBoards();
+	for (uint8_t i = 0; i < board.size(); i++) board[i].getMainSets();
 	scanTmr = millis();
 }
 
@@ -100,12 +98,6 @@ void scanNewBoards() {
 		webRefresh = true;
 		old_amount = board.size();
 	} 
-	if (counter == 6 && board.size()) {
-		counter = 0;
-		for (uint8_t i = 0; i < board.size(); i++) {
-			if(!board[i].getMainSets()) webRefresh = true;
-		}
-	}
 }
 
 void sendDwinData() {
@@ -113,7 +105,6 @@ void sendDwinData() {
 	if (millis() - tmr < 1000) return;
 	for (uint8_t i = 0; i < board.size(); i++) {
 		//SerialTest(0x1234);
-		Dwin.writeValue(0x5000, board[0].mainData.inputVoltage);
 		/*
 		Dwin.addNewValue(board[i].mainData.inputVoltage);
 		Dwin.addNewValue(board[i].mainData.outputVoltage);

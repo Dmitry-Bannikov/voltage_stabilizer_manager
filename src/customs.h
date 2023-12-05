@@ -48,12 +48,11 @@ void GP_data_build() {
 		for (uint8_t i = 0; i < board.size(); i++) {
 			GP.BLOCK_BEGIN(GP_DIV_RAW, "100%");
 			GP.AREA(String("b_data/")+i, 6, "Загрузка \nданных...");
-			GP.AREA(String("b_stat/")+i, 7, "Загрузка \nстатистики...");
+			GP.AREA(String("b_stat/")+i, 13, "Загрузка \nстатистики...");
 			M_BOX(GP_AROUND,
 				GP.BUTTON_MINI(String("r_stat/")+i, "Сброс");
 				GP.LED(String("b_led/")+i, board[i].isOnline());
 			);
-			
 			GP.BLOCK_END();
 		}
 	}
@@ -82,7 +81,7 @@ void GP_target_build() {
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 			if (board.size() > 0) {
-				GP.BUTTON("svlit_btn", "Сохранить");
+				GP.BUTTON("saveall_btn", "Сохранить");
 			} else {
 				GP.TITLE("Не обнаружено подключенных плат!");
 			}
@@ -119,8 +118,8 @@ void GP_mainsets_build(Board &brd) {
 	title += (brd.mainSets.liter > 0 ? brd.getLiteral() : String(brd.getAddress()));
 	GP.BLOCK_BEGIN(GP_DIV_RAW, "", title);
 	M_BOX(
-		GP.BUTTON_MINI("rboard_btn", "Прочитать из платы"); 
-		GP.BUTTON_MINI("wset_btn", "Записать в плату")
+		GP.BUTTON_MINI("read_btn", "Прочитать из платы"); 
+		GP.BUTTON_MINI("save_btn", "Записать в плату")
 	);
 	M_BOX(GP_EDGES, GP.LABEL("Транзит при перегрузке"); GP.CHECK("aset_transit", brd.addSets.overloadTransit););
 	M_BOX(GP_EDGES, GP.LABEL("Точность/ гистерезис");  GP.NUMBER("mset_prec", "", brd.mainSets.precision, "100px"););

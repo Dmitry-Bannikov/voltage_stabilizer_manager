@@ -193,6 +193,7 @@ public:
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);
 	static void waitForReady();
 	bool 		isOnline();												//проверить, онлайн ли плата
+	bool 		isAnswer();
 	uint8_t 	getAddress() {return _board_addr;};							//получить адрес платы		
 
 	uint8_t 	getData();												//получить данные с платы
