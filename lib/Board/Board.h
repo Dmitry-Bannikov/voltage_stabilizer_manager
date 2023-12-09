@@ -194,12 +194,12 @@ public:
 	static void waitForReady();
 	bool 		isOnline();												//проверить, онлайн ли плата
 	bool 		isAnswer();
-	uint8_t 	getAddress() {return _board_addr;};							//получить адрес платы		
+	uint8_t 	getAddress() {return _board_addr;};						//получить адрес платы		
 
 	uint8_t 	getData();												//получить данные с платы
 	uint8_t 	getDataRaw();
 	uint8_t 	getMainSets();											//получить настройки с платы
-	uint8_t 	sendMainSets();											//отправить настройки
+	uint8_t 	sendMainSets(uint8_t attempts = 0);						//отправить настройки
 	uint8_t 	sendCommand(uint8_t command, uint8_t value);
 	uint8_t 	sendCommand(uint8_t* command);
 	void 		getDataStr();

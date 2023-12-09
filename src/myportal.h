@@ -11,8 +11,8 @@ void portalInit();
 void portalTick();
 void createUpdateList(String &list);
 void formsHandler();
-void clicksHandler(int8_t &error);
-void updatesHandler(int8_t &result);
+void clicksHandler();
+void updatesHandler();
 
 GyverPortal ui(&LittleFS);
 
@@ -34,12 +34,12 @@ void portalBuild() {
 	} else {
 		GP.TITLE("Менеджер плат (STA)");
 	}
-	GP.NAV_TABS_LINKS("/,/brdcfg,/addcfg,/wificfg", "Главная,Настройки платы,Доп. настройки,Настройка подключения");
+	GP.NAV_TABS_LINKS("/,/brdcfg,/wificfg", "Главная,Настройки платы,Настройка подключения");
 	if (ui.uri("/")) {
 		GP.HR();
 		GP.LABEL("Соединение по MQTT");
 		GP.LED("mqttConnected_led", mqttConnected);
-		GP.BLOCK_BEGIN(GP_THIN, "", "Основные данные и статистика");
+		GP.BLOCK_BEGIN(GP_DIV_RAW, "", "Основные данные и статистика");
 			GP_data_build();
 		GP.BLOCK_END();
 	}
@@ -49,18 +49,10 @@ void portalBuild() {
 		GP_target_build();
 		if (board.size()) {
 			GP_mainsets_build(board[activeBoard]);
-		}
-		GP.BLOCK_END();
-	}
-
-	if(ui.uri("/addcfg")) {
-		GP.BLOCK_BEGIN(GP_THIN, "", "Дополнительные настройки");
-		if (board.size()) {
 			GP_addsets_build(board[activeBoard]);
 		}
 		GP.BLOCK_END();
 	}
-	
 	if(ui.uri("/wificfg")) {
 		GP.BLOCK_BEGIN(GP_THIN, "", "Сетевые настройки");
 		GP.FORM_BEGIN("/wificfg");
@@ -87,10 +79,9 @@ void portalBuild() {
 }
 
 void portalActions() {
-	static int8_t result = 1;
 	formsHandler();	
-	clicksHandler(result);
-	updatesHandler(result);	
+	clicksHandler();
+	updatesHandler();	
 }
 
 void portalInit() {
@@ -145,9 +136,8 @@ void formsHandler() {
 
 }
 
-void clicksHandler(int8_t &error) {
+void clicksHandler() {
 	
-
 	if (ui.clickSub("brdLit")) {
 		for (uint8_t i = 0; i < board.size();i++) {
 			uint8_t num = 0;
@@ -158,41 +148,20 @@ void clicksHandler(int8_t &error) {
 		}
 	}
 
-	if (ui.clickUp("saveall_btn")) {
-		error = 0;
-		for (uint8_t i = 0; i < board.size(); i++) {
-			
-			if (board[i].sendMainSets()) error = 1;
-			Board::waitForReady();
-		}
-	}
-	if (ui.clickUp("read_btn") ) {
-		error = 0;
-		for (uint8_t i = 0; i < board.size(); i++) {
-			if (board[i].getMainSets()) error = 1;
-			Board::waitForReady();
-		}
-	}
-	if (ui.clickUp("save_btn")) {
-		error = 0;
-		uint8_t res1 = board[activeBoard].sendMainSets();
-		Board::waitForReady();
-		uint8_t res2 = board[activeBoard].sendCommand(SW_SAVE,1);
-		Board::waitForReady();
-		if (res1 || res2) error = 1;
-	} 
-	if (ui.clickUp("rst_btn")) error = -1;
-	if (ui.clickUp("scan_btn")) scanNewBoards();
-	if (ui.clickUp("mset_reboot")) error = board[activeBoard].sendCommand(SW_REBOOT, 1);
-	if (ui.clickUp("r_stat/0"))	error = board[0].sendCommand(SW_RSTST, 1);
-	if (ui.clickUp("r_stat/1")) error = board[1].sendCommand(SW_RSTST, 1);
-	if (ui.clickUp("r_stat/2")) error = board[2].sendCommand(SW_RSTST, 1);
-
+	if (ui.clickUp("rst_btn")) 		boardRequest = 1;			//esp restart
+	if (ui.clickUp("scan_btn")) 	boardRequest = 2;			//scan boards
+	if (ui.clickUp("saveall_btn")) 	boardRequest = 3;			//save to all boards
+	if (ui.clickUp("read_btn") ) 	boardRequest = 10 + activeBoard;	//read settings from active board
+	if (ui.clickUp("save_btn"))  	boardRequest = 20 + activeBoard; 	//save settings to active board
+	if (ui.clickUp("mset_reboot")) 	boardRequest = 30 + activeBoard;	//reboot active board
+	if (ui.clickUp("r_stat/0"))		boardRequest = 40;			//reset statistic
+	if (ui.clickUp("r_stat/1")) 	boardRequest = 41;
+	if (ui.clickUp("r_stat/2")) 	boardRequest = 42;
 	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
-		error = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+		boardRequest = 4;
 	}
 	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_ALARM])) {
-		error = board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+		boardRequest = 5;
 	}
 	ui.clickInt("b_sel", activeBoard);
 	ui.clickBool("aset_transit", board[activeBoard].addSets.overloadTransit);
@@ -207,26 +176,21 @@ void clicksHandler(int8_t &error) {
 	ui.clickInt("aset_minV", board[activeBoard].addSets.minVolt);
 	ui.clickInt("aset_toff", board[activeBoard].addSets.emergencyTOFF);
 	ui.clickInt("aset_ton", board[activeBoard].addSets.emergencyTON);
-	if (!error) webRefresh = true;
 	
 }
 
-void updatesHandler(int8_t &result) {
+void updatesHandler() {
 	if (!ui.update()) return;
 
 	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches[SW_REGDIS]));
 	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_ALARM]));
 	ui.updateBool("mqttConnected_led", mqttConnected);
 	if (ui.update("setsalt")) {
-		if (result == 0)
+		if (requestResult == 1)
 		{
 			ui.answer("Выполнено!");
-			result = 1;
-		} else if (result == -1) {
-			ui.answer("ESP будет перезагружена");
-			result = 1;
-			ESP.restart();
 		}
+		requestResult = 0;
 	}
 	if (ui.update("reload") && webRefresh) {
 		webRefresh = false;

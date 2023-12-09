@@ -1,6 +1,8 @@
 #include <Board.h>
 #include <Wire.h>
-
+#include <driver/i2c.h>
+#include <driver/gpio.h>
+#include <esp_err.h>
 
 //==================Public=================//
 
@@ -13,39 +15,26 @@ bool Board::attach(const uint8_t addr) {
 	return isOnline();
 }
 
-//плата А 3-я 220
-//плата В центральная 230
-
-
 bool Board::isBoard(uint8_t addr) {
-	Wire.clearWriteError();
-	Wire.setTimeOut(50);
-	Wire.beginTransmission(addr);
-	uint8_t res = Wire.endTransmission();
-	if (res) return false;
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_stop(cmd);
+    esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(20));
+    i2c_cmd_link_delete(cmd);
+	if (error) return false;
 	uint8_t txbuf[sizeof(_txbuffer)] = {0x20, 0};
 	uint8_t rxbuf[sizeof(_rxbuffer)] = {0};
-	Wire.beginTransmission(addr);
-	Wire.write(txbuf,100);
-	uint8_t err = Wire.endTransmission();
-	if (err != 0) return false;
-	Wire.requestFrom(addr, (size_t)100);
-	uint32_t tmr = millis();
-	while (millis() - tmr < 50) {
-		if (Wire.available()) {
-			Wire.readBytes(rxbuf, 100);
-			if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return true;
-			else return false;	
-		}	
-		yield();
-	}
+	esp_err_t ret = i2c_master_write_read_device(0, addr, txbuf, sizeof(txbuf), rxbuf, sizeof(rxbuf), pdMS_TO_TICKS(20));
+	if (ret != ESP_OK) return false;
+	if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return true;
 	return false;
 }
 
 void Board::waitForReady() {
 	//delay(5);
 	uint32_t tmr = millis();
-	while (millis() - tmr < 100) {
+	while (millis() - tmr < 500) {
 		if (!Wire.available() && !Wire.availableForWrite()) {
 			return;
 		}	
@@ -54,8 +43,12 @@ void Board::waitForReady() {
 }
 
 bool Board::isOnline() {
-	Wire.beginTransmission(_board_addr);
-	uint8_t error = Wire.endTransmission();
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (_board_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_stop(cmd);
+    esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(20));
+    i2c_cmd_link_delete(cmd);
 	if (error) {
 		return false;
 	}
@@ -69,21 +62,11 @@ bool Board::isAnswer() {
 
 uint8_t Board::getDataRaw() {
 	if (!startFlag) return 1;
-	Board::waitForReady();
-	memset(_rxbuffer, 0, sizeof(_txbuffer));
+	memset(_txbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_DATA;
-	Wire.clearWriteError();
-	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 20+error;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
-	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
-	if (pollForDataRx()) {
-		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
-	} else {
-		return 3;
-	}
+	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), _rxbuffer, sizeof(_rxbuffer), pdMS_TO_TICKS(100));
+	if (ret != ESP_OK) return 3;
 	if (*_rxbuffer != I2C_DATA_START) return 4;
 	memcpy(mainData.buffer, _rxbuffer + 1, mainData.structSize);
 	memcpy(mainStats.buffer, _rxbuffer + 1 + mainData.structSize, mainStats.structSize);
@@ -95,19 +78,11 @@ uint8_t Board::getDataRaw() {
 uint8_t Board::getMainSets() {
 	if (!startFlag) return 1;
 	Board::waitForReady();
-	memset(_rxbuffer, 0, sizeof(_txbuffer));
+	memset(_txbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_MAINSETS;
-	Wire.beginTransmission(_board_addr);
-	Wire.write((uint8_t*)_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
-	Wire.requestFrom(_board_addr, sizeof(_rxbuffer));
-	if (pollForDataRx()) {
-		Wire.readBytes(_rxbuffer, sizeof(_rxbuffer));
-	} else {
-		return 3;
-	}
+	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), _rxbuffer, sizeof(_rxbuffer), pdMS_TO_TICKS(100));
+	if (ret != ESP_OK) return 3;
 	if (*_rxbuffer != I2C_MAINSETS_START) return 4;
 	memcpy(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
 	memcpy(addSets.buffer, _rxbuffer + 1 + mainSets.structSize, addSets.structSize);
@@ -124,7 +99,7 @@ uint8_t Board::getData() {
 	getDataStr();
 	getStatisStr();
 	if (error) {
-		(disconn < 10) ? (disconn++) : (disconn = 10, _disconnected = 1);
+		(disconn < 5) ? (disconn++) : (disconn = 5, _disconnected = 1);
 	} else {
 		disconn = 0;
 		_disconnected = 0;
@@ -132,7 +107,7 @@ uint8_t Board::getData() {
 	return error;
 }
 
-uint8_t Board::sendMainSets() {
+uint8_t Board::sendMainSets(uint8_t attempts) {
 	if (!startFlag) return 1;
 	Board::waitForReady();
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
@@ -141,10 +116,8 @@ uint8_t Board::sendMainSets() {
 	addSets.packData();
 	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
 	memcpy(_txbuffer+1 + mainSets.structSize, addSets.buffer, addSets.structSize);
-	Wire.beginTransmission(_board_addr);
-	Wire.write(_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+  	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
+	if (ret != ESP_OK) return 2;
 	return 0;
 }
 
@@ -155,10 +128,8 @@ uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
 	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
-	Wire.beginTransmission(_board_addr);
-	Wire.write(_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
+	if (ret != ESP_OK) return 2;
 	return 0;
 }
 
@@ -168,22 +139,15 @@ uint8_t Board::sendCommand(uint8_t* command) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
 	memcpy(_txbuffer+1, command, 8);
-	Wire.beginTransmission(_board_addr);
-	Wire.write(_txbuffer, sizeof(_txbuffer));
-	uint8_t error = Wire.endTransmission();
-	if (error != 0) return 2;
+	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
+	if (ret != ESP_OK) return 2;
 	return 0;
 }
 
 void Board::getDataStr() {
 	float full_pwr = mainData.outputPower/mainData.cosfi/1000.0;
 	String s = "";
-	s += F(" Данные платы: ");
-	if (mainSets.liter != '\0') {
-		s += getLiteral();
-	} else {
-		s += String(_board_addr);
-	}
+	s += F(" Данные ");
 
 	s += F("\nU вход   : ");
 	s += String(mainData.inputVoltage);
@@ -222,12 +186,7 @@ U выход  |
 	float maxPwr = mainStats.power[0]/1000.0;
 	float avgPwr = mainStats.power[1]/1000.0;
 	String s = "";
-	s += F("Cтатистика : ");
-	if (mainSets.liter != 'N') {
-		s += getLiteral();
-	} else {
-		s += String(_board_addr);
-	}
+	s += F(" Cтатистика ");
 	s += F("\nt работы:");
 	s += getWorkTime(mainStats.workTimeMins);
 
@@ -248,15 +207,15 @@ U выход  |
 
 	s += F("\nU вых.мин : ");
 	s += String(mainStats.outVoltage[2]);
-	s += F("V");
+	
 
 	s += F("\nI макс, А : ");
 	s += String(mainStats.outCurrent[0], 1);
-	s += F("A");
+	
 
 	s += F("\nI сред, А : ");
 	s += String(mainStats.outCurrent[1], 1);
-	s += F("A");
+	
 
 	s += F("\nP макс,kVA: ");
 	s += String(maxPwr,1);
@@ -396,7 +355,10 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 					reserved = true;									//то отмечаем как зарезервировано
 				}
 			}
-			if (!reserved) brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
+			if (!reserved) {
+				brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
+				//return 1;//test
+			}
 		}
 
 	}

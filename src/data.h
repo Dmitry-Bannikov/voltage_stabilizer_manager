@@ -33,15 +33,12 @@ EEManager memoryWIFI(wifi_settings, 20000);
 uint8_t activeBoard = 0;
 bool mqttConnected = false;
 bool webRefresh = true;  
+uint8_t boardRequest = 0; //запрос на плату
+uint8_t requestResult = 0;
 
-//#define bitRead(value, bit)					(value & (1<<(bit)))
-//#define bitSet(value, bit)					(value |= (1 << (bit)))
-//#define bitClear(value, bit)				(value &= ~(1 << (bit)))
-//#define bitWrite(value, bit, bitvalue) 		(bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 #define unitBytes(byteH, byteL)				(byteH << 8 | byteL )
 #define getByteLow(value)						( value & 0xFF )
 #define getByteHigh(value)						( (value >> 8) & 0xFF )
-
 
 uint8_t global_add_pointer = 0;
 

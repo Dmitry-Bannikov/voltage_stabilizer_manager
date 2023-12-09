@@ -4,17 +4,18 @@
 #include <data.h>
 #include <Wire.h>
 #include <mqtthandle.h>
-#include <esp32-hal-i2c.h>
+
 
 void connectionInit();
 void memoryInit();
 void LED_blink(uint16_t period_on, uint16_t period_off);
 void scanNewBoards();
 void boardTick();
-void SerialTest(int16_t value);
-void sendDwinData();
 void WiFi_Init();
 void WiFi_tick();
+void BoardRequest(uint8_t &request);
+
+
 
 void LED_blink(uint16_t period_on, uint16_t period_off = 0) {
   	static uint64_t tick = 0;
@@ -49,15 +50,8 @@ void connectionInit() {
 	//HardwareSerial Serial2(115200);
 	//Dwin.begin(&Serial, processData);
 	delay(10);
-	Serial.println("Initializing connection!");
 	board.reserve(MAX_BOARDS);
-	#ifdef RELEASE
-	Serial.println("Scanning boards...");
 	scanNewBoards();
-	#else
-	board.emplace_back(0x10);
-	board.emplace_back(0x12);
-	#endif
 }
 
 void memoryInit() {
@@ -66,9 +60,9 @@ void memoryInit() {
 	memoryWIFI.begin(0, 127);
 	LED_blink(0);
 	for (uint8_t i = 0; i < board.size(); i++) {	
-		Serial.printf("\n Read settings: %d", board[i].getMainSets()); 
+		board[i].getMainSets(); 
 		delay(250);
-		Serial.printf("\n Read Data: %d", board[i].getDataRaw()); 
+		board[i].getDataRaw(); 
 		delay(250);
 	}
 }
@@ -78,13 +72,14 @@ void boardTick() {
 	static uint32_t scanTmr = 0;
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
-	if (millis() - tmr > 500) {
+	if (millis() - tmr > 250 && !boardRequest) {
 		for (uint8_t i = 0; i < board.size(); i++) board[i].tick();
 		tmr = millis();
+	} else {
+		BoardRequest(boardRequest);
 	}
 
-	if (millis() -  scanTmr < 60000) return;
-	//scanNewBoards();
+	if (millis() -  scanTmr < 30000) return;
 	for (uint8_t i = 0; i < board.size(); i++) board[i].getMainSets();
 	scanTmr = millis();
 }
@@ -98,24 +93,6 @@ void scanNewBoards() {
 		webRefresh = true;
 		old_amount = board.size();
 	} 
-}
-
-void sendDwinData() {
-	static uint32_t tmr;
-	if (millis() - tmr < 1000) return;
-	for (uint8_t i = 0; i < board.size(); i++) {
-		//SerialTest(0x1234);
-		/*
-		Dwin.addNewValue(board[i].mainData.inputVoltage);
-		Dwin.addNewValue(board[i].mainData.outputVoltage);
-		Dwin.addNewValue(board[i].mainData.outputCurrent);
-		Dwin.addNewValue(board[i].mainData.outputPower);
-		Dwin.writeAddedValues(0x5000 + i*256);
-		Dwin.waitUntillTx();
-		*/
-		
-	}
-	tmr = millis();
 }
 
 void WiFi_Init() {
@@ -158,7 +135,55 @@ void WiFi_tick() {
 	}
 }
 
+void BoardRequest(uint8_t &request) {
+	if (!request) return;
+	if (!board[activeBoard].isAnswer()) return;
+	Board::waitForReady();
 
+	if (request < 10) {
+		if (request == 1) {
+			ESP.restart();
+		} else if (request == 2) {
+			scanNewBoards();
+		} else if (request == 3) {
+			for (uint8_t i = 0; i < board.size(); i++) {
+				delay(1);
+				board[i].sendMainSets();
+			}
+			requestResult = 1;
+		} else if (request == 4) {
+			board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+		} else if (request == 5) {
+			board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+		}
+		
+	} else {
+		uint8_t command = request / 10;
+		uint8_t target = request % 10;
+		if (!board[target].isAnswer()) return;
+		if (command == 1)
+		{
+			if (!board[target].getMainSets()) requestResult = 1;	
+		}
+		else if (command == 2)
+		{
+			if(!board[target].sendMainSets()) requestResult = 1;
+		}
+		else if (command == 3)
+		{
+			if(!board[target].sendCommand(SW_REBOOT, 1)) requestResult = 1;
+			
+		}
+		else if (command == 4)
+		{
+			while (board[target].sendCommand(SW_RSTST, 1));
+		}
+	}
+	
+	Board::waitForReady();
+	if (requestResult) webRefresh = true;
+	request = 0;
+}
 
 
 

@@ -40,13 +40,13 @@ void GP_data_build() {
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 		GP.TITLE("Не обнаружено подключенных плат!");
 		M_BOX(
-			GP.BUTTON("rst_btn", "Перезапустить\n систему");
-			GP.BUTTON("scan_btn", "Пересканировать\n платы");
+			GP.BUTTON_MINI("rst_btn", "Перезапустить\n систему");
+			GP.BUTTON_MINI("scan_btn", "Пересканировать\n платы");
 		);
 		GP.BLOCK_END();
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
-			GP.BLOCK_BEGIN(GP_DIV_RAW, "100%");
+			GP.BLOCK_BEGIN(GP_THIN, "100%", String("Плата ")+ board[i].getLiteral());
 			GP.AREA(String("b_data/")+i, 6, "Загрузка \nданных...");
 			GP.AREA(String("b_stat/")+i, 13, "Загрузка \nстатистики...");
 			M_BOX(GP_AROUND,
@@ -58,6 +58,7 @@ void GP_data_build() {
 	}
 	
 	GP.GRID_END();
+	if (board.size()) GP.BUTTON_MINI("scan_btn", "Пересканировать\n платы");
 }
 
 void GP_target_build() {

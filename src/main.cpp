@@ -26,11 +26,8 @@ void setup() {
 
 void loop() {
 	boardTick();
-	//Serial.println("board tick");
 	portalTick();
-	//Serial.println("portal tick");
 	WiFi_tick();
-	//Serial.println("wifi tick");
 	Mqtt_tick();
 	#ifdef RELEASE
 	//esp_task_wdt_reset();  
