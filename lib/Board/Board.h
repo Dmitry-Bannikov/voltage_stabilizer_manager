@@ -179,8 +179,6 @@ private:
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 	bool _active = false;
 	uint8_t _disconnected = 0;
-
-	bool pollForDataRx();
 	
 	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
@@ -188,6 +186,8 @@ private:
 public:
 	Board() {attach(0);}
 	Board(const uint8_t addr) {attach(addr);};
+	static int8_t StartI2C();		
+	static int8_t StopI2C();
 	bool 		attach(const uint8_t addr);								//подключить плату (указать адрес)
 	static bool isBoard(const uint8_t addr);
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);

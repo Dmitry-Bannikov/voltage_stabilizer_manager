@@ -1,10 +1,45 @@
 #include <Board.h>
-#include <Wire.h>
 #include <driver/i2c.h>
 #include <driver/gpio.h>
 #include <esp_err.h>
+#include <Wire.h>
 
 //==================Public=================//
+
+int8_t Board::StartI2C() {
+	/*
+	i2c_config_t config = { };
+    config.mode = I2C_MODE_MASTER;
+    config.sda_io_num = 21;
+    config.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    config.scl_io_num = 22;
+    config.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    config.master.clk_speed = 100000; 
+	config.clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL;
+	if (i2c_param_config(I2C_NUM_0, &config) != ESP_OK) return 1;
+    if (i2c_driver_install(I2C_NUM_0, config.mode, 0, 0, 0) != ESP_OK) return 2;
+	i2c_set_timeout(I2C_NUM_0, 1200000);
+	*/
+	
+	Wire.begin();
+	Wire.setTimeOut(100);
+	
+	return 0;
+}
+
+int8_t Board::StopI2C() {
+    if (i2c_driver_delete(I2C_NUM_0)) return 1;
+    gpio_reset_pin(GPIO_NUM_21);
+    gpio_reset_pin(GPIO_NUM_22);
+	gpio_config_t io_conf = {};
+    io_conf.pin_bit_mask = (1ULL<<21) | (1ULL<<22);
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    if (gpio_config(&io_conf)) return 2;
+	return 0;
+}
 
 
 bool Board::attach(const uint8_t addr) {
@@ -33,13 +68,10 @@ bool Board::isBoard(uint8_t addr) {
 
 void Board::waitForReady() {
 	//delay(5);
-	uint32_t tmr = millis();
-	while (millis() - tmr < 500) {
-		if (!Wire.available() && !Wire.availableForWrite()) {
-			return;
-		}	
-		yield();
-	} 
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_stop(cmd);
+    esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(25));
+    i2c_cmd_link_delete(cmd);
 }
 
 bool Board::isOnline() {
@@ -271,16 +303,6 @@ String Board::getTcRatioList() {
 }
 
 //========Private=======//
-
-bool Board::pollForDataRx() {
-	uint32_t tmr = millis();
-	while (millis() - tmr < _poll) {
-		if (Wire.available()) 
-			return true;
-		yield();
-	}
-	return false;
-}
 
 String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 	String s = "";

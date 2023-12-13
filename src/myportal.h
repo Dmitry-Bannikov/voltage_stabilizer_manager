@@ -20,6 +20,7 @@ GyverPortal ui(&LittleFS);
 void portalBuild() {
   //------------------------------------------//
 	GP.BUILD_BEGIN(900);
+	GP.setTimeout(5000);
 	GP.ONLINE_CHECK(5000);
 	GP.THEME(GP_LIGHT);
 	String update = "";

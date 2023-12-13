@@ -36,7 +36,7 @@ void MqttPublishData();
 void onMqttMessage(char* topic, uint8_t* payload, size_t len);
 void MqttReconnect();
 void Mqtt_tick();
-
+bool createFaseMqttData(char fase, char* topic, char* data);
  
 
 
@@ -77,7 +77,9 @@ void MqttReconnect() {
 void MqttPublishData() {
     static uint32_t tmr = 0;
     if (millis() < tmr + 1000) return;
-    
+    String espMAC = WiFi.macAddress();
+    String dataTopicSuffix = "stab_brd/" + espMAC + "/data/fase";
+    //if ()
 
     //======================Старые===================================//
     String inV = String(board[activeBoard].mainData.inputVoltage);
@@ -117,7 +119,21 @@ void Mqtt_tick() {
     MqttPublishData();
 }
 
-void onMqttReceive(char* topic, char* payload) {}
+bool createFaseMqttData(char fase, char* topic, char* data) {
+    int8_t board_number = -1;
+    for (uint8_t i = 0; i < board.size(); i++) {
+        if(board[i].getLiteral() == String(fase)) { //ищем номер платы с такой буквой
+            board_number = i;
+        }
+    }
+    if (board_number == -1) return false;
+    String faseTopic = "stab_brd/";
+    faseTopic += WiFi.macAddress();
+    faseTopic += "/data/fase";
+    faseTopic += String(fase);
+    topic = strdup(faseTopic.c_str());
+    
+}
 
 
 

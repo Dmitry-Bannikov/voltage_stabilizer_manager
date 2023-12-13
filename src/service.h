@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 #include <data.h>
-#include <Wire.h>
 #include <mqtthandle.h>
 
 
@@ -43,14 +42,10 @@ void LED_blink(uint16_t period_on, uint16_t period_off = 0) {
 
 void connectionInit() {
 	pinMode(LED_BUILTIN, OUTPUT);
-	Wire.begin();
-	Wire.setTimeout(500);
-	delay(10);
 	Serial.begin(115200);
-	//HardwareSerial Serial2(115200);
-	//Dwin.begin(&Serial, processData);
-	delay(10);
+	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
+	delay(10);
 	scanNewBoards();
 }
 
@@ -70,18 +65,22 @@ void memoryInit() {
 void boardTick() {
 	static uint32_t tmr = 0;
 	static uint32_t scanTmr = 0;
+	static uint8_t denyDataRequest = 0;
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
 	if (millis() - tmr > 250 && !boardRequest) {
-		for (uint8_t i = 0; i < board.size(); i++) board[i].tick();
+		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].tick();
+		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
-	} else {
+	} else if (boardRequest){
+		denyDataRequest = 10;
 		BoardRequest(boardRequest);
 	}
 
 	if (millis() -  scanTmr < 30000) return;
-	for (uint8_t i = 0; i < board.size(); i++) board[i].getMainSets();
+	for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
 	scanTmr = millis();
+
 }
 
 void scanNewBoards() {

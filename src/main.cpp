@@ -7,29 +7,33 @@ find WebServer.cpp at line 649 and comment log_e
 #include <Arduino.h>
 #include <myportal.h>
 #include <service.h>
-#ifdef RELEASE
-#include <esp_task_wdt.h>
-#endif
 
+
+//#define INTER_TEST
 void setup() {
+	#ifndef INTER_TEST
 	connectionInit();
-	Serial.println(ESP.getFreeHeap());
 	WiFi_Init();
 	MqttInit();
 	memoryInit();
 	portalInit();
-	#ifdef RELEASE
-	//esp_task_wdt_init(20, true);
-	//esp_task_wdt_add(NULL);
+	#else
+	Serial.begin(115200);
+	pinMode(21, INPUT);
+	pinMode(22, INPUT);
 	#endif
 }
 
 void loop() {
+	#ifndef INTER_TEST
 	boardTick();
 	portalTick();
 	WiFi_tick();
 	Mqtt_tick();
-	#ifdef RELEASE
-	//esp_task_wdt_reset();  
+	#else
+	if (!digitalRead(21) || !digitalRead(22)) {
+		Serial.println("\n INTERFERENCE");
+		delay(500);
+	}
 	#endif
 }
