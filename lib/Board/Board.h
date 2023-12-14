@@ -45,10 +45,10 @@
 
 
 struct data {
-	int16_t 	inputVoltage;
-	int16_t 	outputVoltage;
-	float 		outputCurrent;
-	float 		outputPower;
+	int16_t 	Uin;
+	int16_t 	Uout;
+	float 		Current;
+	float 		Power;
 	float 		cosfi;
 	uint32_t 	events;
 	uint8_t 	structSize;
@@ -58,27 +58,27 @@ struct data {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
 		cosfi = 1.0;
-		inputVoltage = 0;
-		outputVoltage = 0;
-		outputCurrent = 0;
-		outputPower = 0;
+		Uin = 0;
+		Uout = 0;
+		Current = 0;
+		Power = 0;
 		events = 0;
 	}
 	void packData() {
-		memcpy(buffer, (uint8_t*)&inputVoltage, structSize);
+		memcpy(buffer, (uint8_t*)&Uin, structSize);
 	}
 	void unpackData() {
-		memcpy((uint8_t*) &inputVoltage, buffer, structSize);
+		memcpy((uint8_t*) &Uin, buffer, structSize);
 	}
 };
 
 struct stats {
 	uint32_t workTimeMins = 0;
 	uint32_t boardEvents = 0;
-	int16_t inVoltage[3] 	= {0,0,300};	//max,avg,min
-	int16_t outVoltage[3] 	= {0,0,300};
-	float 	outCurrent[3] 	= {0,0,0};
-	float	power[3] 	  	= {0,0,0};
+	int16_t Uin[3] 		= {0,0,300};	//max,avg,min
+	int16_t Uout[3] 	= {0,0,300};
+	float 	Current[3] 	= {0,0,0};
+	float	Power[3] 	= {0,0,0};
 
 	uint8_t 	structSize;
 	String  	Str;
@@ -159,7 +159,7 @@ private:
 		EVENTS_SHORT
 	};
 	String PROGMEM gEventsList[10] = {
-	"Нет"
+	"Нет",
 	"Блок мотора", 
 	"Макс. напряжение",
 	"Мин. напряжение",
@@ -204,6 +204,7 @@ public:
 	uint8_t 	sendCommand(uint8_t* command);
 	void 		getDataStr();
 	void 		getStatisStr();
+	String 		getJsonData();
 	String 		getLiteral();
 	String		getMotKoefList();
 	String	 	getTcRatioList();

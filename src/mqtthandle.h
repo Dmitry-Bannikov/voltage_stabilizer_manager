@@ -36,7 +36,7 @@ void MqttPublishData();
 void onMqttMessage(char* topic, uint8_t* payload, size_t len);
 void MqttReconnect();
 void Mqtt_tick();
-bool createFaseMqttData(char fase, char* topic, char* data);
+bool createFaseMqttData(char fase);
  
 
 
@@ -77,26 +77,28 @@ void MqttReconnect() {
 void MqttPublishData() {
     static uint32_t tmr = 0;
     if (millis() < tmr + 1000) return;
-    String espMAC = WiFi.macAddress();
-    String dataTopicSuffix = "stab_brd/" + espMAC + "/data/fase";
-    //if ()
+
+    createFaseMqttData('A');
+    createFaseMqttData('B');
+    createFaseMqttData('C');
 
     //======================Старые===================================//
-    String inV = String(board[activeBoard].mainData.inputVoltage);
+    /*
+    String inV = String(board[activeBoard].mainData.Uin);
     mqttClient.publish("stab/toserver/uin", inV.c_str());
 
-    String outV = String(board[activeBoard].mainData.outputVoltage);
+    String outV = String(board[activeBoard].mainData.Uout);
     mqttClient.publish("stab/toserver/uout", outV.c_str());
 
-    String outC = String(board[activeBoard].mainData.outputCurrent, 1);
+    String outC = String(board[activeBoard].mainData.Current, 1);
     mqttClient.publish("stab/toserver/cout", outC.c_str());
 
-    String outP = String((board[activeBoard].mainData.outputPower/1000), 1);
+    String outP = String((board[activeBoard].mainData.Power/1000), 1);
     mqttClient.publish("stab/toserver/pout", outP.c_str());
 
     String alarm1 = String(board[activeBoard].addSets.Switches[SW_ALARM]);
     mqttClient.publish("stab/toserver/alarm1", alarm1.c_str());
- 
+    */
     tmr = millis();
 }
 
@@ -119,20 +121,22 @@ void Mqtt_tick() {
     MqttPublishData();
 }
 
-bool createFaseMqttData(char fase, char* topic, char* data) {
+bool createFaseMqttData(char fase) {
     int8_t board_number = -1;
     for (uint8_t i = 0; i < board.size(); i++) {
         if(board[i].getLiteral() == String(fase)) { //ищем номер платы с такой буквой
             board_number = i;
+            break;
         }
     }
     if (board_number == -1) return false;
-    String faseTopic = "stab_brd/";
-    faseTopic += WiFi.macAddress();
-    faseTopic += "/data/fase";
-    faseTopic += String(fase);
-    topic = strdup(faseTopic.c_str());
-    
+    String topic = "stab_brd/";
+    topic += WiFi.macAddress();
+    topic += "/data/fase";
+    topic += String(fase);
+    String data = board[board_number].getJsonData();
+    mqttClient.publish(topic.c_str(), data.c_str());
+    return true;
 }
 
 

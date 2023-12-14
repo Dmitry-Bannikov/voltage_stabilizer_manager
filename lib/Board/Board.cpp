@@ -177,20 +177,20 @@ uint8_t Board::sendCommand(uint8_t* command) {
 }
 
 void Board::getDataStr() {
-	float full_pwr = mainData.outputPower/mainData.cosfi/1000.0;
+	float full_pwr = mainData.Power/mainData.cosfi/1000.0;
 	String s = "";
 	s += F(" Данные ");
 
 	s += F("\nU вход   : ");
-	s += String(mainData.inputVoltage);
+	s += String(mainData.Uin);
 	s += F("V");
 
 	s += F("\nU выход  : ");
-	s += String(mainData.outputVoltage);
+	s += String(mainData.Uout);
 	s += F("V");
 
 	s += F("\nI выход  : ");
-	s += String(mainData.outputCurrent, 1);
+	s += String(mainData.Current, 1);
 	s += F("A");
 
 	s += F("\nP полн.  : ");
@@ -198,7 +198,7 @@ void Board::getDataStr() {
 	s += F("kVA");
 
 	//s += F("\nP актив. : ");
-	//s += String(mainData.outputPower/1000.0, 1);
+	//s += String(mainData.Power/1000.0, 1);
 	s += F("\nСобытия  : ");
 	s += errorsToStr(mainData.events, EVENTS_FULL);
 	mainData.Str = s;
@@ -215,38 +215,38 @@ U выход  |
 
 */
 
-	float maxPwr = mainStats.power[0]/1000.0;
-	float avgPwr = mainStats.power[1]/1000.0;
+	float maxPwr = mainStats.Power[0]/1000.0;
+	float avgPwr = mainStats.Power[1]/1000.0;
 	String s = "";
 	s += F(" Cтатистика ");
 	s += F("\nt работы:");
 	s += getWorkTime(mainStats.workTimeMins);
-
+	
 	s += F("\nU вх.макс : ");
-	s += String(mainStats.inVoltage[0]);
+	s += String(mainStats.Uin[0]);
 
 	s += F("\nU вх.сред : ");
-	s += String(mainStats.inVoltage[1]);
+	s += String(mainStats.Uin[1]);
 
 	s += F("\nU вх.мин  : ");
-	s += String(mainStats.inVoltage[2]);
+	s += String(mainStats.Uin[2]);
 
 	s += F("\nU вых.макс: ");
-	s += String(mainStats.outVoltage[0]);
+	s += String(mainStats.Uout[0]);
 
 	s += F("\nU вых.сред: ");
-	s += String(mainStats.outVoltage[1]);
+	s += String(mainStats.Uout[1]);
 
 	s += F("\nU вых.мин : ");
-	s += String(mainStats.outVoltage[2]);
+	s += String(mainStats.Uout[2]);
 	
 
 	s += F("\nI макс, А : ");
-	s += String(mainStats.outCurrent[0], 1);
+	s += String(mainStats.Current[0], 1);
 	
 
 	s += F("\nI сред, А : ");
-	s += String(mainStats.outCurrent[1], 1);
+	s += String(mainStats.Current[1], 1);
 	
 
 	s += F("\nP макс,kVA: ");
@@ -260,6 +260,31 @@ U выход  |
 	
 	mainStats.Str = s;
 }
+
+
+
+
+
+String Board::getJsonData() {
+	char json[200];
+	float maxPwr = mainStats.Power[0]/1000.0;
+	float avgPwr = mainStats.Power[1]/1000.0;
+
+	sprintf(json, "{"
+					"\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
+					"\"Uin_avg\":\"%d\",\"Uout_avg\":\"%d\",\"I_avg\":\"%.1f\",\"P_avg\":\"%.1f\","
+					"\"Uin_max\":\"%d\",\"Uout_max\":\"%d\",\"I_max\":\"%.1f\",\"P_max\":\"%.1f\","
+					"\"work_h\":\"%d\""
+					"}", mainData.Uin, mainData.Uout, mainData.Current, mainData.Power,
+						mainStats.Uin[1],mainStats.Uout[1],mainStats.Current[1],avgPwr,
+						mainStats.Uin[0],mainStats.Uout[0],mainStats.Current[0],maxPwr,
+						mainStats.workTimeMins/60
+					);
+	String data = String(json);
+	return data;
+}
+
+
 
 void Board::tick() {
 	getData();
