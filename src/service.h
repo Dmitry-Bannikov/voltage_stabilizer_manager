@@ -63,6 +63,7 @@ void memoryInit() {
 }
 
 void boardTick() {
+	uint32_t Start = millis();
 	static uint32_t tmr = 0;
 	static uint32_t scanTmr = 0;
 	static uint8_t denyDataRequest = 0;
@@ -77,9 +78,16 @@ void boardTick() {
 		BoardRequest(boardRequest);
 	}
 
-	if (millis() -  scanTmr < 30000) return;
-	for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
-	scanTmr = millis();
+	if (millis() -  scanTmr > 5000) {
+		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
+		scanTmr = millis();
+	}
+	uint32_t End = millis();
+	if (End - Start > 100) {
+		Serial.printf("\nBoardTick time: %d", End - Start);
+	}
+	
+	
 
 }
 
@@ -137,14 +145,9 @@ void WiFi_tick() {
 void BoardRequest(uint8_t &request) {
 	if (!request) return;
 	if (!board[activeBoard].isAnswer()) return;
-	Board::waitForReady();
 
 	if (request < 10) {
-		if (request == 1) {
-			ESP.restart();
-		} else if (request == 2) {
-			scanNewBoards();
-		} else if (request == 3) {
+		if (request == 3) {
 			for (uint8_t i = 0; i < board.size(); i++) {
 				delay(1);
 				board[i].sendMainSets();
@@ -179,7 +182,6 @@ void BoardRequest(uint8_t &request) {
 		}
 	}
 	
-	Board::waitForReady();
 	if (requestResult) webRefresh = true;
 	request = 0;
 }

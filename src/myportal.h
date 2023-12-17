@@ -14,13 +14,12 @@ void formsHandler();
 void clicksHandler();
 void updatesHandler();
 
-GyverPortal ui(&LittleFS);
+GyverPortal ui;
 
 
 void portalBuild() {
   //------------------------------------------//
 	GP.BUILD_BEGIN(900);
-	GP.setTimeout(5000);
 	GP.ONLINE_CHECK(5000);
 	GP.THEME(GP_LIGHT);
 	String update = "";
@@ -28,7 +27,7 @@ void portalBuild() {
 	GP.UPDATE(update);
 	GP.ALERT("setsalt");
 	GP.RELOAD("reload");
-	GP.GRID_RESPONSIVE(770); // Отключение респонза при узком экране
+	GP.GRID_RESPONSIVE(850); // Отключение респонза при узком экране
 	GP.PAGE_TITLE("stab_manager");
 	if (!wifi_settings.staModeEn) {
 		GP.TITLE("Менеджер плат(AP)");
@@ -93,7 +92,6 @@ void portalInit() {
 	} else {
 		ui.start();
 	}
-	LittleFS.begin();
 	ui.enableOTA("admin", "012343210");
 }
 
@@ -149,8 +147,8 @@ void clicksHandler() {
 		}
 	}
 
-	if (ui.clickUp("rst_btn")) 		boardRequest = 1;			//esp restart
-	if (ui.clickUp("scan_btn")) 	boardRequest = 2;			//scan boards
+	if (ui.clickUp("rst_btn")) 		ESP.restart();			//esp restart
+	if (ui.clickUp("scan_btn")) 	scanNewBoards();			//scan boards
 	if (ui.clickUp("saveall_btn")) 	boardRequest = 3;			//save to all boards
 	if (ui.clickUp("read_btn") ) 	boardRequest = 10 + activeBoard;	//read settings from active board
 	if (ui.clickUp("save_btn"))  	boardRequest = 20 + activeBoard; 	//save settings to active board
@@ -161,7 +159,7 @@ void clicksHandler() {
 	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
 		boardRequest = 4;
 	}
-	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_ALARM])) {
+	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_OUTSIGN])) {
 		boardRequest = 5;
 	}
 	ui.clickInt("b_sel", activeBoard);
@@ -184,7 +182,7 @@ void updatesHandler() {
 	if (!ui.update()) return;
 
 	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches[SW_REGDIS]));
-	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_ALARM]));
+	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_OUTSIGN]));
 	ui.updateBool("mqttConnected_led", mqttConnected);
 	if (ui.update("setsalt")) {
 		if (requestResult == 1)

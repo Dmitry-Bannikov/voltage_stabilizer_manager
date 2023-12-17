@@ -35,7 +35,7 @@ bool mqttConnected = false;
 bool webRefresh = true;  
 uint8_t boardRequest = 0; //запрос на плату
 uint8_t requestResult = 0;
-
+bool isSerial = true;
 #define unitBytes(byteH, byteL)				(byteH << 8 | byteL )
 #define getByteLow(value)						( value & 0xFF )
 #define getByteHigh(value)						( (value >> 8) & 0xFF )

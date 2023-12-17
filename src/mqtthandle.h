@@ -81,37 +81,11 @@ void MqttPublishData() {
     createFaseMqttData('A');
     createFaseMqttData('B');
     createFaseMqttData('C');
-
-    //======================Старые===================================//
-    /*
-    String inV = String(board[activeBoard].mainData.Uin);
-    mqttClient.publish("stab/toserver/uin", inV.c_str());
-
-    String outV = String(board[activeBoard].mainData.Uout);
-    mqttClient.publish("stab/toserver/uout", outV.c_str());
-
-    String outC = String(board[activeBoard].mainData.Current, 1);
-    mqttClient.publish("stab/toserver/cout", outC.c_str());
-
-    String outP = String((board[activeBoard].mainData.Power/1000), 1);
-    mqttClient.publish("stab/toserver/pout", outP.c_str());
-
-    String alarm1 = String(board[activeBoard].addSets.Switches[SW_ALARM]);
-    mqttClient.publish("stab/toserver/alarm1", alarm1.c_str());
-    */
     tmr = millis();
 }
 
 void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
-    String topicStr = String(topic);
-    if (topicStr == "stab/tostab/alarm1") {
-        //Serial.println("\n Алярм");
-        if (String((char*)payload) == "1") {
-            board[activeBoard].sendCommand(SW_ALARM, 1);
-        } else {
-            board[activeBoard].sendCommand(SW_ALARM, 0);
-        } 
-    }
+
 
 }
 
@@ -130,11 +104,9 @@ bool createFaseMqttData(char fase) {
         }
     }
     if (board_number == -1) return false;
-    String topic = "stab_brd/";
-    topic += WiFi.macAddress();
-    topic += "/data/fase";
-    topic += String(fase);
-    String data = board[board_number].getJsonData();
+    String topic = "stab_brd/data/";
+    topic += "mac";//WiFi.macAddress();
+    String data = board[board_number].createJsonData(0);
     mqttClient.publish(topic.c_str(), data.c_str());
     return true;
 }

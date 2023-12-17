@@ -36,12 +36,12 @@
 #define RX_BUF_SIZE							100
 #define TX_BUF_SIZE							100
 
-#define SW_ALARM	0
+#define SW_OUTSIGN	0
 #define SW_REBOOT	1
 #define SW_REGDIS	2
 #define SW_SAVE		3
 #define SW_RSTST	4
-
+#define SW_TRANSIT	5
 
 
 struct data {
@@ -158,17 +158,18 @@ private:
 		EVENTS_FULL,
 		EVENTS_SHORT
 	};
-	String PROGMEM gEventsList[10] = {
+	String PROGMEM gEventsList[32] = {
 	"Нет",
 	"Блок мотора", 
-	"Макс. напряжение",
-	"Мин. напряжение",
-	"Транзит",
+	"Тревога-1",
+	"Тревога-2",
+	"80 В",
+	"Недо-напряжение",
 	"Перенапряжение",
-	"Перегрузка",
-	"Перегрев",
-	"",
-	""
+	"Мин. напряжение",
+	"Мак. напряжение",
+	"Транзит",
+	"Внеш. сигнал"
 	};
 	uint8_t _txbuffer[100];
 	uint8_t _rxbuffer[100];
@@ -179,7 +180,7 @@ private:
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 	bool _active = false;
 	uint8_t _disconnected = 0;
-	
+	void 	validate();
 	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
 	
@@ -189,9 +190,8 @@ public:
 	static int8_t StartI2C();		
 	static int8_t StopI2C();
 	bool 		attach(const uint8_t addr);								//подключить плату (указать адрес)
-	static bool isBoard(const uint8_t addr);
+	static uint8_t isBoard(const uint8_t addr);
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);
-	static void waitForReady();
 	bool 		isOnline();												//проверить, онлайн ли плата
 	bool 		isAnswer();
 	uint8_t 	getAddress() {return _board_addr;};						//получить адрес платы		
@@ -204,10 +204,11 @@ public:
 	uint8_t 	sendCommand(uint8_t* command);
 	void 		getDataStr();
 	void 		getStatisStr();
-	String 		getJsonData();
+	String 		createJsonData(uint8_t mode);
 	String 		getLiteral();
-	String		getMotKoefList();
-	String	 	getTcRatioList();
+	void		getMotKoefList(String &result);
+	void 		getMotTypesList(String &result);
+	void	 	getTcRatioList(String &result);
 	void 		setLiteral(String lit);
 	void 		setLiteral(char lit);
 	void 		tick();

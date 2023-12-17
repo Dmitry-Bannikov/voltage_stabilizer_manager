@@ -50,28 +50,20 @@ bool Board::attach(const uint8_t addr) {
 	return isOnline();
 }
 
-bool Board::isBoard(uint8_t addr) {
+uint8_t Board::isBoard(uint8_t addr) {
 	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
     i2c_master_stop(cmd);
     esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(20));
     i2c_cmd_link_delete(cmd);
-	if (error) return false;
+	if (error) return 0;
 	uint8_t txbuf[sizeof(_txbuffer)] = {0x20, 0};
 	uint8_t rxbuf[sizeof(_rxbuffer)] = {0};
 	esp_err_t ret = i2c_master_write_read_device(0, addr, txbuf, sizeof(txbuf), rxbuf, sizeof(rxbuf), pdMS_TO_TICKS(20));
-	if (ret != ESP_OK) return false;
-	if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return true;
-	return false;
-}
-
-void Board::waitForReady() {
-	//delay(5);
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_stop(cmd);
-    esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(25));
-    i2c_cmd_link_delete(cmd);
+	if (ret != ESP_OK) return 0;
+	if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return 1;//rxbuf[2];
+	return 0;
 }
 
 bool Board::isOnline() {
@@ -109,7 +101,6 @@ uint8_t Board::getDataRaw() {
 
 uint8_t Board::getMainSets() {
 	if (!startFlag) return 1;
-	Board::waitForReady();
 	memset(_txbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_REQUEST_MAINSETS;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
@@ -141,7 +132,8 @@ uint8_t Board::getData() {
 
 uint8_t Board::sendMainSets(uint8_t attempts) {
 	if (!startFlag) return 1;
-	Board::waitForReady();
+
+	validate();
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
@@ -155,7 +147,6 @@ uint8_t Board::sendMainSets(uint8_t attempts) {
 
 uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
 	if (!startFlag) return 1;
-	Board::waitForReady();
 	addSets.Switches[command] = value;
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
@@ -167,7 +158,6 @@ uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
 
 uint8_t Board::sendCommand(uint8_t* command) {
 	if (!startFlag) return 1;
-	Board::waitForReady();
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
 	memcpy(_txbuffer+1, command, 8);
@@ -265,21 +255,39 @@ U выход  |
 
 
 
-String Board::getJsonData() {
-	char json[200];
-	float maxPwr = mainStats.Power[0]/1000.0;
-	float avgPwr = mainStats.Power[1]/1000.0;
-
-	sprintf(json, "{"
-					"\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
+String Board::createJsonData(uint8_t mode) {
+	
+	char json[300];
+	char fase = mainSets.liter;
+	if (mode == 0) {
+		float Pwr = mainData.Power/1000.0;
+		float maxPwr = mainStats.Power[0]/1000.0;
+		float avgPwr = mainStats.Power[1]/1000.0;
+		sprintf(json, "{"
+					"\"MODE\":\"DATA\","
+					"\"FASE\":\"%c\",\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
 					"\"Uin_avg\":\"%d\",\"Uout_avg\":\"%d\",\"I_avg\":\"%.1f\",\"P_avg\":\"%.1f\","
 					"\"Uin_max\":\"%d\",\"Uout_max\":\"%d\",\"I_max\":\"%.1f\",\"P_max\":\"%.1f\","
 					"\"work_h\":\"%d\""
-					"}", mainData.Uin, mainData.Uout, mainData.Current, mainData.Power,
+					"}", fase, mainData.Uin, mainData.Uout, mainData.Current, Pwr,
 						mainStats.Uin[1],mainStats.Uout[1],mainStats.Current[1],avgPwr,
 						mainStats.Uin[0],mainStats.Uout[0],mainStats.Current[0],maxPwr,
 						mainStats.workTimeMins/60
 					);
+	} else if (mode == 1) {
+		int trRatio = addSets.tcRatioList[mainSets.transRatioIndx];
+		sprintf(json, "{"
+					"\"MODE\":\"SETS\","
+					"\"FASE\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Uout_target\":\"%d\","
+					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"t_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
+					"\"M_type\":\"%d\",\"Time_on\":\"%.1f\",\"Time_off\":\"%.1f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
+					"\"Transit\":\"%d\",\"Password\":\"%d\",\"Outsignal\":\"%d\""
+					"}", fase, addSets.maxVolt, addSets.minVolt, mainSets.precision, mainSets.targetVoltage, mainSets.tuneInVolt,
+					mainSets.tuneOutVolt, trRatio, addSets.SerialNumber[0], addSets.SerialNumber[1], mainSets.motorType,
+					addSets.emergencyTON/1000.0, addSets.emergencyTOFF/1000.0, 0, 0, addSets.Switches[SW_TRANSIT], 0, addSets.Switches[SW_OUTSIGN]
+					);
+	}
+	
 	String data = String(json);
 	return data;
 }
@@ -308,26 +316,61 @@ void Board::setLiteral(char lit) {
 	mainSets.liter = lit;
 }
 
-String Board::getMotKoefList() {
-	String result = "";
-	for (uint8_t i = 0; i < sizeof(addSets.motKoefsList); i++) {
+void Board::getMotKoefList(String &result) {
+	result = "";
+	for (uint8_t i = 0; i < sizeof(addSets.motKoefsList)/sizeof(addSets.motKoefsList[0]); i++) {
 		result += String(addSets.motKoefsList[i]);
 		result += String(",");
 	}
-	return result;
+	if (result.length()) {
+		result.remove(result.length() - 1);
+	}
 }
 
-String Board::getTcRatioList() {
-	String result = "";
-	for (uint8_t i = 0; i < sizeof(addSets.tcRatioList); i++) {
+void Board::getMotTypesList(String &result) {
+	result = "";
+	for (uint8_t i = 0; i < sizeof(addSets.motKoefsList)/sizeof(addSets.motKoefsList[0]); i++) {
+		result += String(i+1) + "(";
+		result += String(addSets.motKoefsList[i]);
+		result += "),";
+	}
+	if (result.length()) {
+		result.remove(result.length() - 1);
+	}
+}
+
+void Board::getTcRatioList(String &result) {
+	result = "";
+	for (uint8_t i = 0; i < sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList[0]); i++) {
 		result += String(addSets.tcRatioList[i]);
 		result += String(",");
 	}
-	
-	return result;
+	if (result.length()) {
+		result.remove(result.length() - 1);
+	}
 }
 
 //========Private=======//
+
+
+void Board::validate() {
+	mainSets.ignoreSetsFlag = constrain(mainSets.ignoreSetsFlag, 0, 1);
+	mainSets.motorType = constrain(mainSets.motorType, 0, 3);
+	mainSets.precision = constrain(mainSets.precision, 1, 10);
+	mainSets.targetVoltage = constrain(mainSets.targetVoltage, 210, 240);
+	mainSets.transRatioIndx = constrain(mainSets.transRatioIndx, 0, sizeof(addSets.tcRatioList));
+	mainSets.maxCurrent = constrain(mainSets.maxCurrent, 1, 30);
+	mainSets.tuneInVolt = constrain(mainSets.tuneInVolt, -6, 6);
+	mainSets.tuneOutVolt = constrain(mainSets.tuneOutVolt, -6, 6);
+	
+	addSets.emergencyTOFF = constrain(addSets.emergencyTOFF, 500, 5000);
+	addSets.emergencyTON = constrain(addSets.emergencyTON, 500, 5000);
+	addSets.minVolt = constrain(addSets.minVolt, 160, mainSets.targetVoltage);
+	addSets.maxVolt = constrain(addSets.maxVolt, mainSets.targetVoltage, 260);
+	addSets.overloadTransit = constrain(addSets.overloadTransit, 0, 1);
+	addSets.SerialNumber[0] = constrain(addSets.SerialNumber[0], 0, 999999999);
+	addSets.SerialNumber[1] = constrain(addSets.SerialNumber[1], 0, 999999);
+}
 
 String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 	String s = "";
@@ -395,7 +438,8 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 	}
 	if (brd.size() == max) return brd.size();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
-		if (Board::isBoard(addr)) {				//если на этом адресе есть плата, и кол-во плат < макс
+		//uint8_t ret = Board::isBoard(addr);
+		if (Board::isBoard(addr)) {				//если на этом адресе есть плата
 			bool reserved = false;	
 			for (uint8_t i = 0; i < brd.size(); i++) {				//проходимся по уже существующим платам
 				if (brd[i].getAddress() == addr) {						//если эта плата уже имеет этот адрес
@@ -404,6 +448,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			}
 			if (!reserved) {
 				brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
+				//brd[brd.size() - 1].setLiteral((char)ret);
 				//return 1;//test
 			}
 		}
