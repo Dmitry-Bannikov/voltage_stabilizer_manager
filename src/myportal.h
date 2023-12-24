@@ -159,7 +159,7 @@ void clicksHandler() {
 	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
 		boardRequest = 4;
 	}
-	if (ui.clickBool("aset_alarm", board[activeBoard].addSets.Switches[SW_OUTSIGN])) {
+	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) {
 		boardRequest = 5;
 	}
 	ui.clickInt("b_sel", activeBoard);
@@ -181,8 +181,7 @@ void clicksHandler() {
 void updatesHandler() {
 	if (!ui.update()) return;
 
-	ui.updateBool("aset_disreg", (bool)(board[activeBoard].addSets.Switches[SW_REGDIS]));
-	ui.updateBool("aset_alarm", (bool)(board[activeBoard].addSets.Switches[SW_OUTSIGN]));
+	ui.updateBool("outsignal", (bool)(board[activeBoard].addSets.Switches[SW_OUTSIGN]));
 	ui.updateBool("mqttConnected_led", mqttConnected);
 	if (ui.update("setsalt")) {
 		if (requestResult == 1)

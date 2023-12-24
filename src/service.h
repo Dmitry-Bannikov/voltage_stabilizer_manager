@@ -42,7 +42,12 @@ void LED_blink(uint16_t period_on, uint16_t period_off = 0) {
 
 void connectionInit() {
 	pinMode(LED_BUILTIN, OUTPUT);
+	pinMode(21, INPUT);
+	pinMode(22, INPUT);
 	Serial.begin(115200);
+	Serial.print("\nI2C pins state: ");
+	Serial.print(digitalRead(21));
+	Serial.println(digitalRead(22));
 	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
 	delay(10);
@@ -55,17 +60,15 @@ void memoryInit() {
 	memoryWIFI.begin(0, 127);
 	LED_blink(0);
 	for (uint8_t i = 0; i < board.size(); i++) {	
-		board[i].getMainSets(); 
-		delay(250);
+		//board[i].getMainSets(); 
+		//delay(250);
 		board[i].getDataRaw(); 
 		delay(250);
 	}
 }
 
 void boardTick() {
-	uint32_t Start = millis();
 	static uint32_t tmr = 0;
-	static uint32_t scanTmr = 0;
 	static uint8_t denyDataRequest = 0;
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
@@ -78,17 +81,9 @@ void boardTick() {
 		BoardRequest(boardRequest);
 	}
 
-	if (millis() -  scanTmr > 5000) {
+	if (millis() % 30000 == 0) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
-		scanTmr = millis();
 	}
-	uint32_t End = millis();
-	if (End - Start > 100) {
-		Serial.printf("\nBoardTick time: %d", End - Start);
-	}
-	
-	
-
 }
 
 void scanNewBoards() {

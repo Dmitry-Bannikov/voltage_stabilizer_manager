@@ -39,9 +39,8 @@
 #define SW_OUTSIGN	0
 #define SW_REBOOT	1
 #define SW_REGDIS	2
-#define SW_SAVE		3
-#define SW_RSTST	4
-#define SW_TRANSIT	5
+#define SW_RSTST	3
+#define SW_TRANSIT	4
 
 
 struct data {
@@ -130,7 +129,7 @@ struct addsets {
 	int16_t tcRatioList[6] = {25,40,50,60,80,100};		//список коэффициентов трансов
 	int32_t SerialNumber[2] = {0, 0};
 	uint8_t structSize;
-	uint8_t Switches[8] = {0,0,0,0};
+	uint8_t Switches[8] = {0,0,0,0,0,0,0,0};
 	uint8_t *buffer = nullptr;
 	addsets() {
 		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
@@ -163,12 +162,13 @@ private:
 	"Блок мотора", 
 	"Тревога-1",
 	"Тревога-2",
-	"80 В",
+	"<80 В",
 	"Недо-напряжение",
 	"Перенапряжение",
 	"Мин. напряжение",
 	"Мак. напряжение",
 	"Транзит",
+	"Перегрузка",
 	"Внеш. сигнал"
 	};
 	uint8_t _txbuffer[100];

@@ -104,9 +104,12 @@ bool createFaseMqttData(char fase) {
         }
     }
     if (board_number == -1) return false;
-    String topic = "stab_brd/data/";
-    topic += "mac";//WiFi.macAddress();
+    String topic = "stab_brd/data/fase_";
+    topic += String(fase) + "/";
+    topic += WiFi.macAddress();
     String data = board[board_number].createJsonData(0);
+    Serial.println();
+    Serial.println(data);
     mqttClient.publish(topic.c_str(), data.c_str());
     return true;
 }

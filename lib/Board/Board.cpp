@@ -60,9 +60,11 @@ uint8_t Board::isBoard(uint8_t addr) {
 	if (error) return 0;
 	uint8_t txbuf[sizeof(_txbuffer)] = {0x20, 0};
 	uint8_t rxbuf[sizeof(_rxbuffer)] = {0};
+	rxbuf[2] = 78;
 	esp_err_t ret = i2c_master_write_read_device(0, addr, txbuf, sizeof(txbuf), rxbuf, sizeof(rxbuf), pdMS_TO_TICKS(20));
 	if (ret != ESP_OK) return 0;
-	if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return 1;//rxbuf[2];
+	Serial.println("Found!!!");
+	if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return rxbuf[2];
 	return 0;
 }
 
@@ -264,8 +266,8 @@ String Board::createJsonData(uint8_t mode) {
 		float maxPwr = mainStats.Power[0]/1000.0;
 		float avgPwr = mainStats.Power[1]/1000.0;
 		sprintf(json, "{"
-					"\"MODE\":\"DATA\","
-					"\"FASE\":\"%c\",\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
+					"\"Mode\":\"Data\","
+					"\"Fase\":\"%c\",\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
 					"\"Uin_avg\":\"%d\",\"Uout_avg\":\"%d\",\"I_avg\":\"%.1f\",\"P_avg\":\"%.1f\","
 					"\"Uin_max\":\"%d\",\"Uout_max\":\"%d\",\"I_max\":\"%.1f\",\"P_max\":\"%.1f\","
 					"\"work_h\":\"%d\""
@@ -398,7 +400,7 @@ String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 		static uint8_t i = 0;
 		while (i <= 32) {
 			if (errors & (1<<i)) {
-				s = gEventsList[i-1];
+				s = gEventsList[i];
 				i++;
 				return s;
 			}
@@ -438,8 +440,9 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 	}
 	if (brd.size() == max) return brd.size();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
-		//uint8_t ret = Board::isBoard(addr);
-		if (Board::isBoard(addr)) {				//если на этом адресе есть плата
+		uint8_t ret = Board::isBoard(addr);
+		if (ret) {				//если на этом адресе есть плата
+			Serial.println((char)ret);
 			bool reserved = false;	
 			for (uint8_t i = 0; i < brd.size(); i++) {				//проходимся по уже существующим платам
 				if (brd[i].getAddress() == addr) {						//если эта плата уже имеет этот адрес
@@ -448,7 +451,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			}
 			if (!reserved) {
 				brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
-				//brd[brd.size() - 1].setLiteral((char)ret);
+				brd[brd.size() - 1].setLiteral((char)ret);
 				//return 1;//test
 			}
 		}
