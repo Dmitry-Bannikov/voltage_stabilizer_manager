@@ -111,7 +111,7 @@ void createUpdateList(String &list) {
 		list += ",";
 	}
 	list += "setsalt,reload,";
-	list += "aset_disreg,aset_alarm,mqttConnected_led";
+	list += "outsignal,mqttConnected_led";
 }
 
 void formsHandler() {
@@ -156,13 +156,9 @@ void clicksHandler() {
 	if (ui.clickUp("r_stat/0"))		boardRequest = 40;			//reset statistic
 	if (ui.clickUp("r_stat/1")) 	boardRequest = 41;
 	if (ui.clickUp("r_stat/2")) 	boardRequest = 42;
-	if (ui.clickBool("aset_disreg", board[activeBoard].addSets.Switches[SW_REGDIS])) {	//кнопка переключить регуляцию
-		boardRequest = 4;
-	}
-	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) {
-		boardRequest = 5;
-	}
-	ui.clickInt("b_sel", activeBoard);
+	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
+	
+	if (ui.clickInt("b_sel", activeBoard)) board[activeBoard].getMainSets();
 	ui.clickBool("aset_transit", board[activeBoard].addSets.overloadTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.targetVoltage);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.precision);

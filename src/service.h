@@ -72,12 +72,19 @@ void boardTick() {
 	static uint8_t denyDataRequest = 0;
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
-	if (millis() - tmr > 250 && !boardRequest) {
-		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].tick();
+	if (millis() - tmr > 400 && !boardRequest) {
+		uint32_t tmrDisconn = millis();
+		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
+			board[i].tick();
+			if (millis() - tmrDisconn > 500) {
+				scanNewBoards;
+				return;
+			}
+		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
 	} else if (boardRequest){
-		denyDataRequest = 10;
+		denyDataRequest = 3;
 		BoardRequest(boardRequest);
 	}
 
@@ -87,6 +94,8 @@ void boardTick() {
 }
 
 void scanNewBoards() {
+
+	Serial.println("Start scanning...");
 	static uint8_t old_amount = 0; 
 	static uint8_t counter = 0;
 	counter++;
@@ -95,6 +104,7 @@ void scanNewBoards() {
 		webRefresh = true;
 		old_amount = board.size();
 	} 
+	Serial.printf("Complete. Found: %d \n", board.size());
 }
 
 void WiFi_Init() {
@@ -145,13 +155,14 @@ void BoardRequest(uint8_t &request) {
 		if (request == 3) {
 			for (uint8_t i = 0; i < board.size(); i++) {
 				delay(1);
-				board[i].sendMainSets();
+				if (board[i].sendMainSets()) return;
 			}
 			requestResult = 1;
 		} else if (request == 4) {
-			board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
-		} else if (request == 5) {
-			board[activeBoard].sendCommand(board[activeBoard].addSets.Switches);
+			uint8_t result = board[activeBoard].addSets.Switches[SW_OUTSIGN];
+			if(board[activeBoard].sendCommand()) {
+				board[activeBoard].addSets.Switches[SW_OUTSIGN] = !result;
+			}
 		}
 		
 	} else {

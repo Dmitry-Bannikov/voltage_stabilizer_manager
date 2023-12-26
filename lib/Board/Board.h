@@ -202,6 +202,7 @@ public:
 	uint8_t 	sendMainSets(uint8_t attempts = 0);						//отправить настройки
 	uint8_t 	sendCommand(uint8_t command, uint8_t value);
 	uint8_t 	sendCommand(uint8_t* command);
+	uint8_t 	sendCommand();
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		createJsonData(uint8_t mode);

@@ -18,7 +18,7 @@ int8_t Board::StartI2C() {
 	config.clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL;
 	if (i2c_param_config(I2C_NUM_0, &config) != ESP_OK) return 1;
     if (i2c_driver_install(I2C_NUM_0, config.mode, 0, 0, 0) != ESP_OK) return 2;
-	i2c_set_timeout(I2C_NUM_0, 1200000);
+	i2c_set_timeout(I2C_NUM_0, 10000);
 	*/
 	
 	Wire.begin();
@@ -163,6 +163,16 @@ uint8_t Board::sendCommand(uint8_t* command) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_SWITCHES_START;
 	memcpy(_txbuffer+1, command, 8);
+	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
+	if (ret != ESP_OK) return 2;
+	return 0;
+}
+
+uint8_t Board::sendCommand() {
+	if (!startFlag) return 1;
+	memset(_rxbuffer, 0, sizeof(_txbuffer));
+	*_txbuffer = I2C_SWITCHES_START;
+	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
 	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
 	if (ret != ESP_OK) return 2;
 	return 0;
@@ -439,6 +449,9 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 		}
 	}
 	if (brd.size() == max) return brd.size();
+	Wire.end();
+	Wire.begin();
+	uint32_t tmrStart = millis();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
 		uint8_t ret = Board::isBoard(addr);
 		if (ret) {				//если на этом адресе есть плата
@@ -455,7 +468,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 				//return 1;//test
 			}
 		}
-
+		if (millis() - tmrStart > 5000) return 0; //если сканирование заняло более 5 секунд - отменяем.
 	}
 	return brd.size();
 }
