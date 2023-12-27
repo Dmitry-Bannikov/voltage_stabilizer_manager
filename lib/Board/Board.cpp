@@ -2,12 +2,12 @@
 #include <driver/i2c.h>
 #include <driver/gpio.h>
 #include <esp_err.h>
-#include <Wire.h>
+
 
 //==================Public=================//
 
 int8_t Board::StartI2C() {
-	/*
+	
 	i2c_config_t config = { };
     config.mode = I2C_MODE_MASTER;
     config.sda_io_num = 21;
@@ -17,13 +17,14 @@ int8_t Board::StartI2C() {
     config.master.clk_speed = 100000; 
 	config.clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL;
 	if (i2c_param_config(I2C_NUM_0, &config) != ESP_OK) return 1;
-    if (i2c_driver_install(I2C_NUM_0, config.mode, 0, 0, 0) != ESP_OK) return 2;
-	i2c_set_timeout(I2C_NUM_0, 10000);
-	*/
+    if (i2c_driver_install(I2C_NUM_0, config.mode, 100, 0, 0) != ESP_OK) return 2;
+	i2c_set_timeout(I2C_NUM_0, 0xFFFF);
 	
+	/*
 	Wire.begin();
 	Wire.setTimeOut(100);
-	
+	i2c_set_timeout(I2C_NUM_0, 8000000);
+	*/
 	return 0;
 }
 
@@ -320,6 +321,10 @@ String Board::getLiteral() {
 	return String(mainSets.liter);
 }
 
+char Board::getLiteralCh() {
+	return mainSets.liter;
+}
+
 void Board::setLiteral(String lit) {
 	mainSets.liter = lit.charAt(0);
 }
@@ -370,7 +375,7 @@ void Board::validate() {
 	mainSets.motorType = constrain(mainSets.motorType, 0, 3);
 	mainSets.precision = constrain(mainSets.precision, 1, 10);
 	mainSets.targetVoltage = constrain(mainSets.targetVoltage, 210, 240);
-	mainSets.transRatioIndx = constrain(mainSets.transRatioIndx, 0, sizeof(addSets.tcRatioList));
+	mainSets.transRatioIndx = constrain(mainSets.transRatioIndx, 0, sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList) - 1);
 	mainSets.maxCurrent = constrain(mainSets.maxCurrent, 1, 30);
 	mainSets.tuneInVolt = constrain(mainSets.tuneInVolt, -6, 6);
 	mainSets.tuneOutVolt = constrain(mainSets.tuneOutVolt, -6, 6);
@@ -449,8 +454,8 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 		}
 	}
 	if (brd.size() == max) return brd.size();
-	Wire.end();
-	Wire.begin();
+	StopI2C();
+	StartI2C();
 	uint32_t tmrStart = millis();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
 		uint8_t ret = Board::isBoard(addr);
@@ -470,6 +475,17 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 		}
 		if (millis() - tmrStart > 5000) return 0; //если сканирование заняло более 5 секунд - отменяем.
 	}
+
+	auto compareByLiteral = [](Board& board1, Board& board2) {
+        return board1.getLiteralCh() < board2.getLiteralCh();
+    };
+
+    // Сортируем вектор
+    std::sort(brd.begin(), brd.end(), compareByLiteral);
+
+
+
+
 	return brd.size();
 }
 

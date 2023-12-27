@@ -105,6 +105,7 @@ struct mainsets {
 	uint8_t transRatioIndx = 3;			//коэффициент трансворматора тока (0...6) смотри addSets
 	uint8_t	maxCurrent = 30;
 	char liter = 'N';
+	//uint8_t i2c_addr;
 	uint8_t structSize;
 	uint8_t *buffer = nullptr;
 	mainsets() {
@@ -206,12 +207,13 @@ public:
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		createJsonData(uint8_t mode);
-	String 		getLiteral();
 	void		getMotKoefList(String &result);
 	void 		getMotTypesList(String &result);
 	void	 	getTcRatioList(String &result);
 	void 		setLiteral(String lit);
 	void 		setLiteral(char lit);
+	String 		getLiteral();
+	char 		getLiteralCh();
 	void 		tick();
 	void 		detach();
 	~Board();
