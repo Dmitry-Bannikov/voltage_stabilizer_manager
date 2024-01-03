@@ -4,7 +4,6 @@
 #include <WiFi.h>
 #include <data.h>
 //#include <AsyncMqttClient.h>
-#include <ArduinoJson.h>
 #include <PubSubClient.h>
 
 

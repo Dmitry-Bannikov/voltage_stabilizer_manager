@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <data.h>
 #include <mqtthandle.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 
 
 void connectionInit();

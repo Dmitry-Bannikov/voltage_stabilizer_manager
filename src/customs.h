@@ -128,9 +128,10 @@ void GP_mainsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Подстройка входа");  GP.NUMBER("mset_tunIn", "", brd.mainSets.tuneInVolt, "100px"););
 	M_BOX(GP_EDGES, GP.LABEL("Подстройка выхода");  GP.NUMBER("mset_tunOut", "", brd.mainSets.tuneOutVolt, "100px"););
 	M_BOX(GP_EDGES, GP.LABEL("Целевое напряжение");  GP.NUMBER("mset_targetV", "", brd.mainSets.targetVoltage, "100px"););
+	M_BOX(GP_EDGES, GP.LABEL("Ток выхода макс"); GP.NUMBER("mset_maxcurr", "", brd.mainSets.maxCurrent, "100px"); );
 	M_BOX(GP_EDGES, GP.LABEL("Коэффициент трансформатора");  GP.SELECT("mset_tcratio_idx", tcRatio_list, brd.mainSets.transRatioIndx););
 	M_BOX(GP_EDGES, GP.LABEL("Тип мотора"); GP.SELECT("mset_mottype", motTypes_list, brd.mainSets.motorType););
-	M_BOX(GP_EDGES, GP.LABEL("Ток выхода макс"); GP.NUMBER("mset_maxcurr", "", brd.mainSets.maxCurrent, "100px"); );
+	
 	GP.GRID_BEGIN();
 		GP.BUTTON_MINI("rst_btn", "Перезапустить ESP");
 		GP.BUTTON_MINI("mset_reboot", "Перезагрузить плату");	
