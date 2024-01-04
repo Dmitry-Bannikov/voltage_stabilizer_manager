@@ -19,12 +19,6 @@ int8_t Board::StartI2C() {
 	if (i2c_param_config(I2C_NUM_0, &config) != ESP_OK) return 1;
     if (i2c_driver_install(I2C_NUM_0, config.mode, 100, 0, 0) != ESP_OK) return 2;
 	i2c_set_timeout(I2C_NUM_0, 0xFFFF);
-	
-	/*
-	Wire.begin();
-	Wire.setTimeOut(100);
-	i2c_set_timeout(I2C_NUM_0, 8000000);
-	*/
 	return 0;
 }
 
