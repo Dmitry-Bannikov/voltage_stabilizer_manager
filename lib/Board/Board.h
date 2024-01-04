@@ -16,7 +16,6 @@
 
 
 #include <Arduino.h>
-#include <EEManager.h>
 #include <vector>
 #include <string>
 #include <sstream>
