@@ -62,9 +62,7 @@ void memoryInit() {
 	memoryWIFI.begin(0, 127);
 	LED_blink(0);
 	for (uint8_t i = 0; i < board.size(); i++) {	
-		//board[i].getMainSets(); 
-		//delay(250);
-		board[i].getDataRaw(); 
+		//board[i].getDataRaw(); 
 		delay(250);
 	}
 }

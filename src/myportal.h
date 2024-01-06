@@ -159,18 +159,19 @@ void clicksHandler() {
 	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
 	
 	if (ui.clickInt("b_sel", activeBoard)) board[activeBoard].getMainSets();
-	ui.clickBool("aset_transit", board[activeBoard].addSets.overloadTransit);
-	ui.clickInt("mset_targetV", board[activeBoard].mainSets.targetVoltage);
+	ui.clickBool("aset_transit", board[activeBoard].mainSets.enableTransit);
+	ui.clickInt("mset_targetV", board[activeBoard].mainSets.Target);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.precision);
 	ui.clickInt("mset_tunIn", board[activeBoard].mainSets.tuneInVolt);
 	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.tuneOutVolt);
 	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.transRatioIndx);
-	ui.clickInt("mset_mottype", board[activeBoard].mainSets.motorType);
+	uint8_t motType_local = 0;
+	//if (ui.clickInt("mset_mottype", motType_local)) board[activeBoard].mainSets.motorType = motType_local+1;
 	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.maxCurrent);					
-	ui.clickInt("aset_maxV", board[activeBoard].addSets.maxVolt);
-	ui.clickInt("aset_minV", board[activeBoard].addSets.minVolt);
-	ui.clickInt("aset_toff", board[activeBoard].addSets.emergencyTOFF);
-	ui.clickInt("aset_ton", board[activeBoard].addSets.emergencyTON);
+	ui.clickInt("aset_maxV", board[activeBoard].mainSets.maxVolt);
+	ui.clickInt("aset_minV", board[activeBoard].mainSets.minVolt);
+	ui.clickInt("aset_toff", board[activeBoard].mainSets.emergencyTOFF);
+	ui.clickInt("aset_ton", board[activeBoard].mainSets.emergencyTON);
 	
 }
 
@@ -191,8 +192,8 @@ void updatesHandler() {
 		ui.answer(1);
 	}
 	for (uint8_t i = 0; i < board.size(); i++) {
-		ui.updateString(String("b_data/") + i, board[i].mainData.Str);
-		ui.updateString(String("b_stat/") + i, board[i].mainStats.Str);
+		ui.updateString(String("b_data/") + i, board[i].mainData.StrData);
+		ui.updateString(String("b_stat/") + i, board[i].mainData.StrStat);
 		ui.updateBool(String("b_led/") + i, board[i].isOnline());
 	}
 
