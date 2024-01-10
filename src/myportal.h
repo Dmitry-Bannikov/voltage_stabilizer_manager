@@ -159,19 +159,19 @@ void clicksHandler() {
 	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
 	
 	if (ui.clickInt("b_sel", activeBoard)) board[activeBoard].getMainSets();
-	ui.clickBool("mset_transit", board[activeBoard].mainSets.enableTransit);
+	ui.clickBool("mset_transit", board[activeBoard].mainSets.EnableTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.Target);
-	ui.clickInt("mset_prec", board[activeBoard].mainSets.precision);
-	ui.clickInt("mset_tunIn", board[activeBoard].mainSets.tuneInVolt);
-	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.tuneOutVolt);
-	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.transRatioIndx);
+	ui.clickInt("mset_prec", board[activeBoard].mainSets.Hysteresis);
+	ui.clickInt("mset_tunIn", board[activeBoard].mainSets.TuneInVolt);
+	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.TuneOutVolt);
+	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.TransRatioIndx);
 	uint8_t motType_local = 0;
-	if (ui.clickInt("mset_mottype", motType_local)) board[activeBoard].mainSets.motorType = motType_local+1;
-	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.maxCurrent);					
-	ui.clickInt("mset_maxV", board[activeBoard].mainSets.maxVolt);
-	ui.clickInt("mset_minV", board[activeBoard].mainSets.minVolt);
-	ui.clickInt("mset_toff", board[activeBoard].mainSets.emergencyTOFF);
-	ui.clickInt("mset_ton", board[activeBoard].mainSets.emergencyTON);
+	if (ui.clickInt("mset_mottype", motType_local)) board[activeBoard].mainSets.MotorType = motType_local+1;
+	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.MaxCurrent);					
+	ui.clickInt("mset_maxV", board[activeBoard].mainSets.MaxVolt);
+	ui.clickInt("mset_minV", board[activeBoard].mainSets.MinVolt);
+	ui.clickInt("mset_toff", board[activeBoard].mainSets.EmergencyTOFF);
+	ui.clickInt("mset_ton", board[activeBoard].mainSets.EmergencyTON);
 	
 	if (ui.click("aset_motKoefs")) {
 		String motKoefs_list = ui.getString();
@@ -196,8 +196,8 @@ void updatesHandler() {
 		ui.answer(1);
 	}
 	for (uint8_t i = 0; i < board.size(); i++) {
-		ui.updateString(String("b_data/") + i, board[i].mainData.StrData);
-		ui.updateString(String("b_stat/") + i, board[i].mainData.StrStat);
+		ui.updateString(String("b_data/") + i, board[i].mainData.Str);
+		ui.updateString(String("b_stat/") + i, board[i].mainStats.Str);
 		ui.updateBool(String("b_led/") + i, board[i].isOnline());
 	}
 

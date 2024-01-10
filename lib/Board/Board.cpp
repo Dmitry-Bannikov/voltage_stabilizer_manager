@@ -14,7 +14,7 @@ int8_t Board::StartI2C() {
     config.sda_pullup_en = GPIO_PULLUP_ENABLE;
     config.scl_io_num = 22;
     config.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    config.master.clk_speed = 400000; 
+    config.master.clk_speed = 100000; 
 	config.clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL;
 	if (i2c_param_config(I2C_NUM_0, &config) != ESP_OK) return 1;
     if (i2c_driver_install(I2C_NUM_0, config.mode, 100, 0, 0) != ESP_OK) return 2;
@@ -89,7 +89,9 @@ uint8_t Board::getDataRaw() {
 	if (ret != ESP_OK) return 3;
 	if (*_rxbuffer != I2C_DATA_START) return 4;
 	memcpy(mainData.buffer, _rxbuffer + 1, mainData.structSize);
+	memcpy(mainStats.buffer, _rxbuffer + 1 + mainData.structSize, mainStats.structSize);
 	mainData.unpackData();
+	mainStats.unpackData();
 	return 0;
 }
 
@@ -102,7 +104,9 @@ uint8_t Board::getMainSets() {
 	if (ret != ESP_OK) return 3;
 	if (*_rxbuffer != I2C_MAINSETS_START) return 4;
 	memcpy(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
+	memcpy(addSets.buffer, _rxbuffer + 1 + mainSets.structSize, addSets.structSize);
 	mainSets.unpackData();
+	addSets.unpackData();
 	return 0;
 }
 
@@ -129,7 +133,9 @@ uint8_t Board::sendMainSets(uint8_t attempts) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
+	addSets.packData();
 	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
+	memcpy(_txbuffer+1 + mainSets.structSize, addSets.buffer, addSets.structSize);
   	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
 	if (ret != ESP_OK) return 2;
 	return 0;
@@ -167,83 +173,40 @@ uint8_t Board::sendCommand() {
 }
 
 void Board::getDataStr() {
-	float full_pwr = mainData.Power[ACT]/mainData.CosFi/1000.0;
+	float full_pwr = mainData.Power/mainData.cosfi/1000.0;
 	String s = "";
 	s += F(" Данные ");
 
 	s += F("\nU вход   : ");
-	s += String(mainData.Uin[ACT]);
+	s += String(mainData.Uin);
 	s += F("V");
 
 	s += F("\nU выход  : ");
-	s += String(mainData.Uout[ACT]);
+	s += String(mainData.Uout);
 	s += F("V");
 
 	s += F("\nI выход  : ");
-	s += String(mainData.Current[ACT], 1);
+	s += String(mainData.Current, 1);
 	s += F("A");
 
 	s += F("\nP полн.  : ");
 	s += String(full_pwr, 1);
 	s += F("kVA");
+
+	//s += F("\nP актив. : ");
+	//s += String(mainData.Power/1000.0, 1);
 	s += F("\nСобытия  : ");
-	s += errorsToStr(mainData.Events[ACT], EVENTS_FULL);
-	mainData.StrData = s;
+	s += errorsToStr(mainData.events, EVENTS_FULL);
+	mainData.Str = s;
 }
 
 void Board::getStatisStr() {
-/*
-	float maxPwr = mainData.Power[MAX]/1000.0;
-	float avgPwr = mainData.Power[AVG]/1000.0;
+	float maxPwr = mainStats.Power[MAX]/1000.0;
+	float avgPwr = mainStats.Power[AVG]/1000.0;
 	String s = "";
 	s += F(" Cтатистика ");
 	s += F("\nt работы:");
-	s += getWorkTime(mainData.WorkTimeMins);
-	
-	s += F("\nU вх.макс : ");
-	s += String(mainData.Uin[MAX]);
-
-	s += F("\nU вх.сред : ");
-	s += String(mainData.Uin[AVG]);
-
-	s += F("\nU вх.мин  : ");
-	s += String(mainData.Uin[MIN]);
-
-	s += F("\nU вых.макс: ");
-	s += String(mainData.Uout[MAX]);
-
-	s += F("\nU вых.сред: ");
-	s += String(mainData.Uout[AVG]);
-
-	s += F("\nU вых.мин : ");
-	s += String(mainData.Uout[MIN]);
-	
-
-	s += F("\nI макс, А : ");
-	s += String(mainData.Current[MAX], 1);
-	
-
-	s += F("\nI сред, А : ");
-	s += String(mainData.Current[AVG], 1);
-	
-
-	s += F("\nP макс,kVA: ");
-	s += String(maxPwr,1);
-
-	s += F("\nP сред,kVA: ");
-	s += String(avgPwr,1);
-
-	s += F("\nСобытия: ");
-	s += errorsToStr(mainData.Events[MAX], EVENTS_SHORT);
-*/
-//--------------------------------------------------------//
-
-	float maxPwr = mainData.Power[MAX]/1000.0;
-	float avgPwr = mainData.Power[AVG]/1000.0;
-	String s = "";
-	s += F(" Cтатистика ");
-	s += F("\nt работы:");
-	s += getWorkTime(mainData.WorkTimeMins);
+	s += getWorkTime(mainStats.WorkTimeMins);
 /*
 U вход   |	220	220	220
 U выход  | 
@@ -258,53 +221,56 @@ U выход  |
 	"\nUout | %d %d %d "
 	"\nI    | %1.f %1.f "
 	"\nP    | %1.f %1.f ", 
-	mainData.Uin[MAX], mainData.Uin[AVG], mainData.Uin[MIN],
-	mainData.Uout[MAX], mainData.Uout[AVG], mainData.Uout[MIN],
-	mainData.Current[MAX], mainData.Current[AVG],
+	mainStats.Uin[MAX], mainStats.Uin[AVG], mainStats.Uin[MIN],
+	mainStats.Uout[MAX], mainStats.Uout[AVG], mainStats.Uout[MIN],
+	mainStats.Current[MAX], mainStats.Current[AVG],
 	maxPwr, avgPwr
 	);
 	s += String(statis);
 	s += F("\nСобытия: ");
-	s += errorsToStr(mainData.Events[MAX], EVENTS_SHORT);
-	mainData.StrStat = s;
+	s += errorsToStr(mainStats.Events, EVENTS_SHORT);
+	mainData.Str = s;
 }
 
 
-String Board::createJsonData(uint8_t mode) {
+void Board::createJsonData(String& result, uint8_t mode) {
 	
 	char json[300];
-	char fase = mainSets.liter;
+	char fase = mainSets.Liter;
 	if (mode == 0) {
-		float Pwr = mainData.Power[ACT]/1000.0;
-		float maxPwr = mainData.Power[MAX]/1000.0;
-		float avgPwr = mainData.Power[AVG]/1000.0;
-		sprintf(json, "{"
+		float Pwr = mainData.Power/1000.0;
+		float maxPwr = mainStats.Power[MAX]/1000.0;
+		float avgPwr = mainStats.Power[AVG]/1000.0;
+		sprintf(json, 
+					"{"
 					"\"Mode\":\"Data\","
 					"\"Fase\":\"%c\",\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
 					"\"Uin_avg\":\"%d\",\"Uout_avg\":\"%d\",\"I_avg\":\"%.1f\",\"P_avg\":\"%.1f\","
 					"\"Uin_max\":\"%d\",\"Uout_max\":\"%d\",\"I_max\":\"%.1f\",\"P_max\":\"%.1f\","
 					"\"work_h\":\"%d\""
-					"}", fase, mainData.Uin[ACT], mainData.Uout[ACT], mainData.Current[ACT], Pwr,
-						mainData.Uin[AVG],mainData.Uout[AVG],mainData.Current[AVG],avgPwr,
-						mainData.Uin[MAX],mainData.Uout[MAX],mainData.Current[MAX],maxPwr,
-						mainData.WorkTimeMins/60
-					);
+					"}\0", 
+				fase, mainData.Uin, mainData.Uout, mainData.Current, Pwr,
+				mainStats.Uin[AVG],mainStats.Uout[AVG],mainStats.Current[AVG],avgPwr,
+				mainStats.Uin[MAX],mainStats.Uout[MAX],mainStats.Current[MAX],maxPwr,
+				mainStats.WorkTimeMins/60
+		);
 	} else if (mode == 1) {
-		int trRatio = addSets.tcRatioList[mainSets.transRatioIndx];
-		sprintf(json, "{"
+		int trRatio = addSets.tcRatioList[mainSets.TransRatioIndx];
+		sprintf(json, 
+					"{"
 					"\"Mode\":\"Sets\","
 					"\"FASE\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Uout_target\":\"%d\","
 					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"t_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
 					"\"M_type\":\"%d\",\"Time_on\":\"%.1f\",\"Time_off\":\"%.1f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
 					"\"Transit\":\"%d\",\"Password\":\"%d\",\"Outsignal\":\"%d\""
-					"}", fase, mainSets.maxVolt, mainSets.minVolt, mainSets.precision, mainSets.Target, mainSets.tuneInVolt,
-					mainSets.tuneOutVolt, trRatio, addSets.SerialNumber[0], addSets.SerialNumber[1], mainSets.motorType,
-					mainSets.emergencyTON/1000.0, mainSets.emergencyTOFF/1000.0, 0, 0, addSets.Switches[SW_TRANSIT], 0, addSets.Switches[SW_OUTSIGN]
-					);
+					"}\0", 
+				fase, mainSets.MaxVolt, mainSets.MinVolt, mainSets.Hysteresis, mainSets.Target, mainSets.TuneInVolt,
+				mainSets.TuneOutVolt, trRatio, addSets.SerialNumber[0], addSets.SerialNumber[1], mainSets.MotorType,
+				mainSets.EmergencyTON/1000.0, mainSets.EmergencyTOFF/1000.0, 
+				addSets.Switches[SW_RSTST], 0, addSets.Switches[SW_TRANSIT], addSets.password, addSets.Switches[SW_OUTSIGN]
+		);
 	}
-	
-	String data = String(json);
-	return data;
+	result = String(json);
 }
 
 
@@ -320,11 +286,11 @@ void Board::detach() {
 }
 
 char Board::getLiteral() {
-	return mainSets.liter;
+	return mainSets.Liter;
 }
 
 void Board::setLiteral(char lit) {
-	mainSets.liter = lit;
+	mainSets.Liter = lit;
 }
 
 void Board::getMotTypesList(String &result, bool mode) {
@@ -378,20 +344,20 @@ void Board::getTcRatioList(String &result) {
 
 
 void Board::validate() {
-	mainSets.ignoreSetsFlag = constrain(mainSets.ignoreSetsFlag, 0, 1);
-	mainSets.motorType = constrain(mainSets.motorType, 0, 3);
-	mainSets.precision = constrain(mainSets.precision, 1, 10);
+	mainSets.IgnoreSetsFlag = constrain(mainSets.IgnoreSetsFlag, 0, 1);
+	mainSets.MotorType = constrain(mainSets.MotorType, 0, 3);
+	mainSets.Hysteresis = constrain(mainSets.Hysteresis, 1, 10);
 	mainSets.Target = constrain(mainSets.Target, 210, 240);
-	mainSets.transRatioIndx = constrain(mainSets.transRatioIndx, 0, sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList[0]) - 1);
-	mainSets.maxCurrent = constrain(mainSets.maxCurrent, 1, 30);
-	mainSets.tuneInVolt = constrain(mainSets.tuneInVolt, -6, 6);
-	mainSets.tuneOutVolt = constrain(mainSets.tuneOutVolt, -6, 6);
+	mainSets.TransRatioIndx = constrain(mainSets.TransRatioIndx, 0, sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList[0]) - 1);
+	mainSets.MaxCurrent = constrain(mainSets.MaxCurrent, 1, 30);
+	mainSets.TuneInVolt = constrain(mainSets.TuneInVolt, -6, 6);
+	mainSets.TuneOutVolt = constrain(mainSets.TuneOutVolt, -6, 6);
 	
-	mainSets.emergencyTOFF = constrain(mainSets.emergencyTOFF, 500, 5000);
-	mainSets.emergencyTON = constrain(mainSets.emergencyTON, 500, 5000);
-	mainSets.minVolt = constrain(mainSets.minVolt, 160, mainSets.Target);
-	mainSets.maxVolt = constrain(mainSets.maxVolt, mainSets.Target, 260);
-	mainSets.enableTransit = constrain(mainSets.enableTransit, 0, 1);
+	mainSets.EmergencyTOFF = constrain(mainSets.EmergencyTOFF, 500, 5000);
+	mainSets.EmergencyTON = constrain(mainSets.EmergencyTON, 500, 5000);
+	mainSets.MinVolt = constrain(mainSets.MinVolt, 160, mainSets.Target);
+	mainSets.MaxVolt = constrain(mainSets.MaxVolt, mainSets.Target, 260);
+	mainSets.EnableTransit = constrain(mainSets.EnableTransit, 0, 1);
 	addSets.SerialNumber[0] = constrain(addSets.SerialNumber[0], 0, 999999999);
 	addSets.SerialNumber[1] = constrain(addSets.SerialNumber[1], 0, 999999);
 }

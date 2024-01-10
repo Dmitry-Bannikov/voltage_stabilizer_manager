@@ -104,9 +104,10 @@ bool createFaseMqttData(char fase) {
     }
     if (board_number == -1) return false;
     String topic = "stab_brd/data/fase_";
+	String data;
     topic += String(fase) + "/";
     topic += WiFi.macAddress();
-    String data = board[board_number].createJsonData(0);
+    board[board_number].createJsonData(data, 0);
     mqttClient.publish(topic.c_str(), data.c_str());
     return true;
 }
