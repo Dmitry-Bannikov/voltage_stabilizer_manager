@@ -14,7 +14,7 @@ void formsHandler();
 void clicksHandler();
 void updatesHandler();
 
-GyverPortal ui;
+
 
 
 void portalBuild() {
@@ -159,21 +159,25 @@ void clicksHandler() {
 	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
 	
 	if (ui.clickInt("b_sel", activeBoard)) board[activeBoard].getMainSets();
-	ui.clickBool("aset_transit", board[activeBoard].mainSets.enableTransit);
+	ui.clickBool("mset_transit", board[activeBoard].mainSets.enableTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.Target);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.precision);
 	ui.clickInt("mset_tunIn", board[activeBoard].mainSets.tuneInVolt);
 	ui.clickInt("mset_tunOut", board[activeBoard].mainSets.tuneOutVolt);
 	ui.clickInt("mset_tcratio_idx", board[activeBoard].mainSets.transRatioIndx);
 	uint8_t motType_local = 0;
-	//if (ui.clickInt("mset_mottype", motType_local)) board[activeBoard].mainSets.motorType = motType_local+1;
+	if (ui.clickInt("mset_mottype", motType_local)) board[activeBoard].mainSets.motorType = motType_local+1;
 	ui.clickInt("mset_maxcurr", board[activeBoard].mainSets.maxCurrent);					
-	ui.clickInt("aset_maxV", board[activeBoard].mainSets.maxVolt);
-	ui.clickInt("aset_minV", board[activeBoard].mainSets.minVolt);
-	ui.clickInt("aset_toff", board[activeBoard].mainSets.emergencyTOFF);
-	ui.clickInt("aset_ton", board[activeBoard].mainSets.emergencyTON);
+	ui.clickInt("mset_maxV", board[activeBoard].mainSets.maxVolt);
+	ui.clickInt("mset_minV", board[activeBoard].mainSets.minVolt);
+	ui.clickInt("mset_toff", board[activeBoard].mainSets.emergencyTOFF);
+	ui.clickInt("mset_ton", board[activeBoard].mainSets.emergencyTON);
 	
-}
+	if (ui.click("aset_motKoefs")) {
+		String motKoefs_list = ui.getString();
+		board[activeBoard].setMotKoefsList(motKoefs_list);
+	}
+ }
 
 void updatesHandler() {
 	if (!ui.update()) return;

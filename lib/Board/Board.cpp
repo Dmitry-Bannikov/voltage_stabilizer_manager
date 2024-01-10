@@ -14,7 +14,7 @@ int8_t Board::StartI2C() {
     config.sda_pullup_en = GPIO_PULLUP_ENABLE;
     config.scl_io_num = 22;
     config.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    config.master.clk_speed = 100000; 
+    config.master.clk_speed = 400000; 
 	config.clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL;
 	if (i2c_param_config(I2C_NUM_0, &config) != ESP_OK) return 1;
     if (i2c_driver_install(I2C_NUM_0, config.mode, 100, 0, 0) != ESP_OK) return 2;
@@ -58,7 +58,6 @@ uint8_t Board::isBoard(uint8_t addr) {
 	rxbuf[2] = 78;
 	esp_err_t ret = i2c_master_write_read_device(0, addr, txbuf, sizeof(txbuf), rxbuf, sizeof(rxbuf), pdMS_TO_TICKS(20));
 	if (ret != ESP_OK) return 0;
-	Serial.println("Found!!!");
 	if (rxbuf[0] == 0x20 && rxbuf[1] == 0xF0) return rxbuf[2];
 	return 0;
 }
@@ -113,7 +112,7 @@ uint8_t Board::getData() {
 	static uint32_t last_update = 0;
 	uint8_t error = getDataRaw();
 	getDataStr();
-	//getStatisStr();
+	getStatisStr();
 	if (error) {
 		(disconn < 5) ? (disconn++) : (disconn = 5, _disconnected = 1);
 	} else {
@@ -130,9 +129,7 @@ uint8_t Board::sendMainSets(uint8_t attempts) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
-	addSets.packData();
 	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
-	memcpy(_txbuffer+1 + mainSets.structSize, addSets.buffer, addSets.structSize);
   	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
 	if (ret != ESP_OK) return 2;
 	return 0;
@@ -171,7 +168,6 @@ uint8_t Board::sendCommand() {
 
 void Board::getDataStr() {
 	float full_pwr = mainData.Power[ACT]/mainData.CosFi/1000.0;
-	Serial.println("\nHere #1");
 	String s = "";
 	s += F(" Данные ");
 
@@ -190,24 +186,13 @@ void Board::getDataStr() {
 	s += F("\nP полн.  : ");
 	s += String(full_pwr, 1);
 	s += F("kVA");
-	Serial.println("Here #2");
 	s += F("\nСобытия  : ");
-	//s += errorsToStr(mainData.Events[ACT], EVENTS_FULL);
-	//mainData.StrData = s;
-	Serial.println("Here #3");
+	s += errorsToStr(mainData.Events[ACT], EVENTS_FULL);
+	mainData.StrData = s;
 }
 
 void Board::getStatisStr() {
 /*
-
-U вход   |	220	220	220
-U выход  | 
-Вых. Ток |	
-Мощность |
-События  | A01, A03, A04
-
-*/
-
 	float maxPwr = mainData.Power[MAX]/1000.0;
 	float avgPwr = mainData.Power[AVG]/1000.0;
 	String s = "";
@@ -249,8 +234,37 @@ U выход  |
 	s += String(avgPwr,1);
 
 	s += F("\nСобытия: ");
-	//s += errorsToStr(mainData.Events[MAX], EVENTS_SHORT);
-	
+	s += errorsToStr(mainData.Events[MAX], EVENTS_SHORT);
+*/
+//--------------------------------------------------------//
+
+	float maxPwr = mainData.Power[MAX]/1000.0;
+	float avgPwr = mainData.Power[AVG]/1000.0;
+	String s = "";
+	s += F(" Cтатистика ");
+	s += F("\nt работы:");
+	s += getWorkTime(mainData.WorkTimeMins);
+/*
+U вход   |	220	220	220
+U выход  | 
+Вых. Ток |	
+Мощность |
+События  | A01, A03, A04
+*/
+	char statis[100];
+	sprintf(statis, 
+	"\nUin  | %d %d %d "
+	"\nUout | %d %d %d "
+	"\nI    | %1.f %1.f "
+	"\nP    | %1.f %1.f ", 
+	mainData.Uin[MAX], mainData.Uin[AVG], mainData.Uin[MIN],
+	mainData.Uout[MAX], mainData.Uout[AVG], mainData.Uout[MIN],
+	mainData.Current[MAX], mainData.Current[AVG],
+	maxPwr, avgPwr
+	);
+	s += String(statis);
+	s += F("\nСобытия: ");
+	s += errorsToStr(mainData.Events[MAX], EVENTS_SHORT);
 	mainData.StrStat = s;
 }
 
@@ -277,7 +291,7 @@ String Board::createJsonData(uint8_t mode) {
 	} else if (mode == 1) {
 		int trRatio = addSets.tcRatioList[mainSets.transRatioIndx];
 		sprintf(json, "{"
-					"\"MODE\":\"SETS\","
+					"\"Mode\":\"Sets\","
 					"\"FASE\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Uout_target\":\"%d\","
 					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"t_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
 					"\"M_type\":\"%d\",\"Time_on\":\"%.1f\",\"Time_off\":\"%.1f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
@@ -304,43 +318,47 @@ void Board::detach() {
 	startFlag = false;
 }
 
-String Board::getLiteral() {
-	return String(mainSets.liter);
-}
-
-char Board::getLiteralCh() {
+char Board::getLiteral() {
 	return mainSets.liter;
-}
-
-void Board::setLiteral(String lit) {
-	mainSets.liter = lit.charAt(0);
 }
 
 void Board::setLiteral(char lit) {
 	mainSets.liter = lit;
 }
 
-void Board::getMotKoefList(String &result) {
+void Board::getMotTypesList(String &result, bool mode) {
 	result = "";
-	for (uint8_t i = 1; i < sizeof(addSets.motKoefsList)/sizeof(addSets.motKoefsList[0])-1; i++) {
-		result += String(addSets.motKoefsList[i]);
-		result += String(",");
+	if (mode == true) {
+		for (uint8_t i = 1; i < sizeof(addSets.motKoefsList) / sizeof(addSets.motKoefsList[0]); i++) {
+			result += String(i) + "(";
+			result += String(addSets.motKoefsList[i]);
+			result += "),";
+		}
+		if (result.length()) {
+			result.remove(result.length() - 1);
+		}
+	} else {
+		for (uint8_t i = 1; i < sizeof(addSets.motKoefsList) / sizeof(addSets.motKoefsList[0]) - 1; i++){
+			result += String(addSets.motKoefsList[i]);
+			result += String(",");
+		}
+		if (result.length()) {
+			result.remove(result.length() - 1);
+		}
 	}
-	if (result.length()) {
-		result.remove(result.length() - 1);
-	}
+	
 }
 
-void Board::getMotTypesList(String &result) {
-	result = "";
-	for (uint8_t i = 1; i < sizeof(addSets.motKoefsList)/sizeof(addSets.motKoefsList[0])-1; i++) {
-		result += String(i+1) + "(";
-		result += String(addSets.motKoefsList[i]);
-		result += "),";
-	}
-	if (result.length()) {
-		result.remove(result.length() - 1);
-	}
+void Board::setMotKoefsList(String &str) {
+	char strArr[20];
+	int16_t array[5];
+	str.toCharArray(strArr, sizeof(strArr));
+	sscanf(strArr, "%d,%d,%d,%d", 
+	array[1],array[2],array[3],array[4]);
+	addSets.motKoefsList[1] = constrain(array[1], 0, 300);
+	addSets.motKoefsList[2] = constrain(array[2], 0, 300);
+	addSets.motKoefsList[3] = constrain(array[3], 0, 300);
+	addSets.motKoefsList[4] = constrain(array[4], 0, 300);
 }
 
 void Board::getTcRatioList(String &result) {
@@ -354,6 +372,7 @@ void Board::getTcRatioList(String &result) {
 	}
 }
 
+
 //========Private=======//
 
 
@@ -362,7 +381,7 @@ void Board::validate() {
 	mainSets.motorType = constrain(mainSets.motorType, 0, 3);
 	mainSets.precision = constrain(mainSets.precision, 1, 10);
 	mainSets.Target = constrain(mainSets.Target, 210, 240);
-	mainSets.transRatioIndx = constrain(mainSets.transRatioIndx, 0, sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList) - 1);
+	mainSets.transRatioIndx = constrain(mainSets.transRatioIndx, 0, sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList[0]) - 1);
 	mainSets.maxCurrent = constrain(mainSets.maxCurrent, 1, 30);
 	mainSets.tuneInVolt = constrain(mainSets.tuneInVolt, -6, 6);
 	mainSets.tuneOutVolt = constrain(mainSets.tuneOutVolt, -6, 6);
@@ -464,11 +483,11 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 				//return 1;//test
 			}
 		}
-		if (millis() - tmrStart > 5000) return 0; //если сканирование заняло более 5 секунд - отменяем.
+		if (millis() - tmrStart > 2500) return 0; //если сканирование заняло более 5 секунд - отменяем.
 	}
 
 	auto compareByLiteral = [](Board& board1, Board& board2) {
-        return board1.getLiteralCh() < board2.getLiteralCh();
+        return board1.getLiteral() < board2.getLiteral();
     };
 
     // Сортируем вектор

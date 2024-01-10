@@ -7,6 +7,7 @@
 #include <NTPClient.h>
 
 
+
 void connectionInit();
 void memoryInit();
 void LED_blink(uint16_t period_on, uint16_t period_off);
@@ -69,17 +70,16 @@ void memoryInit() {
 
 void boardTick() {
 	static uint32_t tmr = 0;
+	static uint32_t tmrGetSets = 0;
 	static uint8_t denyDataRequest = 0;
 	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
 	if (millis() - tmr > 400 && !boardRequest) {
+		
+		
 		uint32_t tmrDisconn = millis();
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
 			board[i].tick();
-			if (millis() - tmrDisconn > 500) {
-				scanNewBoards;
-				return;
-			}
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
@@ -88,7 +88,10 @@ void boardTick() {
 		BoardRequest(boardRequest);
 	}
 
-	if (millis() % 30000 == 0) {
+	if (millis() - tmrGetSets > 5000) {
+		//time(ui.getSystemTime());
+		//Serial.println(time.encode());
+		Serial.println();
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
 	}
 }

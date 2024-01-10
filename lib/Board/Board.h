@@ -64,10 +64,10 @@ struct data {
 		buffer = new uint8_t[structSize];
 	}
 	void packData() {
-		memcpy(buffer, (uint8_t*)&FlashCtrl, structSize);
+		memcpy(buffer, (uint8_t*)Uin, structSize);
 	}
 	void unpackData() {
-		memcpy((uint8_t*) &FlashCtrl, buffer, structSize);
+		memcpy((uint8_t*)Uin, buffer, structSize);
 	}
 };
 
@@ -79,11 +79,11 @@ struct sets {
 	int8_t tuneInVolt = 0;			//подстройка входа (-10...10)
 	int8_t tuneOutVolt = 0;		    //подстройка выхода (-10...10)
 	uint8_t Target = 222;			//целевое напряжение (до 255)
-	uint8_t motorType = 1;				//тип мотора (1...4)
+	uint8_t motorType = 2;				//тип мотора (1...4)
 	uint8_t transRatioIndx = 3;			//коэффициент трансформатора тока (0...6) смотри addSets
-	uint8_t	maxCurrent = 30;
 	uint8_t i2c_addr = 0;
 	char liter = 'N';
+	uint8_t	maxCurrent = 30;
 	int16_t minVolt = 198;			//мин напряжение
 	int16_t maxVolt = 242;			//макс напряжение
 	int16_t emergencyTOFF = 500;		//время аварийного отключения
@@ -96,10 +96,10 @@ struct sets {
 		buffer = new uint8_t[structSize];					//выделяем место под буфер
 	}
 	void packData() {
-		memcpy(buffer, (uint8_t*) &FlashCtrl, structSize);
+		memcpy(buffer, (uint8_t*) &ignoreSetsFlag, structSize);
 	}
 	void unpackData() {
-		memcpy((uint8_t*) &FlashCtrl, buffer, structSize);
+		memcpy((uint8_t*) &ignoreSetsFlag, buffer, structSize);
 	}
 };
 
@@ -186,13 +186,11 @@ public:
 	void 		getDataStr();
 	void 		getStatisStr();
 	String 		createJsonData(uint8_t mode);
-	void		getMotKoefList(String &result);
-	void 		getMotTypesList(String &result);
+	void 		getMotTypesList(String &result, bool mode);
+	void 		setMotKoefsList(String &str);
 	void	 	getTcRatioList(String &result);
-	void 		setLiteral(String lit);
 	void 		setLiteral(char lit);
-	String 		getLiteral();
-	char 		getLiteralCh();
+	char 		getLiteral();
 	void 		tick();
 	void 		detach();
 	~Board();

@@ -97,7 +97,7 @@ void Mqtt_tick() {
 bool createFaseMqttData(char fase) {
     int8_t board_number = -1;
     for (uint8_t i = 0; i < board.size(); i++) {
-        if(board[i].getLiteral() == String(fase)) { //ищем номер платы с такой буквой
+        if(board[i].getLiteral() == fase) { //ищем номер платы с такой буквой
             board_number = i;
             break;
         }
