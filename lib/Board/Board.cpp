@@ -252,7 +252,8 @@ U выход  |
 События  | A01, A03, A04
 */
 	char statis[100];
-	sprintf(statis, 
+	sprintf(statis,
+	"\n_____| max avg min"
 	"\nUin  | %d %d %d "
 	"\nUout | %d %d %d "
 	"\nI    | %1.f %1.f "
@@ -338,7 +339,7 @@ void Board::getMotTypesList(String &result, bool mode) {
 			result.remove(result.length() - 1);
 		}
 	} else {
-		for (uint8_t i = 1; i < sizeof(addSets.motKoefsList) / sizeof(addSets.motKoefsList[0]) - 1; i++){
+		for (uint8_t i = 1; i < sizeof(addSets.motKoefsList) / sizeof(addSets.motKoefsList[0]); i++){
 			result += String(addSets.motKoefsList[i]);
 			result += String(",");
 		}
