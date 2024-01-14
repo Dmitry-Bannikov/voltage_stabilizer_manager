@@ -70,16 +70,12 @@ void memoryInit() {
 
 void boardTick() {
 	static uint32_t tmr = 0;
-	static uint32_t tmrGetSets = 0;
 	static uint8_t denyDataRequest = 0;
-	//sendDwinData();
 	uint8_t boardsAmnt = board.size();
-	if (millis() - tmr > 400 && !boardRequest) {
-		
-		
-		uint32_t tmrDisconn = millis();
+	if (millis() - tmr > 900 && !boardRequest) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			board[i].tick();
+			t = ui.getSystemTime();
+			board[i].tick(t.encode());
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
@@ -88,10 +84,8 @@ void boardTick() {
 		BoardRequest(boardRequest);
 	}
 
-	if (millis() - tmrGetSets > 5000) {
-		//time(ui.getSystemTime());
-		//Serial.println(time.encode());
-		Serial.println();
+	if (millis()%60000 == 0) {
+		Serial.println(t.encode());
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
 	}
 }

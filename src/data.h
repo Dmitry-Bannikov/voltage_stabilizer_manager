@@ -8,7 +8,7 @@
 
 
 GyverPortal ui;
-//GPtime time(ui.getSystemTime());
+GPtime t;
 #define RELEASE
 
 #define AP_DEFAULT_SSID     "Stab_AP_FREE"			// Стандартное имя точки доступа ESP (До 20-ти символов)

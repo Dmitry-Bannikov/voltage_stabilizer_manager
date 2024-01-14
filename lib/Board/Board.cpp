@@ -53,7 +53,7 @@ uint8_t Board::isBoard(uint8_t addr) {
     esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(20));
     i2c_cmd_link_delete(cmd);
 	if (error) return 0;
-	uint8_t txbuf[sizeof(_txbuffer)] = {0x20, 0};
+	uint8_t txbuf[sizeof(_txbuffer)] = {I2C_REQUEST_ISBOARD, 0};
 	uint8_t rxbuf[sizeof(_rxbuffer)] = {0};
 	rxbuf[2] = 78;
 	esp_err_t ret = i2c_master_write_read_device(0, addr, txbuf, sizeof(txbuf), rxbuf, sizeof(rxbuf), pdMS_TO_TICKS(20));
@@ -86,13 +86,12 @@ uint8_t Board::getDataRaw() {
 	*_txbuffer = I2C_REQUEST_DATA;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), _rxbuffer, sizeof(_rxbuffer), pdMS_TO_TICKS(100));
-	if (ret != ESP_OK) return 3;
 	if (*_rxbuffer != I2C_DATA_START) return 4;
 	memcpy(mainData.buffer, _rxbuffer + 1, mainData.structSize);
 	memcpy(mainStats.buffer, _rxbuffer + 1 + mainData.structSize, mainStats.structSize);
 	mainData.unpackData();
 	mainStats.unpackData();
-	return 0;
+	return ret;
 }
 
 uint8_t Board::getMainSets() {
@@ -101,13 +100,12 @@ uint8_t Board::getMainSets() {
 	*_txbuffer = I2C_REQUEST_MAINSETS;
 	memset(_rxbuffer, 0, sizeof(_rxbuffer));
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), _rxbuffer, sizeof(_rxbuffer), pdMS_TO_TICKS(100));
-	if (ret != ESP_OK) return 3;
 	if (*_rxbuffer != I2C_MAINSETS_START) return 4;
 	memcpy(mainSets.buffer, _rxbuffer + 1, mainSets.structSize);
 	memcpy(addSets.buffer, _rxbuffer + 1 + mainSets.structSize, addSets.structSize);
 	mainSets.unpackData();
 	addSets.unpackData();
-	return 0;
+	return ret;
 }
 
 uint8_t Board::getData() {
@@ -133,8 +131,10 @@ uint8_t Board::sendMainSets(uint8_t attempts) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
+	Serial.printf("mainSets buffer: %d", mainSets.buffer[10]);
 	addSets.packData();
 	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
+	Serial.printf("TX buffer: %d", _txbuffer[11]);
 	memcpy(_txbuffer+1 + mainSets.structSize, addSets.buffer, addSets.structSize);
   	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
 	if (ret != ESP_OK) return 2;
@@ -173,30 +173,21 @@ uint8_t Board::sendCommand() {
 }
 
 void Board::getDataStr() {
-	float full_pwr = mainData.Power/mainData.cosfi/1000.0;
+	float full_pwr = mainData.Power/mainData.Cosfi/1000.0;
 	String s = "";
-	s += F(" Данные ");
-
-	s += F("\nU вход   : ");
-	s += String(mainData.Uin);
-	s += F("V");
-
-	s += F("\nU выход  : ");
-	s += String(mainData.Uout);
-	s += F("V");
-
-	s += F("\nI выход  : ");
-	s += String(mainData.Current, 1);
-	s += F("A");
-
-	s += F("\nP полн.  : ");
-	s += String(full_pwr, 1);
-	s += F("kVA");
-
-	//s += F("\nP актив. : ");
-	//s += String(mainData.Power/1000.0, 1);
-	s += F("\nСобытия  : ");
-	s += errorsToStr(mainData.events, EVENTS_FULL);
+	char data[110];
+	sprintf(data, 
+	" Данные "
+	"\nU вход  | %d V"
+	"\nU выход | %d V"
+	"\nТок     | %.1f A"
+	"\nМощность| %.1f kVA",
+	mainData.Uin, mainData.Uout,
+	mainData.Current, full_pwr
+	);
+	s += String(data);
+	s += F("\nСобытия | ");
+	s += errorsToStr(mainData.Events, EVENTS_FULL);
 	mainData.Str = s;
 }
 
@@ -219,8 +210,8 @@ U выход  |
 	"\n_____| max avg min"
 	"\nUin  | %d %d %d "
 	"\nUout | %d %d %d "
-	"\nI    | %1.f %1.f "
-	"\nP    | %1.f %1.f ", 
+	"\nI    | %.1f %.1f "
+	"\nP    | %.1f %.1f ", 
 	mainStats.Uin[MAX], mainStats.Uin[AVG], mainStats.Uin[MIN],
 	mainStats.Uout[MAX], mainStats.Uout[AVG], mainStats.Uout[MIN],
 	mainStats.Current[MAX], mainStats.Current[AVG],
@@ -229,7 +220,7 @@ U выход  |
 	s += String(statis);
 	s += F("\nСобытия: ");
 	s += errorsToStr(mainStats.Events, EVENTS_SHORT);
-	mainData.Str = s;
+	mainStats.Str = s;
 }
 
 
@@ -275,7 +266,8 @@ void Board::createJsonData(String& result, uint8_t mode) {
 
 
 
-void Board::tick() {
+void Board::tick(const String time) {
+	actTime = time;
 	getData();
 }
 
@@ -318,10 +310,11 @@ void Board::getMotTypesList(String &result, bool mode) {
 
 void Board::setMotKoefsList(String &str) {
 	char strArr[20];
-	int16_t array[5];
-	str.toCharArray(strArr, sizeof(strArr));
+	int array[5];
+	str.toCharArray(strArr, sizeof(str));
 	sscanf(strArr, "%d,%d,%d,%d", 
-	array[1],array[2],array[3],array[4]);
+	&array[1],&array[2],&array[3],&array[4]);
+	Serial.printf("\n%d %d %d %d", array[1],array[2],array[3],array[4]);
 	addSets.motKoefsList[1] = constrain(array[1], 0, 300);
 	addSets.motKoefsList[2] = constrain(array[2], 0, 300);
 	addSets.motKoefsList[3] = constrain(array[3], 0, 300);
@@ -344,20 +337,19 @@ void Board::getTcRatioList(String &result) {
 
 
 void Board::validate() {
+	mainSets.EnableTransit = constrain(mainSets.EnableTransit, 0, 1);
 	mainSets.IgnoreSetsFlag = constrain(mainSets.IgnoreSetsFlag, 0, 1);
-	mainSets.MotorType = constrain(mainSets.MotorType, 0, 3);
+	mainSets.MotorType = constrain(mainSets.MotorType, 1, 4);
 	mainSets.Hysteresis = constrain(mainSets.Hysteresis, 1, 10);
 	mainSets.Target = constrain(mainSets.Target, 210, 240);
 	mainSets.TransRatioIndx = constrain(mainSets.TransRatioIndx, 0, sizeof(addSets.tcRatioList)/sizeof(addSets.tcRatioList[0]) - 1);
 	mainSets.MaxCurrent = constrain(mainSets.MaxCurrent, 1, 30);
 	mainSets.TuneInVolt = constrain(mainSets.TuneInVolt, -6, 6);
 	mainSets.TuneOutVolt = constrain(mainSets.TuneOutVolt, -6, 6);
-	
 	mainSets.EmergencyTOFF = constrain(mainSets.EmergencyTOFF, 500, 5000);
 	mainSets.EmergencyTON = constrain(mainSets.EmergencyTON, 500, 5000);
 	mainSets.MinVolt = constrain(mainSets.MinVolt, 160, mainSets.Target);
 	mainSets.MaxVolt = constrain(mainSets.MaxVolt, mainSets.Target, 260);
-	mainSets.EnableTransit = constrain(mainSets.EnableTransit, 0, 1);
 	addSets.SerialNumber[0] = constrain(addSets.SerialNumber[0], 0, 999999999);
 	addSets.SerialNumber[1] = constrain(addSets.SerialNumber[1], 0, 999999);
 }

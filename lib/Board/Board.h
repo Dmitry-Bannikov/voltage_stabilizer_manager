@@ -26,18 +26,15 @@
 
 #define I2C_DATA_START						0x30
 #define I2C_MAINSETS_START					0x35
-#define I2C_ADDSETS_START					0x40
-#define I2C_STAT_START						0x45
 #define I2C_SWITCHES_START					0x46
 
 #define I2C_REQUEST_MAINSETS				0x21
-#define I2C_REQUEST_ADDSETS					0x22
+#define I2C_REQUEST_ISBOARD					0x20
 #define I2C_REQUEST_DATA					0x23
-#define I2C_REQUEST_STAT					0x24
 #define I2C_REQUEST_SWITCHES				0x25
 
-#define RX_BUF_SIZE							100
-#define TX_BUF_SIZE							100
+#define RX_BUF_SIZE							70
+#define TX_BUF_SIZE							70
 
 #define SW_OUTSIGN	0
 #define SW_REBOOT	1
@@ -51,20 +48,15 @@ struct data {
 	int16_t 	Uout;
 	float 		Current;
 	float 		Power;
-	float 		cosfi;
-	uint32_t 	events;
+	float 		Cosfi;
+	uint32_t 	Events;
 	uint8_t 	structSize;
 	String 		Str;
 	uint8_t* 	buffer = nullptr;
 	data() {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
-		cosfi = 1.0;
-		Uin = 0;
-		Uout = 0;
-		Current = 0;
-		Power = 0;
-		events = 0;
+		Str.reserve(110);
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&Uin, structSize);
@@ -75,12 +67,13 @@ struct data {
 };
 
 struct stats {
-	uint32_t WorkTimeMins = 0;
-	uint32_t Events = 0;
+	uint8_t FlashCtrl;
 	int16_t Uin[3] 		= {0,0,300};	//max,avg,min
 	int16_t Uout[3] 	= {0,0,300};
 	float 	Current[3] 	= {0,0,0};
 	float	Power[3] 	= {0,0,0};
+	uint32_t WorkTimeMins = 0;
+	uint32_t Events = 0;
 
 	uint8_t 	structSize;
 	String  	Str;
@@ -88,17 +81,19 @@ struct stats {
 	stats() {
 		structSize = offsetof(struct stats, structSize);
 		buffer = new uint8_t[structSize];
+		Str.reserve(110);
 	}
 	void packData() {
-		memcpy(buffer, (uint8_t*)&WorkTimeMins, structSize);
+		memcpy(buffer, (uint8_t*)&FlashCtrl, structSize);
 	}
 	void unpackData() {
-		memcpy((uint8_t*) &WorkTimeMins, buffer, structSize);
+		memcpy((uint8_t*) &FlashCtrl, buffer, structSize);
 	}
 };
 
 //----------------------BOARD MAIN SETS----------------------//
 struct mainsets {
+	uint8_t FlashCtrl;
 	uint8_t IgnoreSetsFlag = 0;		//игнорировать настройки с платы (0...1)
 	uint8_t EnableTransit = 0;	//транзит при перегрузке
 	uint8_t Hysteresis = 3;			//точность/гистерезис (1...6)
@@ -121,22 +116,24 @@ struct mainsets {
 		buffer = new uint8_t[structSize];					//выделяем место под буфер
 	}
 	void packData() {
-		memcpy(buffer, (uint8_t*) &IgnoreSetsFlag, structSize);
+		memcpy(buffer, (uint8_t*) &FlashCtrl, structSize);
 	}
 	void unpackData() {
-		memcpy((uint8_t*) &IgnoreSetsFlag, buffer, structSize);
+		memcpy((uint8_t*) &FlashCtrl, buffer, structSize);
 	}
 };
 
 struct addsets {
 	int16_t password = 1234;
-	int16_t motKoefsList[5] = {};			//коэффициент мощности мотора в % от motorDefPwr
-	int16_t motorMaxCurrentList[4] = {}; //список макс токов на каждый из типов моторов
-	int16_t tcRatioList[6] = {};		//список коэффициентов трансов
-	int32_t SerialNumber[2] = {};
+	int16_t motKoefsList[5] = {0,30,120,180,240};			//коэффициент мощности мотора в % от motorDefPwr
+	int16_t motorMaxCurrentList[4] = {3000,4000,5000,6000}; //список макс токов на каждый из типов моторов
+	int16_t tcRatioList[7] = {25,40,50,60,80,100,150};		//список коэффициентов трансов
+	int32_t SerialNumber[2] = {123456789, 123456};
+
 	uint8_t structSize;
-	uint8_t Switches[8] = {0,0,0,0,0,0,0,0};
 	uint8_t *buffer = nullptr;
+	uint8_t Switches[8] = {0,0,0,0,0,0,0,0};
+	
 	addsets() {
 		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
 		buffer = new uint8_t[structSize];//выделяем место под буфер
@@ -186,9 +183,11 @@ private:
 	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
 	bool _active = false;
 	uint8_t _disconnected = 0;
+	String actTime;
 	void 	validate();
 	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
+	
 	
 public:
 	Board() {attach(0);}
@@ -217,7 +216,7 @@ public:
 	void	 	getTcRatioList(String &result);
 	void 		setLiteral(char lit);
 	char 		getLiteral();
-	void 		tick();
+	void 		tick(const String time);
 	void 		detach();
 	~Board();
 

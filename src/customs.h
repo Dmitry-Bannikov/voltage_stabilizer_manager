@@ -147,13 +147,13 @@ void GP_addsets_build(Board &brd) {
 	String title = "Настройка платы ";
 	title += (brd.mainSets.Liter > 0 ? String(brd.getLiteral()) : String(brd.getAddress()));
 	GP.BLOCK_BEGIN(GP_DIV_RAW, "", title);
-	
+	M_BOX(GP_EDGES, GP.LABEL("Коэф. моторов, %"); GP.TEXT("aset_motKoefs", "Через ,", motKoefs_list, "170px"); );
 	M_BOX(GP_EDGES, GP.LABEL("Максимальное напряжение");  GP.NUMBER("mset_maxV", "", brd.mainSets.MaxVolt, "100px"););
 	M_BOX(GP_EDGES, GP.LABEL("Минимальное напряжение");  GP.NUMBER("mset_minV", "", brd.mainSets.MinVolt, "100px"););
 	M_BOX(GP_EDGES, GP.LABEL("Время отключения, мс");  GP.NUMBER("mset_toff", "", brd.mainSets.EmergencyTOFF, "100px"););
 	M_BOX(GP_EDGES, GP.LABEL("Время включения, мс");  GP.NUMBER("mset_ton", "", brd.mainSets.EmergencyTON, "100px"););
 	M_BOX(GP_EDGES, GP.LABEL("Внеш. сигнал"); GP.CHECK("outsignal", (bool)(brd.addSets.Switches[SW_OUTSIGN])););
-	M_BOX(GP_EDGES, GP.LABEL("Коэф. моторов, %"); GP.TEXT("aset_motKoefs", "Через ,", motKoefs_list, "200px"); );
+	//GP.TIME("t", ui.getSystemTime());
 	
 	GP.BLOCK_END();
 }
