@@ -52,6 +52,7 @@ void connectionInit() {
 	Serial.print(digitalRead(21));
 	Serial.println(digitalRead(22));
 	Board::StartI2C();
+	meter.begin();
 	board.reserve(MAX_BOARDS);
 	delay(10);
 	scanNewBoards();
@@ -79,14 +80,17 @@ void boardTick() {
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
-	} else if (boardRequest){
+	} else if (boardRequest && board.size()){
 		denyDataRequest = 3;
 		BoardRequest(boardRequest);
 	}
 
 	if (millis()%60000 == 0) {
-		Serial.println(t.encode());
-		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) board[i].getMainSets();
+		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
+			board[i].getMainSets();
+			board[i].getCommand();
+		}
+		if (board.size() < 3) scanNewBoards();
 	}
 }
 

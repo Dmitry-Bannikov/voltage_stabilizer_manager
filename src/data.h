@@ -35,6 +35,8 @@ struct wifisets {                                   // Структура со �
 #define MAX_BOARDS	3
 std::vector<Board> board;					//объекты плат
 EEManager memoryWIFI(wifi_settings, 20000);
+Meter meter;
+
 
 uint8_t activeBoard = 0;
 bool mqttConnected = false;
@@ -45,26 +47,3 @@ bool isSerial = true;
 #define unitBytes(byteH, byteL)				(byteH << 8 | byteL )
 #define getByteLow(value)						( value & 0xFF )
 #define getByteHigh(value)						( (value >> 8) & 0xFF )
-
-uint8_t global_add_pointer = 0;
-
-template<typename T>
-T reverseBytes(T& value) {
-    uint8_t* front = reinterpret_cast<uint8_t*>(&value);
-    uint8_t* back = front + sizeof(T) - 1;
-    while (front < back) {
-        std::swap(*front, *back);
-        ++front;
-        --back;
-    }
-    return value;
-}
-
-template<typename T>
-void Buffer_addNewValue(T value, uint8_t* buffer, size_t bufferSize, uint8_t reset) {
-    uint8_t size = sizeof(T);
-    if (reset || global_add_pointer + size >= bufferSize - 1) global_add_pointer = 0;
-    reverseBytes(value);
-    std::memcpy(buffer + 4 + global_add_pointer, &value, size);
-    global_add_pointer += size;
-}

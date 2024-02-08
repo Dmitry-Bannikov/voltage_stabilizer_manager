@@ -51,12 +51,18 @@ struct data {
 	float 		Cosfi;
 	uint32_t 	Events;
 	uint8_t 	structSize;
-	String 		Str;
 	uint8_t* 	buffer = nullptr;
+	String 		Str;
 	data() {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
-		Str.reserve(110);
+		Str.reserve(150);
+		Uin = 0;
+		Uout = 0;
+		Current = 0;
+		Power = 0;
+		Cosfi = 0;
+		Events = 0;
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&Uin, structSize);
@@ -81,7 +87,7 @@ struct stats {
 	stats() {
 		structSize = offsetof(struct stats, structSize);
 		buffer = new uint8_t[structSize];
-		Str.reserve(110);
+		Str.reserve(200);
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&FlashCtrl, structSize);
@@ -148,7 +154,7 @@ struct addsets {
 };
 
 
-
+//#define isEvent(event)					(bitRead(mainData.Events, event))
 
 // =======================================================================================//
 
@@ -168,11 +174,12 @@ private:
 	"<80 В",
 	"Недо-напряжение",
 	"Перенапряжение",
-	"Мин. напряжение",
 	"Мак. напряжение",
+	"Мин. напряжение",
 	"Транзит",
 	"Перегрузка",
-	"Внеш. сигнал"
+	"Внеш. сигнал",
+	"Выход откл"
 	};
 	uint8_t _txbuffer[TX_BUF_SIZE];
 	uint8_t _rxbuffer[RX_BUF_SIZE];
@@ -208,9 +215,11 @@ public:
 	uint8_t 	sendCommand(uint8_t command, uint8_t value);
 	uint8_t 	sendCommand(uint8_t* command);
 	uint8_t 	sendCommand();
+	uint8_t 	getCommand();
 	void 		getDataStr();
 	void 		getStatisStr();
 	void 		createJsonData(String& result, uint8_t mode);
+	uint8_t 	getJsonData(const char* data, uint8_t mode);
 	void 		getMotTypesList(String &result, bool mode);
 	void 		setMotKoefsList(String &str);
 	void	 	getTcRatioList(String &result);

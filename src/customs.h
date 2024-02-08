@@ -46,7 +46,7 @@ void GP_data_build() {
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
 			GP.BLOCK_BEGIN(GP_THIN, "100%", String("Плата ")+ board[i].getLiteral());
-			GP.AREA(String("b_data/")+i, 6, "Загрузка \nданных...");
+			GP.AREA(String("b_data/")+i, 7, "Загрузка \nданных...");
 			GP.AREA(String("b_stat/")+i, 13, "Загрузка \nстатистики...");
 			M_BOX(GP_AROUND,
 				GP.BUTTON_MINI(String("r_stat/")+i, "Сброс");

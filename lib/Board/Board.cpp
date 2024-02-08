@@ -3,7 +3,7 @@
 #include <driver/gpio.h>
 #include <esp_err.h>
 
-
+#define isEvent(event)					(bitRead(mainData.Events, event))
 //==================Public=================//
 
 int8_t Board::StartI2C() {
@@ -108,6 +108,17 @@ uint8_t Board::getMainSets() {
 	return ret;
 }
 
+uint8_t Board::getCommand() {
+	if (!startFlag) return 1;
+	memset(_txbuffer, 0, sizeof(_txbuffer));
+	*_txbuffer = I2C_REQUEST_SWITCHES;
+	memset(_rxbuffer, 0, sizeof(_rxbuffer));
+	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), _rxbuffer, sizeof(_rxbuffer), pdMS_TO_TICKS(100));
+	if (*_rxbuffer != I2C_SWITCHES_START) return 4;
+	memcpy(addSets.Switches, _rxbuffer+1, sizeof(addSets.Switches));
+	return ret;
+}
+
 uint8_t Board::getData() {
 	if (!startFlag) return 1;
 	static uint8_t disconn = 0;
@@ -116,6 +127,7 @@ uint8_t Board::getData() {
 	getDataStr();
 	getStatisStr();
 	if (error) {
+		Serial.println("Error receive data");
 		(disconn < 5) ? (disconn++) : (disconn = 5, _disconnected = 1);
 	} else {
 		disconn = 0;
@@ -148,6 +160,8 @@ uint8_t Board::sendCommand(uint8_t command, uint8_t value) {
 	*_txbuffer = I2C_SWITCHES_START;
 	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
 	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
+	addSets.Switches[SW_REBOOT] = 0;
+	addSets.Switches[SW_RSTST] = 0;
 	if (ret != ESP_OK) return 2;
 	return 0;
 }
@@ -168,20 +182,23 @@ uint8_t Board::sendCommand() {
 	*_txbuffer = I2C_SWITCHES_START;
 	memcpy(_txbuffer+1, addSets.Switches, sizeof(addSets.Switches));
 	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
+	addSets.Switches[SW_REBOOT] = 0;
+	addSets.Switches[SW_RSTST] = 0;
 	if (ret != ESP_OK) return 2;
 	return 0;
 }
 
 void Board::getDataStr() {
-	float full_pwr = mainData.Power/mainData.Cosfi/1000.0;
+	float full_pwr = mainData.Power/1000.0;
 	String s = "";
-	char data[110];
+	char data[200];
 	sprintf(data, 
 	" Данные "
-	"\nU вход  | %d V"
-	"\nU выход | %d V"
+	"\nU вход  | %d В"
+	"\nU выход | %d В"
 	"\nТок     | %.1f A"
-	"\nМощность| %.1f kVA",
+	"\nP полная| %.1f кВА"
+	,
 	mainData.Uin, mainData.Uout,
 	mainData.Current, full_pwr
 	);
@@ -205,7 +222,7 @@ U выход  |
 Мощность |
 События  | A01, A03, A04
 */
-	char statis[100];
+	char statis[200];
 	sprintf(statis,
 	"\n_____| max avg min"
 	"\nUin  | %d %d %d "
@@ -226,7 +243,7 @@ U выход  |
 
 void Board::createJsonData(String& result, uint8_t mode) {
 	
-	char json[300];
+	char json[500];
 	char fase = mainSets.Liter;
 	if (mode == 0) {
 		float Pwr = mainData.Power/1000.0;
@@ -250,21 +267,109 @@ void Board::createJsonData(String& result, uint8_t mode) {
 		sprintf(json, 
 					"{"
 					"\"Mode\":\"Sets\","
-					"\"FASE\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Uout_target\":\"%d\","
-					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"t_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
+					"\"Fase\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Target\":\"%d\","
+					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"T_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
 					"\"M_type\":\"%d\",\"Time_on\":\"%.1f\",\"Time_off\":\"%.1f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
 					"\"Transit\":\"%d\",\"Password\":\"%d\",\"Outsignal\":\"%d\""
 					"}\0", 
-				fase, mainSets.MaxVolt, mainSets.MinVolt, mainSets.Hysteresis, mainSets.Target, mainSets.TuneInVolt,
+				fase, mainSets.MinVolt, mainSets.MaxVolt, mainSets.Hysteresis, mainSets.Target, mainSets.TuneInVolt,
 				mainSets.TuneOutVolt, trRatio, addSets.SerialNumber[0], addSets.SerialNumber[1], mainSets.MotorType,
 				mainSets.EmergencyTON/1000.0, mainSets.EmergencyTOFF/1000.0, 
 				addSets.Switches[SW_RSTST], 0, addSets.Switches[SW_TRANSIT], addSets.password, addSets.Switches[SW_OUTSIGN]
+		);
+		
+	} else if (mode == 2) {
+		sprintf(json, 
+					"{"
+					"\"Mode\":\"Alarms\","
+					"\"Fase\":\"%c\",\"Нет\":\"%d\",\"Блок мотора\":\"%d\",\"Тревога 1\":\"%d\",\"Тревога 2\":\"%d\","
+					"\"Нет питания\":\"%d\",\"Недо-напряжение\":\"%d\",\"Пере-напряжение\":\"%d\",\"Макс напряжение\":\"%d\",\"Мин напряжение\":\"%d\","
+					"\"Транзит\":\"%d\",\"Перегрузка\":\"%d\",\"Внешний сигнал\":\"%d\",\"Выход откл\":\"%d\""
+					"}\0", 
+				fase, isEvent(0), isEvent(1), isEvent(2), isEvent(3), isEvent(4), isEvent(5), isEvent(6), 
+					  isEvent(7), isEvent(8), isEvent(9), isEvent(10), isEvent(11), isEvent(12)
 		);
 	}
 	result = String(json);
 }
 
+uint8_t Board::getJsonData(const char* data, uint8_t mode) {
+	char* str = (char*)data;
+	int i = 0;
+	int j = 0;
+	while (str[i])
+	{
+		if (str[i] != ' ' && str[i] != '\n' && str[i] != '\r')
+		{
+			str[j++] = str[i];
+		}
+		i++;
+	}
+	str[j] = '\0';
 
+	char fase = 0;
+	int16_t MinVolt = 0;
+	int16_t MaxVolt = 0;
+	int16_t Hysteresis = 0;
+	int16_t Target = 0;
+	int16_t TuneInVolt = 0;
+	int16_t TuneOutVolt = 0;
+	int16_t tcRatio = 0;
+	int32_t SN1;
+	int32_t SN2;
+	int16_t MotorType = 0;
+	float Time_on = -1;
+	float Time_off = -1;
+	int16_t Rst_stat;
+	int16_t isNeedSave = 0;
+	int16_t isNeedTransit = 0;
+	int16_t password = 0;
+	int16_t isNeedOutsignal = 0;
+	
+	Serial.println(String(str));
+	sscanf(str, 
+					"{" 
+					"\"Mode\":\"Sets\","
+					"\"Fase\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Target\":\"%d\","
+					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"T_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
+					"\"M_type\":\"%d\",\"Time_on\":\"%f\",\"Time_off\":\"%f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
+					"\"Transit\":\"%d\",\"Password\":\"%d\",\"Outsignal\":\"%d\""
+					"}\0", 
+				&fase, &MinVolt, &MaxVolt, &Hysteresis, &Target, &TuneInVolt,
+				&TuneOutVolt, &tcRatio, &SN1, &SN2, &MotorType, &Time_on, &Time_off,
+				&Rst_stat, &isNeedSave, &isNeedTransit, &password, &isNeedOutsignal
+	);
+
+	if (!tcRatio || Time_on == -1 || Time_off == -1) {
+		Serial.println("\nError receiving sets!");
+		return 1;
+	}
+	for (uint8_t i = 0; i < sizeof(addSets.tcRatioList) / sizeof(addSets.tcRatioList[0]); i++) {
+		if (tcRatio == addSets.tcRatioList[i]) {
+			mainSets.TransRatioIndx = i;
+			break;
+		}
+	}
+	mainSets.Liter = fase;
+	mainSets.MinVolt = MinVolt;
+	mainSets.MaxVolt = MaxVolt;
+	mainSets.Hysteresis = Hysteresis;
+	mainSets.Target = Target;
+	mainSets.TuneInVolt = TuneInVolt;
+	mainSets.TuneOutVolt = TuneOutVolt;
+	addSets.SerialNumber[0] = SN1;
+	addSets.SerialNumber[1] = SN2;
+	mainSets.MotorType = MotorType;
+	mainSets.EmergencyTON = (int16_t)(Time_on*1000);
+	mainSets.EmergencyTOFF = (int16_t)(Time_off*1000);
+	addSets.Switches[SW_RSTST] = Rst_stat;
+	addSets.Switches[SW_TRANSIT] = isNeedTransit;
+	addSets.Switches[SW_OUTSIGN] = isNeedOutsignal;
+	validate();
+    sendCommand();
+	if (isNeedSave) sendMainSets();
+	return 0;
+}
 
 void Board::tick(const String time) {
 	actTime = time;

@@ -159,7 +159,10 @@ void clicksHandler() {
 	if (ui.clickUp("r_stat/2")) 	boardRequest = 42;
 	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
 	
-	if (ui.clickInt("b_sel", activeBoard)) board[activeBoard].getMainSets();
+	if (ui.clickInt("b_sel", activeBoard)) {
+		board[activeBoard].getMainSets();
+		board[activeBoard].getCommand();
+	}
 	ui.clickBool("mset_transit", board[activeBoard].mainSets.EnableTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.Target);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.Hysteresis);
