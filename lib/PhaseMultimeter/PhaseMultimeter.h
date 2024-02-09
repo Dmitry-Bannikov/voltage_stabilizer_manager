@@ -47,6 +47,7 @@ private:
 		}
 		return value;
 	}
+	void reverseBytes(uint8_t* buffer, size_t size);
 	void flushSerial();
 	void getCRC(uint8_t* buffer, size_t size);
 
@@ -57,6 +58,7 @@ public:
 
 	void begin();
 	bool requestValue(float &value, commands command);
+	float* getValueManual(uint16_t startAddr, uint8_t wordsNum);
 	void tick();
 
 };

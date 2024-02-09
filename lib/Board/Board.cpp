@@ -282,9 +282,9 @@ void Board::createJsonData(String& result, uint8_t mode) {
 		sprintf(json, 
 					"{"
 					"\"Mode\":\"Alarms\","
-					"\"Fase\":\"%c\",\"Нет\":\"%d\",\"Блок мотора\":\"%d\",\"Тревога 1\":\"%d\",\"Тревога 2\":\"%d\","
-					"\"Нет питания\":\"%d\",\"Недо-напряжение\":\"%d\",\"Пере-напряжение\":\"%d\",\"Макс напряжение\":\"%d\",\"Мин напряжение\":\"%d\","
-					"\"Транзит\":\"%d\",\"Перегрузка\":\"%d\",\"Внешний сигнал\":\"%d\",\"Выход откл\":\"%d\""
+					"\"Fase\":\"%c\",\"No Alarms\":\"%d\",\"Motor Block\":\"%d\",\"Alarm 1\":\"%d\",\"Alarm 2\":\"%d\","
+					"\"No Power Supply\":\"%d\",\"Low Voltage\":\"%d\",\"High Voltage\":\"%d\",\"Max Limit Voltage\":\"%d\",\"Min Limit Voltage\":\"%d\","
+					"\"Bypass\":\"%d\",\"Overload\":\"%d\",\"External signal\":\"%d\",\"Output Off\":\"%d\""
 					"}\0", 
 				fase, isEvent(0), isEvent(1), isEvent(2), isEvent(3), isEvent(4), isEvent(5), isEvent(6), 
 					  isEvent(7), isEvent(8), isEvent(9), isEvent(10), isEvent(11), isEvent(12)

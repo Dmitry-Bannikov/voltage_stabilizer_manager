@@ -119,7 +119,8 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
         }
         Serial.println(value);
     }
-    
+    //добавить значение 2 (если 2, то каждые 10 минут)
+    //stab_brd/outsignal/fase_A/
 }
 
 void Mqtt_tick() {
