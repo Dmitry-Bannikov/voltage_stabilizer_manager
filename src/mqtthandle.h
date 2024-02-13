@@ -36,7 +36,7 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len);
 void MqttReconnect();
 void Mqtt_tick();
 bool createFaseMqttData(char fase);
- 
+ uint8_t getNextAarm(uint32_t errors);
 
 
 void MqttInit() {
@@ -161,7 +161,6 @@ bool createFaseMqttData(char fase) {
         topic += String(fase) + "/";
         topic += WiFi.macAddress();
         board[board_number].createJsonData(data, 0);
-        mqttClient.publish(topic.c_str(), data.c_str());
         cnt++;
     } else {
         Serial.println("Sending sets...");
@@ -169,20 +168,30 @@ bool createFaseMqttData(char fase) {
         topic += String(fase) + "/";
         topic += WiFi.macAddress();
         board[board_number].createJsonData(data, 1);
-        mqttClient.publish(topic.c_str(), data.c_str());
         cnt = 0;
     }
     if (board[board_number].mainData.Events != 0) {
-        topic = "stab_brd/alarms/fase_";
+        std::string alarm_text;
+        uint8_t alarm_code = board[board_number].getNextActiveAlarm(alarm_text, board[board_number].mainData.Events);
+        topic = "stab_brd/alarms/code/fase_";
         topic += String(fase) + "/";
         topic += WiFi.macAddress();
-        board[board_number].createJsonData(data, 2);
+        data = "{";
+        data += String(alarm_code);
+        data += "}";
+        mqttClient.publish(topic.c_str(), data.c_str());
+
+        topic = "stab_brd/alarms/text/fase_";
+        topic += String(fase) + "/";
+        topic += WiFi.macAddress();
+        data = "{";
+        data += String(alarm_text.c_str());
+        data += "}";
         mqttClient.publish(topic.c_str(), data.c_str());
     }
-    
+    mqttClient.publish(topic.c_str(), data.c_str());
     return true;
 }
-
 
 
 //-----------------------------------------------------------------------------------//

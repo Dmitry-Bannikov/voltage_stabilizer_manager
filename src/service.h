@@ -90,7 +90,7 @@ void boardTick() {
 			board[i].getMainSets();
 			board[i].getCommand();
 		}
-		if (board.size() < 3) scanNewBoards();
+		if (board.size()) scanNewBoards();
 	}
 }
 

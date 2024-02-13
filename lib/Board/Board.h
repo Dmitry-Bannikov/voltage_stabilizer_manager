@@ -19,6 +19,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <map>
+
 
 #define MAX						0
 #define AVG						1
@@ -166,21 +168,6 @@ private:
 		EVENTS_FULL,
 		EVENTS_SHORT
 	};
-	String PROGMEM gEventsList[32] = {
-	"Нет",
-	"Блок мотора", 
-	"Тревога-1",
-	"Тревога-2",
-	"<80 В",
-	"Недо-напряжение",
-	"Перенапряжение",
-	"Мак. напряжение",
-	"Мин. напряжение",
-	"Транзит",
-	"Перегрузка",
-	"Внеш. сигнал",
-	"Выход откл"
-	};
 	uint8_t _txbuffer[TX_BUF_SIZE];
 	uint8_t _rxbuffer[RX_BUF_SIZE];
 	uint8_t _board_addr = 0;
@@ -191,6 +178,7 @@ private:
 	bool _active = false;
 	uint8_t _disconnected = 0;
 	String actTime;
+	std::map<int, std::string> gEventsList;
 	void 	validate();
 	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
@@ -223,12 +211,13 @@ public:
 	void 		getMotTypesList(String &result, bool mode);
 	void 		setMotKoefsList(String &str);
 	void	 	getTcRatioList(String &result);
+	uint8_t 	getNextActiveAlarm(std::string& result, const uint32_t alarms);
 	void 		setLiteral(char lit);
 	char 		getLiteral();
 	void 		tick(const String time);
 	void 		detach();
 	~Board();
-
+	
 	data mainData;
 	stats mainStats;
 	mainsets mainSets;

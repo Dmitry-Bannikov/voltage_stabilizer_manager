@@ -42,6 +42,19 @@ bool Board::attach(const uint8_t addr) {
 	if (addr != _board_addr)
 		_board_addr = addr;
 	startFlag = true;
+	gEventsList[1] = "Блокировка мотора";
+	gEventsList[2] = "Термостат";
+	gEventsList[3] = "Доп. контакт";
+	gEventsList[4] = "Нет сети";
+	gEventsList[5] = "Низкое напряжение";
+	gEventsList[6] = "Высокое напряжение";
+	gEventsList[7] = "Крайнее мин. напряжение";
+	gEventsList[8] = "Крайнее макс. напряжение";
+	gEventsList[9] = "Режим транзит";
+	gEventsList[10] = "Перегрузка";
+	gEventsList[11] = "Внешний сигнал";
+	gEventsList[12] = "Выход отключен";
+
 	return isOnline();
 }
 
@@ -437,6 +450,19 @@ void Board::getTcRatioList(String &result) {
 	}
 }
 
+uint8_t Board::getNextActiveAlarm(std::string& result, const uint32_t alarms) {
+	static uint8_t i = 0;
+	uint32_t errors = alarms;
+	std::string tempResult = "";
+	while (i <= 32) {
+		if (errors & (1 << i)) {
+			result = gEventsList[i];
+			return i++;
+		}
+		i < 32 ? i++ : (i = 0);
+	}
+	return 0;
+}
 
 //========Private=======//
 
@@ -461,8 +487,11 @@ void Board::validate() {
 
 String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 	String s = "";
+	std::string resultStr;
+	uint8_t resultInt;
+	resultInt = getNextActiveAlarm(resultStr, errors);
 	if (errors <= 1) {
-		s = "Нет";
+		s = "";
 		return s;
 	}
 	if (f == EVENTS_SHORT) {
@@ -482,15 +511,7 @@ String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 			s.remove(s.length() - 2);
 		}
 	} else {
-		static uint8_t i = 0;
-		while (i <= 32) {
-			if (errors & (1<<i)) {
-				s = gEventsList[i];
-				i++;
-				return s;
-			}
-			i < 32 ? i++ : (i = 0);
-		}
+		s = String(resultStr.c_str());
 	}
 	return s;
 }

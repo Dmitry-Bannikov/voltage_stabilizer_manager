@@ -92,7 +92,7 @@ void portalInit() {
 	} else {
 		ui.start();
 	}
-	ui.enableOTA("admin", "012343210");
+	ui.enableOTA("admin", "1234");
 	
 }
 
