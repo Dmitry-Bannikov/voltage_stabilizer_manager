@@ -42,6 +42,7 @@ bool Board::attach(const uint8_t addr) {
 	if (addr != _board_addr)
 		_board_addr = addr;
 	startFlag = true;
+	gEventsList[0] = " ";
 	gEventsList[1] = "Блокировка мотора";
 	gEventsList[2] = "Термостат";
 	gEventsList[3] = "Доп. контакт";
@@ -204,7 +205,7 @@ uint8_t Board::sendCommand() {
 void Board::getDataStr() {
 	float full_pwr = mainData.Power/1000.0;
 	String s = "";
-	char data[200];
+	char data[500];
 	sprintf(data, 
 	" Данные "
 	"\nU вход  | %d В"
@@ -235,7 +236,7 @@ U выход  |
 Мощность |
 События  | A01, A03, A04
 */
-	char statis[200];
+	char statis[500];
 	sprintf(statis,
 	"\n_____| max avg min"
 	"\nUin  | %d %d %d "
@@ -450,8 +451,9 @@ void Board::getTcRatioList(String &result) {
 	}
 }
 
-uint8_t Board::getNextActiveAlarm(std::string& result, const uint32_t alarms) {
+uint8_t Board::getNextActiveAlarm(std::string& result, const int32_t alarms) {
 	static uint8_t i = 0;
+	if (!alarms) return 0;
 	uint32_t errors = alarms;
 	std::string tempResult = "";
 	while (i <= 32) {
@@ -487,9 +489,6 @@ void Board::validate() {
 
 String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 	String s = "";
-	std::string resultStr;
-	uint8_t resultInt;
-	resultInt = getNextActiveAlarm(resultStr, errors);
 	if (errors <= 1) {
 		s = "";
 		return s;
@@ -511,6 +510,8 @@ String Board::errorsToStr(const int32_t errors, EventsFormat f) {
 			s.remove(s.length() - 2);
 		}
 	} else {
+		std::string resultStr = "";
+		getNextActiveAlarm(resultStr, errors);
 		s = String(resultStr.c_str());
 	}
 	return s;

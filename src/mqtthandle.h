@@ -163,7 +163,6 @@ bool createFaseMqttData(char fase) {
         board[board_number].createJsonData(data, 0);
         cnt++;
     } else {
-        Serial.println("Sending sets...");
         topic = "stab_brd/sets/fase_";
         topic += String(fase) + "/";
         topic += WiFi.macAddress();
@@ -172,7 +171,8 @@ bool createFaseMqttData(char fase) {
     }
     if (board[board_number].mainData.Events != 0) {
         std::string alarm_text;
-        uint8_t alarm_code = board[board_number].getNextActiveAlarm(alarm_text, board[board_number].mainData.Events);
+        uint8_t alarm_code = 0;
+        alarm_code = board[board_number].getNextActiveAlarm(alarm_text, board[board_number].mainData.Events);
         topic = "stab_brd/alarms/code/fase_";
         topic += String(fase) + "/";
         topic += WiFi.macAddress();

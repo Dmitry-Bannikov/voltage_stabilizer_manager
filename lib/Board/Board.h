@@ -58,7 +58,7 @@ struct data {
 	data() {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
-		Str.reserve(150);
+		Str.reserve(500);
 		Uin = 0;
 		Uout = 0;
 		Current = 0;
@@ -89,7 +89,7 @@ struct stats {
 	stats() {
 		structSize = offsetof(struct stats, structSize);
 		buffer = new uint8_t[structSize];
-		Str.reserve(200);
+		Str.reserve(500);
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&FlashCtrl, structSize);
@@ -211,7 +211,7 @@ public:
 	void 		getMotTypesList(String &result, bool mode);
 	void 		setMotKoefsList(String &str);
 	void	 	getTcRatioList(String &result);
-	uint8_t 	getNextActiveAlarm(std::string& result, const uint32_t alarms);
+	uint8_t 	getNextActiveAlarm(std::string& result, const int32_t alarms);
 	void 		setLiteral(char lit);
 	char 		getLiteral();
 	void 		tick(const String time);
