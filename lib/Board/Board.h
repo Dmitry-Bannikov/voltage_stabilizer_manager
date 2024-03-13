@@ -20,6 +20,7 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <nlohmann/json.hpp>
 
 
 #define MAX						0
@@ -46,25 +47,17 @@
 
 
 struct data {
-	int16_t 	Uin;
-	int16_t 	Uout;
-	float 		Current;
-	float 		Power;
-	float 		Cosfi;
-	uint32_t 	Events;
+	int16_t		Uin = 0;
+	int16_t		Uout = 0;
+	float 		Current = 0;
+	float 		Power = 0;
+	float 		Cosfi = 1;
+	uint32_t 	Events = 0;
 	uint8_t 	structSize;
 	uint8_t* 	buffer = nullptr;
-	String 		Str;
 	data() {
 		structSize = offsetof(struct data, structSize);
 		buffer = new uint8_t[structSize];
-		Str.reserve(500);
-		Uin = 0;
-		Uout = 0;
-		Current = 0;
-		Power = 0;
-		Cosfi = 0;
-		Events = 0;
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&Uin, structSize);
@@ -82,14 +75,11 @@ struct stats {
 	float	Power[3] 	= {0,0,0};
 	uint32_t WorkTimeMins = 0;
 	uint32_t Events = 0;
-
 	uint8_t 	structSize;
-	String  	Str;
 	uint8_t* buffer = nullptr;
 	stats() {
 		structSize = offsetof(struct stats, structSize);
 		buffer = new uint8_t[structSize];
-		Str.reserve(500);
 	}
 	void packData() {
 		memcpy(buffer, (uint8_t*)&FlashCtrl, structSize);
@@ -156,10 +146,9 @@ struct addsets {
 };
 
 
-//#define isEvent(event)					(bitRead(mainData.Events, event))
-
 // =======================================================================================//
-
+#define NUM_VALS 13
+#define SETS_VALS 17
 
 class Board
 {
@@ -204,16 +193,17 @@ public:
 	uint8_t 	sendCommand(uint8_t* command);
 	uint8_t 	sendCommand();
 	uint8_t 	getCommand();
-	void 		getDataStr();
-	void 		getStatisStr();
-	void 		createJsonData(String& result, uint8_t mode);
-	uint8_t 	getJsonData(const char* data, uint8_t mode);
+	void 		getDataStr(String & result);
+	void 		getStatisStr(String & result);
+	void 		getJsonData(std::string & result, uint8_t mode);
+	uint8_t 	setJsonData(std::string input);
 	void 		getMotTypesList(String &result, bool mode);
 	void 		setMotKoefsList(String &str);
 	void	 	getTcRatioList(String &result);
-	uint8_t 	getNextActiveAlarm(std::string& result, const int32_t alarms);
+	uint8_t 	getNextActiveAlarm(std::string& result, uint32_t alarms);
 	void 		setLiteral(char lit);
 	char 		getLiteral();
+	float 		getData(std::string request);
 	void 		tick(const String time);
 	void 		detach();
 	~Board();
@@ -222,7 +212,17 @@ public:
 	stats mainStats;
 	mainsets mainSets;
 	addsets addSets;
-	
+	struct board_data_t {
+		std::string dataJson;
+		std::string settingsJson;
+		float settings[SETS_VALS];
+		float online[NUM_VALS];
+		float min[NUM_VALS];
+		float max[NUM_VALS];
+		void getMinMax(bool set_zero = false);
+		void getJsonData(std::string & result, uint8_t mode);
+		void setJsonData(std::string & input);
+	} Bdata;
 
 };
 

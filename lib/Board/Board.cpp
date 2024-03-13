@@ -4,7 +4,29 @@
 #include <esp_err.h>
 
 #define isEvent(event)					(bitRead(mainData.Events, event))
+#define json	nlohmann::json
+
+
+const char* jsonDataNames[NUM_VALS] = {
+		"Uin" , "Uout" , "I" , "P" , 
+		"Uin_avg" , "Uout_avg" , "I_avg" , "P_avg" ,
+		"Uin_max" , "Uout_max" , "I_max" , "P_max" ,
+		"work_h"
+};
+
+const char* jsonSetsNames[SETS_VALS] = {
+		"Uout_minoff", "Uout_maxoff", "Accuracy", 
+		"Target" , "Uin_tune" , "Uout_tune" ,
+		"T_5" , "SN_1" , "SN_2" ,
+		"M_type" , "Time_on" , "Time_off" ,
+		"Rst_max" , "Save" , "Transit" ,
+		"Password", "Outsignal"
+};
+
+
 //==================Public=================//
+
+
 
 int8_t Board::StartI2C() {
 	
@@ -55,7 +77,7 @@ bool Board::attach(const uint8_t addr) {
 	gEventsList[10] = "Перегрузка";
 	gEventsList[11] = "Внешний сигнал";
 	gEventsList[12] = "Выход отключен";
-
+	Bdata.getMinMax(true);
 	return isOnline();
 }
 
@@ -105,6 +127,7 @@ uint8_t Board::getDataRaw() {
 	memcpy(mainStats.buffer, _rxbuffer + 1 + mainData.structSize, mainStats.structSize);
 	mainData.unpackData();
 	mainStats.unpackData();
+	
 	return ret;
 }
 
@@ -138,15 +161,26 @@ uint8_t Board::getData() {
 	static uint8_t disconn = 0;
 	static uint32_t last_update = 0;
 	uint8_t error = getDataRaw();
-	getDataStr();
-	getStatisStr();
 	if (error) {
 		Serial.println("Error receive data");
-		(disconn < 5) ? (disconn++) : (disconn = 5, _disconnected = 1);
+		(disconn < 15) ? (disconn++) : (disconn = 15, _disconnected = 1);
 	} else {
 		disconn = 0;
 		_disconnected = 0;
 	}
+	int trRatio = addSets.tcRatioList[mainSets.TransRatioIndx];
+	Bdata.settings[0] = mainSets.MinVolt; Bdata.settings[1] = mainSets.MaxVolt; Bdata.settings[2] = mainSets.Hysteresis; 
+	Bdata.settings[3] = mainSets.Target; Bdata.settings[4] = mainSets.TuneInVolt; Bdata.settings[5] = mainSets.TuneOutVolt; 
+	Bdata.settings[6] = trRatio; Bdata.settings[7] = addSets.SerialNumber[0]; Bdata.settings[8] = addSets.SerialNumber[1]; 
+	Bdata.settings[9] = mainSets.MotorType; Bdata.settings[10] = mainSets.EmergencyTON/1000.0; Bdata.settings[11] = mainSets.EmergencyTOFF/1000.0; 
+	Bdata.settings[12] = addSets.Switches[SW_RSTST]; Bdata.settings[13] = 0; Bdata.settings[14] = addSets.Switches[SW_TRANSIT]; 
+	Bdata.settings[15] = addSets.password; Bdata.settings[16] = addSets.Switches[SW_OUTSIGN];
+
+	Bdata.online[0] = mainData.Uin; Bdata.online[1] = mainData.Uout; Bdata.online[2] = mainData.Current*10; 
+	Bdata.online[3] = mainData.Power/1000.0; Bdata.online[4] = mainStats.Uin[1]; Bdata.online[5] = mainStats.Uout[1]; 
+	Bdata.online[6] = mainStats.Current[1]; Bdata.online[7] = mainStats.Power[1]/1000.0; Bdata.online[8] = mainStats.Uin[0]; 
+	Bdata.online[9] = mainStats.Uout[0]; Bdata.online[10] = mainStats.Current[0]; Bdata.online[11] = mainStats.Power[0]/1000.0; 
+	Bdata.online[12] = mainStats.WorkTimeMins/60; 
 	return error;
 }
 
@@ -202,7 +236,7 @@ uint8_t Board::sendCommand() {
 	return 0;
 }
 
-void Board::getDataStr() {
+void Board::getDataStr(String & result) {
 	float full_pwr = mainData.Power/1000.0;
 	String s = "";
 	char data[500];
@@ -219,10 +253,10 @@ void Board::getDataStr() {
 	s += String(data);
 	s += F("\nСобытия | ");
 	s += errorsToStr(mainData.Events, EVENTS_FULL);
-	mainData.Str = s;
+	result = s;
 }
 
-void Board::getStatisStr() {
+void Board::getStatisStr(String & result) {
 	float maxPwr = mainStats.Power[MAX]/1000.0;
 	float avgPwr = mainStats.Power[AVG]/1000.0;
 	String s = "";
@@ -251,134 +285,81 @@ U выход  |
 	s += String(statis);
 	s += F("\nСобытия: ");
 	s += errorsToStr(mainStats.Events, EVENTS_SHORT);
-	mainStats.Str = s;
+	result = s;
 }
 
 
-void Board::createJsonData(String& result, uint8_t mode) {
-	
-	char json[500];
-	char fase = mainSets.Liter;
-	if (mode == 0) {
-		float Pwr = mainData.Power/1000.0;
-		float maxPwr = mainStats.Power[MAX]/1000.0;
-		float avgPwr = mainStats.Power[AVG]/1000.0;
-		sprintf(json, 
-					"{"
-					"\"Mode\":\"Data\","
-					"\"Fase\":\"%c\",\"Uin\":\"%d\",\"Uout\":\"%d\",\"I\":\"%.1f\",\"P\":\"%.1f\","
-					"\"Uin_avg\":\"%d\",\"Uout_avg\":\"%d\",\"I_avg\":\"%.1f\",\"P_avg\":\"%.1f\","
-					"\"Uin_max\":\"%d\",\"Uout_max\":\"%d\",\"I_max\":\"%.1f\",\"P_max\":\"%.1f\","
-					"\"work_h\":\"%d\""
-					"}\0", 
-				fase, mainData.Uin, mainData.Uout, mainData.Current, Pwr,
-				mainStats.Uin[AVG],mainStats.Uout[AVG],mainStats.Current[AVG],avgPwr,
-				mainStats.Uin[MAX],mainStats.Uout[MAX],mainStats.Current[MAX],maxPwr,
-				mainStats.WorkTimeMins/60
-		);
-	} else if (mode == 1) {
-		int trRatio = addSets.tcRatioList[mainSets.TransRatioIndx];
-		sprintf(json, 
-					"{"
-					"\"Mode\":\"Sets\","
-					"\"Fase\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Target\":\"%d\","
-					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"T_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
-					"\"M_type\":\"%d\",\"Time_on\":\"%.1f\",\"Time_off\":\"%.1f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
-					"\"Transit\":\"%d\",\"Password\":\"%d\",\"Outsignal\":\"%d\""
-					"}\0", 
-				fase, mainSets.MinVolt, mainSets.MaxVolt, mainSets.Hysteresis, mainSets.Target, mainSets.TuneInVolt,
-				mainSets.TuneOutVolt, trRatio, addSets.SerialNumber[0], addSets.SerialNumber[1], mainSets.MotorType,
-				mainSets.EmergencyTON/1000.0, mainSets.EmergencyTOFF/1000.0, 
-				addSets.Switches[SW_RSTST], 0, addSets.Switches[SW_TRANSIT], addSets.password, addSets.Switches[SW_OUTSIGN]
-		);
-		
-	} else if (mode == 2) {
-		sprintf(json, 
-					"{"
-					"\"Mode\":\"Alarms\","
-					"\"Fase\":\"%c\",\"No Alarms\":\"%d\",\"Motor Block\":\"%d\",\"Alarm 1\":\"%d\",\"Alarm 2\":\"%d\","
-					"\"No Power Supply\":\"%d\",\"Low Voltage\":\"%d\",\"High Voltage\":\"%d\",\"Max Limit Voltage\":\"%d\",\"Min Limit Voltage\":\"%d\","
-					"\"Bypass\":\"%d\",\"Overload\":\"%d\",\"External signal\":\"%d\",\"Output Off\":\"%d\""
-					"}\0", 
-				fase, isEvent(0), isEvent(1), isEvent(2), isEvent(3), isEvent(4), isEvent(5), isEvent(6), 
-					  isEvent(7), isEvent(8), isEvent(9), isEvent(10), isEvent(11), isEvent(12)
-		);
+float Board::getData(std::string request) {
+	json jdata = json::parse(Bdata.dataJson);
+	json jsets = json::parse(Bdata.settingsJson);
+	for (auto it = jdata.begin(); it != jdata.end(); ++it) {
+		if (it.key() == request) return it.value();
 	}
-	result = String(json);
+	for (auto it = jsets.begin(); it != jsets.end(); ++it) {
+		if (it.key() == request) return it.value();
+	}
+	return nan("");
 }
 
-uint8_t Board::getJsonData(const char* data, uint8_t mode) {
-	char* str = (char*)data;
-	int i = 0;
-	int j = 0;
-	while (str[i])
-	{
-		if (str[i] != ' ' && str[i] != '\n' && str[i] != '\r')
-		{
-			str[j++] = str[i];
+void Board::getJsonData(std::string & result, uint8_t mode) {
+	std::stringstream ss;
+	ss << "{\"Fase\":\"" << getLiteral() << "\",";
+	if (mode < 3) {
+		bool first = true;
+		for (uint8_t i = 0; i < NUM_VALS; i++) {
+			if (!first) ss << ",";
+			if (mode==0) {
+				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.online[i]*10)/10 << "\"";
+			} else if (mode==1) {
+				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.min[i]*10)/10 << "\"";
+			} else {
+				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.max[i]*10)/10 << "\"";
+			}
+			first = false;
 		}
-		i++;
+		ss << "}";
+		//Bdata.dataJson = ss.str();
+	} else if (mode == 4) {
+		bool first = true;
+		for (uint8_t i = 0; i < SETS_VALS; i++) {
+			if (!first) ss << ",";
+			if (i == 7 || i == 8) {
+				ss << "\"" << jsonSetsNames[i] << "\":\"" << std::fixed << std::to_string(addSets.SerialNumber[i-7])  << "\"";
+			} else {
+				ss << "\"" << jsonSetsNames[i] << "\":\"" << std::defaultfloat << Bdata.settings[i] << "\"";
+			}
+			first = false;
+		}
+		ss << "}";
+		//Bdata.settingsJson = ss.str();
 	}
-	str[j] = '\0';
-
-	char fase = 0;
-	int16_t MinVolt = 0;
-	int16_t MaxVolt = 0;
-	int16_t Hysteresis = 0;
-	int16_t Target = 0;
-	int16_t TuneInVolt = 0;
-	int16_t TuneOutVolt = 0;
-	int16_t tcRatio = 0;
-	int32_t SN1;
-	int32_t SN2;
-	int16_t MotorType = 0;
-	float Time_on = -1;
-	float Time_off = -1;
-	int16_t Rst_stat;
-	int16_t isNeedSave = 0;
-	int16_t isNeedTransit = 0;
-	int16_t password = 0;
-	int16_t isNeedOutsignal = 0;
 	
-	Serial.println(String(str));
-	sscanf(str, 
-					"{" 
-					"\"Mode\":\"Sets\","
-					"\"Fase\":\"%c\",\"Uout_minoff\":\"%d\",\"Uout_maxoff\":\"%d\",\"Accuracy\":\"%d\",\"Target\":\"%d\","
-					"\"Uin_tune\":\"%d\",\"Uout_tune\":\"%d\",\"T_5\":\"%d\",\"SN_1\":\"%d\",\"SN_2\":\"%d\","
-					"\"M_type\":\"%d\",\"Time_on\":\"%f\",\"Time_off\":\"%f\",\"Rst_max\":\"%d\",\"Save\":\"%d\","
-					"\"Transit\":\"%d\",\"Password\":\"%d\",\"Outsignal\":\"%d\""
-					"}\0", 
-				&fase, &MinVolt, &MaxVolt, &Hysteresis, &Target, &TuneInVolt,
-				&TuneOutVolt, &tcRatio, &SN1, &SN2, &MotorType, &Time_on, &Time_off,
-				&Rst_stat, &isNeedSave, &isNeedTransit, &password, &isNeedOutsignal
-	);
+	result = ss.str();
+}
 
-	if (!tcRatio || Time_on == -1 || Time_off == -1) {
-		Serial.println("\nError receiving sets!");
-		return 1;
+uint8_t Board::setJsonData(std::string input) {
+
+	json j = json::parse(input);
+	auto it = j.begin();
+	for (uint8_t i = 0; i < SETS_VALS, it != j.end(); i++, ++it) {
+		if (it.key() == jsonSetsNames[i]) Bdata.settings[i] = it.value();
+		else return 1;
 	}
+	int16_t tcRatio = 0;
+	bool isNeedSave = 0;
+	mainSets.MinVolt = Bdata.settings[0]; mainSets.MaxVolt = Bdata.settings[1]; mainSets.Hysteresis = Bdata.settings[2]; 
+	mainSets.Target = Bdata.settings[3]; mainSets.TuneInVolt = Bdata.settings[4]; mainSets.TuneOutVolt = Bdata.settings[5]; 
+	tcRatio = Bdata.settings[6]; addSets.SerialNumber[0] = Bdata.settings[7]; addSets.SerialNumber[1] = Bdata.settings[8]; 
+	mainSets.MotorType = Bdata.settings[9]; mainSets.EmergencyTON = Bdata.settings[10] * 1000.0; mainSets.EmergencyTOFF = Bdata.settings[11] * 1000.0; 
+	addSets.Switches[SW_RSTST] = Bdata.settings[12]; isNeedSave = Bdata.settings[13]; addSets.Switches[SW_TRANSIT] = Bdata.settings[14]; 
+	addSets.password = Bdata.settings[15]; addSets.Switches[SW_OUTSIGN] = Bdata.settings[16];
+
 	for (uint8_t i = 0; i < sizeof(addSets.tcRatioList) / sizeof(addSets.tcRatioList[0]); i++) {
 		if (tcRatio == addSets.tcRatioList[i]) {
 			mainSets.TransRatioIndx = i;
 			break;
 		}
 	}
-	mainSets.Liter = fase;
-	mainSets.MinVolt = MinVolt;
-	mainSets.MaxVolt = MaxVolt;
-	mainSets.Hysteresis = Hysteresis;
-	mainSets.Target = Target;
-	mainSets.TuneInVolt = TuneInVolt;
-	mainSets.TuneOutVolt = TuneOutVolt;
-	addSets.SerialNumber[0] = SN1;
-	addSets.SerialNumber[1] = SN2;
-	mainSets.MotorType = MotorType;
-	mainSets.EmergencyTON = (int16_t)(Time_on*1000);
-	mainSets.EmergencyTOFF = (int16_t)(Time_off*1000);
-	addSets.Switches[SW_RSTST] = Rst_stat;
-	addSets.Switches[SW_TRANSIT] = isNeedTransit;
-	addSets.Switches[SW_OUTSIGN] = isNeedOutsignal;
 	validate();
     sendCommand();
 	if (isNeedSave) sendMainSets();
@@ -451,7 +432,7 @@ void Board::getTcRatioList(String &result) {
 	}
 }
 
-uint8_t Board::getNextActiveAlarm(std::string& result, const int32_t alarms) {
+uint8_t Board::getNextActiveAlarm(std::string& result, uint32_t alarms) {
 	static uint8_t i = 0;
 	if (!alarms) return 0;
 	uint32_t errors = alarms;
@@ -546,17 +527,11 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 		}
 	}
 	if (brd.size() == max) return brd.size();
-	StopI2C();
-	pinMode(21|22, INPUT);
-	Serial.print("\nI2C pins state: ");
-	Serial.print(digitalRead(21));
-	Serial.println(digitalRead(22));
 	StartI2C();
 	uint32_t tmrStart = millis();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
 		uint8_t ret = Board::isBoard(addr);
 		if (ret) {				//если на этом адресе есть плата
-			Serial.println((char)ret);
 			bool reserved = false;	
 			for (uint8_t i = 0; i < brd.size(); i++) {				//проходимся по уже существующим платам
 				if (brd[i].getAddress() == addr) {						//если эта плата уже имеет этот адрес
@@ -566,7 +541,6 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			if (!reserved) {
 				brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
 				brd[brd.size() - 1].setLiteral((char)ret);	
-				//return 1;//test
 			}
 		}
 		if (millis() - tmrStart > 2500) return 0; //если сканирование заняло более 5 секунд - отменяем.
@@ -578,12 +552,23 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 
     // Сортируем вектор
     std::sort(brd.begin(), brd.end(), compareByLiteral);
-
-
-
-
 	return brd.size();
 }
 
-
+void Board::board_data_t::getMinMax(bool set_zero) {
+	static uint32_t tmr = 0;
+	if (millis() -  tmr > 70000) {
+		set_zero = true;
+	}
+	if (set_zero) {
+		memset(min, 0x46, sizeof(min));
+		memset(max, 0, sizeof(max));
+		tmr = millis();
+		return;
+	}
+	for (uint8_t i = 0; i < NUM_VALS; i++) {
+		min[i] = (online[i] < min[i] ? online[i] : min[i]);
+		max[i] = (online[i] > max[i] ? online[i] : max[i]);
+	}
+} 
 

@@ -200,8 +200,11 @@ void updatesHandler() {
 		ui.answer(1);
 	}
 	for (uint8_t i = 0; i < board.size(); i++) {
-		ui.updateString(String("b_data/") + i, board[i].mainData.Str);
-		ui.updateString(String("b_stat/") + i, board[i].mainStats.Str);
+		String dataStr, statStr;
+		board[i].getDataStr(dataStr);
+		board[i].getDataStr(statStr);
+		ui.updateString(String("b_data/") + i, dataStr);
+		ui.updateString(String("b_stat/") + i, statStr);
 		ui.updateBool(String("b_led/") + i, board[i].isOnline());
 	}
 

@@ -61,12 +61,8 @@ void connectionInit() {
 void memoryInit() {
 	LED_blink(1);
 	EEPROM.begin(512);
-	memoryWIFI.begin(0, 127);
+	memoryWIFI.begin(0, MEMORY_KEY);
 	LED_blink(0);
-	for (uint8_t i = 0; i < board.size(); i++) {	
-		//board[i].getDataRaw(); 
-		delay(250);
-	}
 }
 
 void boardTick() {
@@ -90,7 +86,7 @@ void boardTick() {
 			board[i].getMainSets();
 			board[i].getCommand();
 		}
-		if (board.size()) scanNewBoards();
+		scanNewBoards();
 	}
 }
 
@@ -109,8 +105,7 @@ void scanNewBoards() {
 }
 
 void WiFi_Init() {
-	if (wifi_settings.staModeEn)
-	{
+	if (wifi_settings.staModeEn) {
 		WiFi.mode(WIFI_STA);
 		WiFi.begin(wifi_settings.staSsid, wifi_settings.staPass);
 		int attemptCount = 0;
@@ -128,13 +123,10 @@ void WiFi_Init() {
 			delay(1000);
 		}
 		Serial.println(WiFi.localIP());
-	}
-	// Иначе создаем свою сеть
-	else
-	{
+	} else {
 		WiFi.mode(WIFI_AP);
 		WiFi.softAP(wifi_settings.apSsid, wifi_settings.apPass);
-		delay(1000);
+		delay(100);
 		Serial.println(WiFi.softAPIP());
 	}
 }

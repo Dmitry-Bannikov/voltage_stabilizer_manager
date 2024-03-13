@@ -22,7 +22,7 @@ GPtime t;
 #define STA_DEFAULT_PASS    "" 
 #define STA_CONNECT_EN      0 
 #endif
-#define MEMORY_KEY          126                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
+#define MEMORY_KEY          127                     //ключ памяти (от 0 до 255), если изменить, то настройки сбросятся
 
 struct wifisets {                                   // Структура со всеми настройками wifi
     bool staModeEn = STA_CONNECT_EN;                // Подключаться роутеру по умолчанию?
