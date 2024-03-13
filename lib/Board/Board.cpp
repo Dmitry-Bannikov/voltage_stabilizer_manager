@@ -162,7 +162,6 @@ uint8_t Board::getData() {
 	static uint32_t last_update = 0;
 	uint8_t error = getDataRaw();
 	if (error) {
-		Serial.println("Error receive data");
 		(disconn < 15) ? (disconn++) : (disconn = 15, _disconnected = 1);
 	} else {
 		disconn = 0;
@@ -191,10 +190,8 @@ uint8_t Board::sendMainSets(uint8_t attempts) {
 	memset(_rxbuffer, 0, sizeof(_txbuffer));
 	*_txbuffer = I2C_MAINSETS_START;
 	mainSets.packData();
-	Serial.printf("mainSets buffer: %d", mainSets.buffer[10]);
 	addSets.packData();
 	memcpy(_txbuffer+1, mainSets.buffer, mainSets.structSize);
-	Serial.printf("TX buffer: %d", _txbuffer[11]);
 	memcpy(_txbuffer+1 + mainSets.structSize, addSets.buffer, addSets.structSize);
   	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, _txbuffer, sizeof(_txbuffer), pdMS_TO_TICKS(100));
 	if (ret != ESP_OK) return 2;
@@ -338,22 +335,23 @@ void Board::getJsonData(std::string & result, uint8_t mode) {
 }
 
 uint8_t Board::setJsonData(std::string input) {
-
 	json j = json::parse(input);
-	auto it = j.begin();
-	for (uint8_t i = 0; i < SETS_VALS, it != j.end(); i++, ++it) {
-		if (it.key() == jsonSetsNames[i]) Bdata.settings[i] = it.value();
-		else return 1;
-	}
+
+	for (const auto& pair : j.items()) {
+        for (int i = 0; i < SETS_VALS; ++i) {
+            if (pair.key() == jsonSetsNames[i]) {
+				Bdata.settings[i] = std::stof(pair.value().get<std::string>());
+            }
+        }
+    }
 	int16_t tcRatio = 0;
-	bool isNeedSave = 0;
+	int isNeedSave = 0;
 	mainSets.MinVolt = Bdata.settings[0]; mainSets.MaxVolt = Bdata.settings[1]; mainSets.Hysteresis = Bdata.settings[2]; 
 	mainSets.Target = Bdata.settings[3]; mainSets.TuneInVolt = Bdata.settings[4]; mainSets.TuneOutVolt = Bdata.settings[5]; 
 	tcRatio = Bdata.settings[6]; addSets.SerialNumber[0] = Bdata.settings[7]; addSets.SerialNumber[1] = Bdata.settings[8]; 
 	mainSets.MotorType = Bdata.settings[9]; mainSets.EmergencyTON = Bdata.settings[10] * 1000.0; mainSets.EmergencyTOFF = Bdata.settings[11] * 1000.0; 
 	addSets.Switches[SW_RSTST] = Bdata.settings[12]; isNeedSave = Bdata.settings[13]; addSets.Switches[SW_TRANSIT] = Bdata.settings[14]; 
 	addSets.password = Bdata.settings[15]; addSets.Switches[SW_OUTSIGN] = Bdata.settings[16];
-
 	for (uint8_t i = 0; i < sizeof(addSets.tcRatioList) / sizeof(addSets.tcRatioList[0]); i++) {
 		if (tcRatio == addSets.tcRatioList[i]) {
 			mainSets.TransRatioIndx = i;

@@ -44,15 +44,9 @@ void MqttInit() {
     String topicSets_A = "stab_brd/getsets/fase_A/"+esp_mac;
     String topicSets_B = "stab_brd/getsets/fase_B/"+esp_mac;
     String topicSets_C = "stab_brd/getsets/fase_C/"+esp_mac;
-    String topicSets_A_outS = "stab_brd/outsignal/fase_A/"+esp_mac;
-    String topicSets_B_outS = "stab_brd/outsignal/fase_B/"+esp_mac;
-    String topicSets_C_outS = "stab_brd/outsignal/fase_C/"+esp_mac;
     mqttClient.subscribe(topicSets_A.c_str());
     mqttClient.subscribe(topicSets_B.c_str());
     mqttClient.subscribe(topicSets_C.c_str());
-    mqttClient.subscribe(topicSets_A_outS.c_str());
-    mqttClient.subscribe(topicSets_B_outS.c_str());
-    mqttClient.subscribe(topicSets_C_outS.c_str());
     mqttClient.setCallback(onMqttMessage);
 }
 
@@ -102,13 +96,6 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
     
     if (topicStr.indexOf("getsets") != -1){
         board[board_num].setJsonData(std::string((char*)payload));
-    } else if (topicStr.indexOf("outsignal") != -1) {
-        int value = -1;
-        sscanf((char*)payload, "%d", &value);
-        if (value != -1) {
-            board[board_num].addSets.Switches[SW_OUTSIGN] = value;
-            board[board_num].sendCommand();
-        }
     }
     mqttClient.flush();
 }
