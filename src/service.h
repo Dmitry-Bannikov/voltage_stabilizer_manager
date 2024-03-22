@@ -52,7 +52,6 @@ void connectionInit() {
 	Serial.print(digitalRead(21));
 	Serial.println(digitalRead(22));
 	Board::StartI2C();
-	meter.begin();
 	board.reserve(MAX_BOARDS);
 	delay(10);
 	scanNewBoards();
@@ -74,25 +73,22 @@ void boardTick() {
 			t = ui.getSystemTime();
 			board[i].tick(t.encode());
 		}
-		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
+		//denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
 	} else if (boardRequest && board.size()){
-		denyDataRequest = 3;
+		//denyDataRequest = 3;
 		BoardRequest(boardRequest);
 	}
 
 	if (millis()%60000 == 0) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			board[i].getMainSets();
-			board[i].getCommand();
+			board[i].readAll();
 		}
 		scanNewBoards();
 	}
 }
 
 void scanNewBoards() {
-
-	Serial.println("Start scanning...");
 	static uint8_t old_amount = 0; 
 	static uint8_t counter = 0;
 	counter++;
@@ -101,7 +97,7 @@ void scanNewBoards() {
 		webRefresh = true;
 		old_amount = board.size();
 	} 
-	Serial.printf("Complete. Found: %d \n", board.size());
+	//Serial.printf("Complete. Found: %d \n", board.size());
 }
 
 void WiFi_Init() {
@@ -153,7 +149,7 @@ void BoardRequest(uint8_t &request) {
 			requestResult = 1;
 		} else if (request == 4) {
 			uint8_t result = board[activeBoard].addSets.Switches[SW_OUTSIGN];
-			if(board[activeBoard].sendCommand()) {
+			if(board[activeBoard].sendSwitches()) {
 				board[activeBoard].addSets.Switches[SW_OUTSIGN] = !result;
 			}
 		}
@@ -164,20 +160,20 @@ void BoardRequest(uint8_t &request) {
 		if (!board[target].isAnswer()) return;
 		if (command == 1)
 		{
-			if (!board[target].getMainSets()) requestResult = 1;	
+			if (board[target].readAll()) requestResult = 1;	
 		}
 		else if (command == 2)
 		{
-			if(!board[target].sendMainSets()) requestResult = 1;
+			if(!board[target].sendMainSets() && !board[target].sendAddSets()) requestResult = 1;
 		}
 		else if (command == 3)
 		{
-			if(!board[target].sendCommand(SW_REBOOT, 1)) requestResult = 1;
+			if(!board[target].sendSwitches(SW_REBOOT, 1, 1)) requestResult = 1;
 			
 		}
 		else if (command == 4)
 		{
-			while (board[target].sendCommand(SW_RSTST, 1));
+			board[target].sendSwitches(SW_RSTST, 1, 1);
 		}
 	}
 	

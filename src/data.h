@@ -3,7 +3,6 @@
 #include <TimeTicker.h>
 #include <EEManager.h>
 #include <Board.h>
-#include <PhaseMultimeter.h>
 
 
 
@@ -35,7 +34,6 @@ struct wifisets {                                   // Структура со �
 #define MAX_BOARDS	3
 std::vector<Board> board;					//объекты плат
 EEManager memoryWIFI(wifi_settings, 20000);
-Meter meter;
 
 
 uint8_t activeBoard = 0;

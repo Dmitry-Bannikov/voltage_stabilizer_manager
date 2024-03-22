@@ -20,7 +20,7 @@ void updatesHandler();
 void portalBuild() {
   //------------------------------------------//
 	GP.BUILD_BEGIN(900);
-	GP.ONLINE_CHECK(5000);
+	GP.ONLINE_CHECK(6000);
 	GP.THEME(GP_LIGHT);
 	String update = "";
 	createUpdateList(update);
@@ -93,7 +93,7 @@ void portalInit() {
 		ui.start();
 	}
 	ui.enableOTA("admin", "1234");
-	
+	ui.onlineTimeout(5000);
 }
 
 void portalTick() {
@@ -112,7 +112,7 @@ void createUpdateList(String &list) {
 		list += ",";
 	}
 	list += "setsalt,reload,";
-	list += "outsignal,mqttConnected_led";
+	list += "outsignal,mqttConnected_led,mset_CurrClbrKoeff";
 }
 
 void formsHandler() {
@@ -160,8 +160,8 @@ void clicksHandler() {
 	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
 	
 	if (ui.clickInt("b_sel", activeBoard)) {
-		board[activeBoard].getMainSets();
-		board[activeBoard].getCommand();
+		board[activeBoard].readAll();
+		
 	}
 	ui.clickBool("mset_transit", board[activeBoard].mainSets.EnableTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.Target);
@@ -176,7 +176,13 @@ void clicksHandler() {
 	ui.clickInt("mset_minV", board[activeBoard].mainSets.MinVolt);
 	ui.clickInt("mset_toff", board[activeBoard].mainSets.EmergencyTOFF);
 	ui.clickInt("mset_ton", board[activeBoard].mainSets.EmergencyTON);
-	
+	if (ui.clickFloat("mset_CurrClbrValue", board[activeBoard].CurrClbrtValue)) {
+		int16_t value = (int16_t)(board[activeBoard].CurrClbrtValue*100);
+		board[activeBoard].sendMainSets(14, 1, value);
+		int16_t newKoeff = board[activeBoard].readMainSets(15, 1);
+		board[activeBoard].CurrClbrtKoeff = ((float)newKoeff)/100.0;
+	}
+	//ui.clickFloat("mset_curClbrKoef", board[activeBoard].mainSets.CurrClbrtKoeff);
 	if (ui.click("aset_motKoefs")) {
 		String motKoefs_list = ui.getString();
 		board[activeBoard].setMotKoefsList(motKoefs_list);
@@ -202,11 +208,11 @@ void updatesHandler() {
 	for (uint8_t i = 0; i < board.size(); i++) {
 		String dataStr, statStr;
 		board[i].getDataStr(dataStr);
-		board[i].getDataStr(statStr);
+		board[i].getStatisStr(statStr);
 		ui.updateString(String("b_data/") + i, dataStr);
 		ui.updateString(String("b_stat/") + i, statStr);
 		ui.updateBool(String("b_led/") + i, board[i].isOnline());
 	}
-
+	ui.updateFloat("mset_CurrClbrKoeff", board[activeBoard].CurrClbrtKoeff, 2);
 	
 }
