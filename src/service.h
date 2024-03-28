@@ -66,25 +66,27 @@ void memoryInit() {
 
 void boardTick() {
 	static uint32_t tmr = 0;
+	static uint32_t scanTmr = 0;
 	static uint8_t denyDataRequest = 0;
 	uint8_t boardsAmnt = board.size();
-	if (millis() - tmr > 900 && !boardRequest) {
+	if (millis() - tmr > 1000 && !boardRequest) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
 			t = ui.getSystemTime();
 			board[i].tick(t.encode());
 		}
-		//denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
+		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
 	} else if (boardRequest && board.size()){
-		//denyDataRequest = 3;
+		denyDataRequest = 3;
 		BoardRequest(boardRequest);
 	}
 
-	if (millis()%60000 == 0) {
+	if (millis() - scanTmr > 60000) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
 			board[i].readAll();
 		}
 		scanNewBoards();
+		scanTmr = millis();
 	}
 }
 

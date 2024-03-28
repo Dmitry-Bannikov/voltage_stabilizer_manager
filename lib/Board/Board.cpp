@@ -203,7 +203,7 @@ uint8_t Board::getData() {
 	static uint32_t last_update = 0;
 	float result = readDataRaw();
 	if (millis() - last_update > 5000) {
-		readStatsRaw();
+		result = readStatsRaw();
 		last_update = millis();
 	}
 	if (result == NAN) {
@@ -588,6 +588,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 	//StartI2C();
 	uint32_t tmrStart = millis();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
+		tmrStart = millis();
 		uint8_t ret = Board::isBoard(addr);
 		if (ret) {				//если на этом адресе есть плата
 			bool reserved = false;	
@@ -601,7 +602,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 				brd[brd.size() - 1].setLiteral((char)ret);	
 			}
 		}
-		if (millis() - tmrStart > 2500) return 0; //если сканирование заняло более 5 секунд - отменяем.
+		if (millis() - tmrStart > 50) return 0; //если сканирование заняло более 5 секунд - отменяем.
 	}
 
 	auto compareByLiteral = [](Board& board1, Board& board2) {
