@@ -1,21 +1,7 @@
-#pragma once
-
-#include <customs.h>
-#include <LittleFS.h>
-#include <service.h>
-
-
-void portalBuild();
-void portalActions();
-void portalInit();
-void portalTick();
-void createUpdateList(String &list);
-void formsHandler();
-void clicksHandler();
-void updatesHandler();
-
-
-
+#include "webinterface.h" 
+#include "netconnection.h"
+#include "customs.h"
+#include "common_data.h"
 
 void portalBuild() {
   //------------------------------------------//
@@ -129,7 +115,7 @@ void formsHandler() {
 		wifi_settings.staModeEn = 0;
 		}
 		LED_blink(1);
-		memoryWIFI.updateNow();
+		wifi_updateCFG();
 		delay(1000);
 		ESP.restart();
 	}
@@ -149,7 +135,7 @@ void clicksHandler() {
 	}
 
 	if (ui.clickUp("rst_btn")) 		ESP.restart();			//esp restart
-	if (ui.clickUp("scan_btn")) 	scanNewBoards();			//scan boards
+	if (ui.clickUp("scan_btn")) 	boardRequest = 2;			//scan boards
 	if (ui.clickUp("saveall_btn")) 	boardRequest = 3;			//save to all boards
 	if (ui.clickUp("read_btn") ) 	boardRequest = 10 + activeBoard;	//read settings from active board
 	if (ui.clickUp("save_btn"))  	boardRequest = 20 + activeBoard; 	//save settings to active board

@@ -1,37 +1,4 @@
-#pragma once
-
-#include <data.h>
-//#include <service.h>
-
-void GP_data_build();
-void GP_target_build();
-void GP_mainsets_build(Board &brd);
-void GP_addsets_build(Board &brd);
-
-void GP_details_start(const String &summary, const String &id);
-void GP_details_end();
-
-
-
-void GP_details_start(const String &summary, const String &id = "") {
-    String s;
-    s += F("<details style='margin: 1%; padding: 1%;'");
-    if (id != "") {
-        s += F("id = '");
-        s += F("' ");
-    }
-    s += F(">\n");
-    s += F("<summary>\n");
-    s += summary;
-    s += F("\n</summary>");
-    GP.SEND(s);
-}
-
-void GP_details_end() {
-    String s;
-    s += F("\n</details>");
-    GP.SEND(s);
-}
+#include "customs.h"
 
 void GP_data_build() {
 	GP.GRID_BEGIN();
@@ -161,18 +128,6 @@ void GP_addsets_build(Board &brd) {
 	
 	GP.BLOCK_END();
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
