@@ -12,7 +12,6 @@ void setup() {
 	System_Init();
 	Board_Init();
 	Web_Init();
-	Serial.println(WiFi.macAddress());
 	esp_task_wdt_init(10, true);
     esp_task_wdt_add(NULL);
 }

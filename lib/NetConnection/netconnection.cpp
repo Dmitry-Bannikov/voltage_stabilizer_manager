@@ -2,6 +2,7 @@
 #include <common_data.h>
 
 wifisets wifi_settings;
+global_vars globalData;
 EEManager memoryWIFI(wifi_settings, 20000);
 
 

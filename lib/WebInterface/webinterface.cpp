@@ -20,8 +20,15 @@ void portalBuild() {
 	} else {
 		GP.TITLE("Менеджер плат (STA)");
 	}
-	GP.NAV_TABS_LINKS("/,/brdcfg,/wificfg", "Главная,Настройки платы,Настройка подключения");
-	if (ui.uri("/")) {
+	GP.NAV_TABS_LINKS("/,/dashboard,/brdcfg,/wificfg", "Главная,Мониторинг,Настройки платы,Настройка подключения");
+	
+	if(ui.uri("/")) {
+		GP.BLOCK_BEGIN(GP_THIN, "", "Мои устройства");
+		GP_CreateDevicesList();
+		GP.BLOCK_END();
+	}
+	
+	if (ui.uri("/dashboard")) {
 		GP.HR();
 		GP.LABEL("Соединение по MQTT");
 		GP.LED("mqttConnected_led", mqttConnected);
@@ -49,7 +56,8 @@ void portalBuild() {
 			GP.BLOCK_END();
 
 			GP.BLOCK_BEGIN(GP_DIV_RAW);
-				GP.SUBMIT_MINI("SUBMIT & RESTART");
+				String open = "http://" + String(globalData.webInterfaceDNS) + ".local/";
+				GP_SUBMIT_MINI_LINK("Запомнить", open);
 			GP.BLOCK_END();
 			
 			GP.BLOCK_BEGIN(GP_DIV_RAW, "", "Подключение к WIFI");
@@ -73,11 +81,7 @@ void portalActions() {
 void portalInit() {
 	ui.attachBuild(portalBuild);
 	ui.attach(portalActions);
-	if (WiFi.getMode() == WIFI_MODE_STA) {
-		ui.start("stab_webserver");
-	} else {
-		ui.start();
-	}
+	ui.start(globalData.webInterfaceDNS);
 	ui.enableOTA("admin", "1234");
 	ui.onlineTimeout(5000);
 }
