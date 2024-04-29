@@ -33,6 +33,7 @@ struct global_vars {                                    //сюда добавл�
 void WifiInit();
 void wifi_tick();
 void wifi_updateCFG();
+void WiFi_Reconnect();
 
 
 
