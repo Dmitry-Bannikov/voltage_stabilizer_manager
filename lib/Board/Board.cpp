@@ -439,9 +439,10 @@ void Board::setLiteral(char lit) {
 	mainSets.Liter = lit;
 }
 
-void Board::getMotTypesList(String &result, bool mode) {
+void Board::getMotKoefsList(String &result, bool typeNumber) {
 	result = "";
-	if (mode == true) {
+	if (typeNumber == true) {
+		//example: 1(20),2(40),3(60),4(120)
 		for (uint8_t i = 1; i < sizeof(addSets.motKoefsList) / sizeof(addSets.motKoefsList[0]); i++) {
 			result += String(i) + "(";
 			result += String(addSets.motKoefsList[i]);
@@ -451,6 +452,7 @@ void Board::getMotTypesList(String &result, bool mode) {
 			result.remove(result.length() - 1);
 		}
 	} else {
+		//example: 
 		for (uint8_t i = 1; i < sizeof(addSets.motKoefsList) / sizeof(addSets.motKoefsList[0]); i++){
 			result += String(addSets.motKoefsList[i]);
 			result += String(",");

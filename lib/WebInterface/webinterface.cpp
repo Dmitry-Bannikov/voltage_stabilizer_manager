@@ -2,6 +2,7 @@
 #include "netconnection.h"
 #include "customs.h"
 #include "common_data.h"
+#include "devices.h"
 
 void portalBuild() {
   //------------------------------------------//
@@ -128,31 +129,7 @@ void formsHandler() {
 
 void clicksHandler() {
 	
-	if (ui.clickSub("brdLit")) {
-		for (uint8_t i = 0; i < board.size();i++) {
-			uint8_t num = 0;
-			if (ui.clickInt(String("brdLit/")+i, num)) {
-				if (num != 0) board[i].setLiteral(64+num);
-				else board[i].setLiteral('N');
-			}
-		}
-	}
-
-	if (ui.clickUp("rst_btn")) 		ESP.restart();			//esp restart
-	if (ui.clickUp("scan_btn")) 	boardRequest = 2;			//scan boards
-	if (ui.clickUp("saveall_btn")) 	boardRequest = 3;			//save to all boards
-	if (ui.clickUp("read_btn") ) 	boardRequest = 10 + activeBoard;	//read settings from active board
-	if (ui.clickUp("save_btn"))  	boardRequest = 20 + activeBoard; 	//save settings to active board
-	if (ui.clickUp("mset_reboot")) 	boardRequest = 30 + activeBoard;	//reboot active board
-	if (ui.clickUp("r_stat/0"))		boardRequest = 40;			//reset statistic
-	if (ui.clickUp("r_stat/1")) 	boardRequest = 41;
-	if (ui.clickUp("r_stat/2")) 	boardRequest = 42;
-	if (ui.clickBool("outsignal", board[activeBoard].addSets.Switches[SW_OUTSIGN])) 	boardRequest = 4;		//200V out
 	
-	if (ui.clickInt("b_sel", activeBoard)) {
-		board[activeBoard].readAll();
-		
-	}
 	ui.clickBool("mset_transit", board[activeBoard].mainSets.EnableTransit);
 	ui.clickInt("mset_targetV", board[activeBoard].mainSets.Target);
 	ui.clickInt("mset_prec", board[activeBoard].mainSets.Hysteresis);
@@ -205,4 +182,28 @@ void updatesHandler() {
 	}
 	ui.updateFloat("mset_CurrClbrKoeff", board[activeBoard].CurrClbrtKoeff, 2);
 	
+}
+
+void buttons_handler() {
+	if (ui.clickSub("btn_brd_lit")) {
+		for (uint8_t i = 0; i < board.size();i++) {
+			uint8_t num = 0;
+			if (ui.clickInt(String("btn_brd_lit/")+i, num)) {
+				if (num != 0) board[i].setLiteral(64+num);
+				else board[i].setLiteral('N');
+			}
+		}
+	}
+
+	if (ui.click("btn_sys_reboot")) 	boardRequest = 1;					//esp restart
+	if (ui.click("btn_sys_rescan")) 	boardRequest = 2;					//scan boards
+	if (ui.click("btn_brd_saveall")) 	boardRequest = 3;					//save to all boards
+	if (ui.clickInt("btn_brd_active", activeBoard)) boardRequest = 4;		//set an active board
+
+	if (ui.click("btn_brd_read") ) 		boardRequest = 10 + activeBoard;	//read settings from active board
+	if (ui.click("btn_brd_write"))  	boardRequest = 20 + activeBoard; 	//write settings to active board
+	if (ui.click("btn_brd_reboot")) 	boardRequest = 30 + activeBoard;	//reboot active board
+	if (ui.clickSub("btn_brd_rst"))		boardRequest = 40 + ui.clickNameSub().toInt();	//reset statistic	
+	if (ui.click("btn_brd_outsgn")) 	boardRequest = 50 + ui.getBool();	//outsignal on active board
+	if (ui.click("btn_brd_saveCValue"))	boardRequest = 60 + activeBoard;	//submit current calibration
 }
