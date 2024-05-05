@@ -23,6 +23,7 @@ void wifi_tick() {
 	}
 	if (millis() - tmr > 45000) {
 		WiFi_Reconnect();
+		tmr = millis();
 	}
 }
 

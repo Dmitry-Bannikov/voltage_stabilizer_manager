@@ -11,3 +11,6 @@ void createUpdateList(String &list);
 void formsHandler();
 void clicksHandler();
 void updatesHandler();
+void buttons_handler();
+void fields_handler();
+void ActionsDevice_handler();

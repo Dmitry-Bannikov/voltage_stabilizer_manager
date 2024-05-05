@@ -5,6 +5,7 @@ GyverPortal ui;
 GPtime t;
 std::vector<Board> board;					//объекты плат
 
+bool dataReqDelay = false;
 uint8_t activeBoard = 0;
 bool mqttConnected = false;
 bool webRefresh = true;  

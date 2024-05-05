@@ -186,15 +186,15 @@ public:
 
 	uint8_t 	getData();		
 	//=============================Получение данных с платы=========================================//										
-	float 		readDataRaw(const uint8_t start_addr = 0, uint8_t vals_cnt = 5);		//получить данные с платы
-	float 		readStatsRaw(const uint8_t start_addr = 0, uint8_t vals_cnt = 14);		//получить статистику с платы
-	int16_t 	readMainSets(const uint8_t start_addr = 0, uint8_t vals_cnt = 16);		//получить настройки с платы
-	int16_t 	readAddSets(const uint8_t start_addr = 0, uint8_t vals_cnt = 21);		//получить настройки с платы
-	uint8_t 	readSwitches(const uint8_t start_addr = 0, uint8_t vals_cnt = 8);
+	float 		readDataRaw(const uint8_t val_addr = 0, uint8_t vals_cnt = 5);		//получить данные с платы
+	float 		readStatsRaw(const uint8_t val_addr = 0, uint8_t vals_cnt = 14);		//получить статистику с платы
+	int16_t 	readMainSets(const uint8_t val_addr = 0, uint8_t vals_cnt = 16);		//получить настройки с платы
+	int16_t 	readAddSets(const uint8_t val_addr = 0, uint8_t vals_cnt = 21);		//получить настройки с платы
+	uint8_t 	readSwitches(const uint8_t val_addr = 0, uint8_t vals_cnt = 8);
 	//=============================Отправка данных на плату========================================//	
-	uint8_t 	sendMainSets(const uint8_t start_addr = 0, uint8_t vals_cnt = 14, int16_t value = INT16_MIN);	
-	uint8_t 	sendAddSets( const uint8_t start_addr = 0, uint8_t vals_cnt = 21, int16_t value = INT16_MIN);
-	uint8_t 	sendSwitches(const uint8_t start_addr = 0, uint8_t vals_cnt = 8, uint8_t value = 255);
+	uint8_t 	sendMainSets(const uint8_t val_addr = 0, uint8_t vals_cnt = 14, int16_t value = INT16_MIN);	
+	uint8_t 	sendAddSets( const uint8_t val_addr = 0, uint8_t vals_cnt = 21, int16_t value = INT16_MIN);
+	uint8_t 	sendSwitches(const uint8_t val_addr = 0, uint8_t vals_cnt = 8, uint8_t value = 255);
 	
 	bool 		readAll();
 	bool 		writeAll();
@@ -203,7 +203,7 @@ public:
 	void 		getJsonData(std::string & result, uint8_t mode);
 	uint8_t 	setJsonData(std::string input);
 	void 		getMotKoefsList(String &result, bool typeNumber);
-	void 		setMotKoefsList(String &str);
+	void 		setMotKoefsList(String str);
 	void	 	getTcRatioList(String &result);
 	uint8_t 	getNextActiveAlarm(std::string& result, uint32_t alarms);
 	void 		setLiteral(char lit);

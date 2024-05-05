@@ -11,6 +11,7 @@ extern GyverPortal ui;
 extern GPtime t;
 extern std::vector<Board> board;					//объекты плат
 
+extern bool dataReqDelay;
 extern uint8_t activeBoard;
 extern bool mqttConnected;
 extern bool webRefresh;  

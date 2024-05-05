@@ -113,86 +113,91 @@ bool Board::isAnswer() {
 	return true;
 }
 
-float Board::readDataRaw(const uint8_t start_addr, uint8_t vals_cnt) {
-	vals_cnt = constrain(vals_cnt, 1, mainData.structSize/4 - start_addr);
+float Board::readDataRaw(const uint8_t val_addr, uint8_t vals_cnt) {
+	vals_cnt = constrain(vals_cnt, 1, mainData.structSize/4 - val_addr);
 	mainData.packData();
     float result = NAN;
     uint8_t byte_cnt = vals_cnt*4;
-    uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, start_addr, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_DATA) {
         result = *(float*)(rxBuffer+1);
-		memcpy(mainData.buffer + start_addr*4, rxBuffer + 1, byte_cnt);
+		memcpy(mainData.buffer + val_addr*4, rxBuffer + 1, byte_cnt);
 		mainData.unpackData();
 	}
 	delete(rxBuffer);
+	delay(30);
 	return result;
 }
 
-float Board::readStatsRaw(const uint8_t start_addr, uint8_t vals_cnt) {
-    vals_cnt = constrain(vals_cnt, 1, mainStats.structSize/4 - start_addr);
+float Board::readStatsRaw(const uint8_t val_addr, uint8_t vals_cnt) {
+    vals_cnt = constrain(vals_cnt, 1, mainStats.structSize/4 - val_addr);
 	mainStats.packData();
     float result = NAN;
     uint8_t byte_cnt = vals_cnt*4;
-    uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, start_addr, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_STATS) {
         result = *(float*)(rxBuffer+1);
-		memcpy(mainStats.buffer + start_addr*4, rxBuffer + 1, byte_cnt);
+		memcpy(mainStats.buffer + val_addr*4, rxBuffer + 1, byte_cnt);
 		mainStats.unpackData();
 	}
 	delete(rxBuffer);
+	delay(30);
 	return result;
 }
 
-int16_t Board::readMainSets(const uint8_t start_addr, uint8_t vals_cnt) {
-	vals_cnt = constrain(vals_cnt, 1, mainSets.structSize/2 - start_addr);
+int16_t Board::readMainSets(const uint8_t val_addr, uint8_t vals_cnt) {
+	vals_cnt = constrain(vals_cnt, 1, mainSets.structSize/2 - val_addr);
     int16_t result = INT16_MIN;
 	mainSets.packData();
     uint8_t byte_cnt = vals_cnt*2;
-    uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, start_addr, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_MSETS) {
         result = *(int16_t*)(rxBuffer+1);
-		memcpy(mainSets.buffer + start_addr*2, rxBuffer + 1, byte_cnt);
+		memcpy(mainSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
 		mainSets.unpackData();
 	}
 	delete(rxBuffer);
+	delay(30);
 	return result;
 }
 
-int16_t Board::readAddSets(const uint8_t start_addr, uint8_t vals_cnt) {
-	vals_cnt = constrain(vals_cnt, 1, addSets.structSize/2 - start_addr);
+int16_t Board::readAddSets(const uint8_t val_addr, uint8_t vals_cnt) {
+	vals_cnt = constrain(vals_cnt, 1, addSets.structSize/2 - val_addr);
     int16_t result = INT16_MIN;
 	addSets.packData();
     uint8_t byte_cnt = vals_cnt*2;
-    uint8_t txBuffer[4] = {HEADER_ASETS, XFER_READ, start_addr, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_ASETS, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_ASETS) {
         result = *(int16_t*)(rxBuffer+1);
-		memcpy(addSets.buffer + start_addr*2, rxBuffer + 1, byte_cnt);
+		memcpy(addSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
 		addSets.unpackData();
 	}
 	delete(rxBuffer);
+	delay(30);
 	return result;
 }
 
-uint8_t Board::readSwitches(const uint8_t start_addr, uint8_t vals_cnt) {
-	vals_cnt = constrain(vals_cnt, 1, sizeof(addSets.Switches) - start_addr);
+uint8_t Board::readSwitches(const uint8_t val_addr, uint8_t vals_cnt) {
+	vals_cnt = constrain(vals_cnt, 1, sizeof(addSets.Switches) - val_addr);
 	uint8_t result = 255;
     uint8_t byte_cnt = vals_cnt*1;
-    uint8_t txBuffer[4] = {HEADER_SWITCH, XFER_READ, start_addr, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_SWITCH, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_SWITCH) {
 		result = *(uint8_t*)(rxBuffer+1);
-		memcpy(addSets.Switches + start_addr*1, rxBuffer + 1, byte_cnt);
+		memcpy(addSets.Switches + val_addr*1, rxBuffer + 1, byte_cnt);
 	}
 	delete(rxBuffer);
+	delay(30);
 	return result;
 }
 
@@ -223,52 +228,60 @@ uint8_t Board::getData() {
 	return _disconnected;
 }
 
-uint8_t Board::sendMainSets(const uint8_t start_addr, uint8_t vals_cnt, int16_t value) {
+uint8_t Board::sendMainSets(const uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
 	validate();
-	vals_cnt = constrain(vals_cnt, 1, mainSets.structSize/2 - start_addr);
+	vals_cnt = constrain(vals_cnt, 1, mainSets.structSize/2 - val_addr);
 	mainSets.packData();
     uint8_t byte_cnt = vals_cnt*2;
     uint8_t* txBuffer = new uint8_t[byte_cnt + 4];
-    txBuffer[0] = HEADER_MSETS; txBuffer[1] = XFER_WRITE; txBuffer[2] = start_addr; txBuffer[3] = byte_cnt;
+    txBuffer[0] = HEADER_MSETS; txBuffer[1] = XFER_WRITE; txBuffer[2] = val_addr; txBuffer[3] = byte_cnt;
     if (vals_cnt == 1 && value != INT16_MIN) {
         memcpy(txBuffer + 4, &value, 2);
     } else {
-        memcpy(txBuffer + 4, mainSets.buffer + start_addr*2, byte_cnt);
+        memcpy(txBuffer + 4, mainSets.buffer + val_addr*2, byte_cnt);
     }
 	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(100));
 	delete(txBuffer);
+	delay(20);
 	return ret;
 }
 
-uint8_t Board::sendAddSets(const uint8_t start_addr, uint8_t vals_cnt, int16_t value) {
+uint8_t Board::sendAddSets(const uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
 	validate();
-	vals_cnt = constrain(vals_cnt, 1, addSets.structSize/2 - start_addr);
+	vals_cnt = constrain(vals_cnt, 1, addSets.structSize/2 - val_addr);
 	addSets.packData();
     uint8_t byte_cnt = vals_cnt*2;
     uint8_t* txBuffer = new uint8_t[byte_cnt + 4];
-    txBuffer[0] = HEADER_ASETS; txBuffer[1] = XFER_WRITE; txBuffer[2] = start_addr; txBuffer[3] = byte_cnt;
+    txBuffer[0] = HEADER_ASETS; txBuffer[1] = XFER_WRITE; txBuffer[2] = val_addr; txBuffer[3] = byte_cnt;
     if (vals_cnt == 1 && value != INT16_MIN) {
         memcpy(txBuffer + 4, &value, 2);
     } else {
-        memcpy(txBuffer + 4, addSets.buffer + start_addr*2, byte_cnt);
+        memcpy(txBuffer + 4, addSets.buffer + val_addr*2, byte_cnt);
     }
 	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(100));
 	delete(txBuffer);
+	delay(20);
 	return ret;
 }
 
-uint8_t Board::sendSwitches(const uint8_t start_addr, uint8_t vals_cnt, uint8_t value) {
-	vals_cnt = constrain(vals_cnt, 1, sizeof(addSets.Switches) - start_addr);
+uint8_t Board::sendSwitches(const uint8_t val_addr, uint8_t vals_cnt, uint8_t value) {
+	vals_cnt = constrain(vals_cnt, 1, sizeof(addSets.Switches) - val_addr);
     uint8_t byte_cnt = vals_cnt*1;
     uint8_t* txBuffer = new uint8_t[byte_cnt + 4];
-    txBuffer[0] = HEADER_SWITCH; txBuffer[1] = XFER_WRITE; txBuffer[2] = start_addr; txBuffer[3] = byte_cnt;
+    txBuffer[0] = HEADER_SWITCH; txBuffer[1] = XFER_WRITE; txBuffer[2] = val_addr; txBuffer[3] = byte_cnt;
 	if (vals_cnt == 1 && value != 255) {
 		memcpy(txBuffer + 4, &value, 1);
 	} else {
-		memcpy(txBuffer + 4, addSets.Switches + start_addr*1, byte_cnt);
+		memcpy(txBuffer + 4, addSets.Switches + val_addr, byte_cnt);
 	}
 	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(100));
 	delete(txBuffer);
+	addSets.Switches[SW_REBOOT] = 0;
+	addSets.Switches[SW_RSTST] = 0;
+	if (val_addr == SW_OUTSIGN) {
+		if (ret) addSets.Switches[SW_OUTSIGN] = 0; //если произошла ошибка передачи, то откл
+	}
+	delay(20);
 	return ret;
 }
 
@@ -464,7 +477,7 @@ void Board::getMotKoefsList(String &result, bool typeNumber) {
 	
 }
 
-void Board::setMotKoefsList(String &str) {
+void Board::setMotKoefsList(String str) {
 	char strArr[20];
 	int array[5];
 	str.toCharArray(strArr, sizeof(str));
@@ -518,8 +531,8 @@ void Board::validate() {
 	mainSets.TuneOutVolt = constrain(mainSets.TuneOutVolt, -6, 6);
 	mainSets.EmergencyTOFF = constrain(mainSets.EmergencyTOFF, 500, 5000);
 	mainSets.EmergencyTON = constrain(mainSets.EmergencyTON, 500, 5000);
-	mainSets.MinVolt = constrain(mainSets.MinVolt, 160, mainSets.Target);
-	mainSets.MaxVolt = constrain(mainSets.MaxVolt, mainSets.Target, 260);
+	mainSets.MinVolt = constrain(mainSets.MinVolt, 160, mainSets.Target - 1);
+	mainSets.MaxVolt = constrain(mainSets.MaxVolt, mainSets.Target + 1, 260);
 	addSets.SerialNumber[0] = constrain(addSets.SerialNumber[0], 0, 999999999);
 	addSets.SerialNumber[1] = constrain(addSets.SerialNumber[1], 0, 999999);
 }

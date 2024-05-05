@@ -1,5 +1,6 @@
 #include "customs.h"
 #include "devices.h"
+#include "netconnection.h"
 
 void GP_data_build() {
 	GP.GRID_BEGIN();
@@ -7,18 +8,18 @@ void GP_data_build() {
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 		GP.TITLE("Не обнаружено подключенных плат!");
 		M_BOX(
-			GP.BUTTON_MINI("btnbtn_sys_rescan_sys_reboot", "Перезапустить\n систему");
-			GP.BUTTON_MINI("", "Пересканировать\n платы");
+			GP.BUTTON_MINI("btn_sys_reboot", "Перезапустить\n систему");
+			GP.BUTTON_MINI("btn_sys_rescan", "Пересканировать\n платы");
 		);
 		GP.BLOCK_END();
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
 			GP.BLOCK_BEGIN(GP_THIN, "100%", String("Плата ")+ board[i].getLiteral());
-			GP.AREA(String("b_data/")+i, 7, "Загрузка \nданных...");
-			GP.AREA(String("b_stat/")+i, 13, "Загрузка \nстатистики...");
+			GP.AREA("fld_data/"+i, 7, "Загрузка \nданных...");
+			GP.AREA("fld_stat/"+i, 13, "Загрузка \nстатистики...");
 			M_BOX(GP_AROUND,
 				GP.BUTTON_MINI(String("btn_brd_rst/")+i, "Сброс");
-				GP.LED(String("b_led/")+i, board[i].isOnline());
+				GP.LED("fld_online/"+i, board[i].isOnline());
 			);
 			GP.BLOCK_END();
 		}
@@ -82,6 +83,7 @@ void GP_mainsets_build(Board &brd) {
 	String title = "Настройка платы ";
 	title += (brd.mainSets.Liter > 0 ? String(brd.getLiteral()) : String(brd.getAddress()));
 	GP.BLOCK_BEGIN(GP_DIV_RAW, "", title);
+	GP.RELOAD("reload");
 	M_BOX(
 		GP.BUTTON_MINI("btn_brd_read", "Прочитать из платы"); 
 		GP.BUTTON_MINI("btn_brd_write", "Записать в плату")
@@ -126,8 +128,74 @@ void GP_addsets_build(Board &brd) {
 	GP.BLOCK_END();
 }
 
+void GP_CreateDevicesList() {
+	for (uint8_t i = 0; i < Device_Size(); i++) {
+		GP_DeviceInfo(i);
+	}
+	GP_DeviceInfo(Device_Size());
+}
+
+void GP_OwnerEdit_build() {
+	String name = Owner_Get(OWN_NAME);
+	String email = Owner_Get(OWN_EMAIL);
+	String pass = Owner_Get(OWN_PASS);
+	String code = Owner_Get(OWN_CODE);
+	String status = Owner_Get(OWN_STATUS);
+
+	GP.GRID_BEGIN();
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.TEXT("own_name", "Name", name, "", 20);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.TEXT("own_email", "Email", email, "", 20);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.PASS_EYE("own_pass", "Pass", pass, "", 20);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.TEXT("own_code", "Code", code, "", 20, "", status == "registred" ? false : true);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.BUTTON_MINI("own_btn_edit", "Изменить");
+			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN, "", status == "registred" ? false : true);
+			GP.BUTTON_MINI("own_btn_delete", "Удалить", "", GP_RED);
+		GP.BLOCK_END();
+	GP.GRID_END();
+}
+
+
+
+
+void GP_wificonnection_build() {
+	GP.BLOCK_BEGIN(GP_THIN, "", "Сетевые настройки");
+	GP.FORM_BEGIN("/wificfg");
+		GP.GRID_BEGIN();
+			GP.BLOCK_BEGIN(GP_DIV_RAW, "", "Настройка точки дступа");
+				GP.TEXT("apSsid", "Login AP", wifi_settings.apSsid, "", 20);
+				GP.PASS_EYE("apPass", "Password AP", wifi_settings.apPass, "", 20);
+			GP.BLOCK_END();
+			GP.BLOCK_BEGIN(GP_DIV_RAW, "", "Подключение к WIFI");
+				GP.TEXT("staSsid", "Login STA", wifi_settings.staSsid, "", 20);
+				GP.PASS_EYE("staPass","Password STA", wifi_settings.staPass, "", 20);
+			GP.BLOCK_END();
+			GP.BLOCK_BEGIN(GP_DIV_RAW);
+				String open = "http://" + String(globalData.webInterfaceDNS) + ".local/";
+				GP_SUBMIT_MINI_LINK("Запомнить", open);
+			GP.BLOCK_END();
+		GP.GRID_END();
+		GP.BUTTON_LINK("/ota_update", "Обновление прошивки");
+	GP.FORM_END();
+	GP.BLOCK_END();
+}
+
 void GP_SUBMIT_MINI_LINK(const String &text, const String &link, PGM_P st, const String &cls) {
-    *_GPP += F("<input type='submit' onclick='openNewTab()' value='");
+    *_GPP += F("<input type='submit' onclick='openNewTab(");
+	*_GPP += link;
+	*_GPP += F(")' value='");
     *_GPP += text;
     if (st != GP_GREEN) {
         *_GPP += F("' style='background:");
@@ -150,20 +218,22 @@ void GP_SUBMIT_MINI_LINK(const String &text, const String &link, PGM_P st, const
     GP.send();
 }
 
-void GP_CreateDevicesList() {
-	for (uint8_t i = 0; i < Device_GetAmount(); i++) {
-		GP_DeviceInfo(
-			Device_Get(i, DEV_NAME).c_str(), 
-			Device_Get(i, DEV_TYPE).c_str(),
-			Device_Get(i, DEV_PAGE).c_str(),
-			Device_Get(i, DEV_ISACT).c_str(),
-			i
-		);
+void GP_DeviceInfo(int num) {
+	bool New = num == Device_Size();
+	String name = "";
+	String type = "";
+	String is_act = "0";
+	String page = "";
+	String sn = String(Board_SN);
+	if (num < Device_Size()) {
+		name = Device_Get(num, DEV_NAME);
+		type = Device_Get(num, DEV_TYPE);
+		is_act = Device_Get(num, DEV_ISACT);
+		page = Device_Get(num, DEV_PAGE);
+		sn = Device_Get(num, DEV_SN);
 	}
 	
-}
-
-void GP_DeviceInfo(const char *name, const char *type, const char *page, const char *is_active, int num) {
+	
 	GP.GRID_BEGIN();
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 			GP.TEXT("dev_name/" + String(num), "Name", name, "", 20);
@@ -174,18 +244,28 @@ void GP_DeviceInfo(const char *name, const char *type, const char *page, const c
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.LABEL(atoi(is_active) ? "В работе" : "Отключен");
-			GP.LED("", atoi(is_active) ? true : false);
-			GP.NUMBER("", "Hours", atoi(is_active), "20px");
+			GP.TEXT("dev_sn/" + String(num), "SN", sn, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.BUTTON_MINI("dev_edit_btn_" + String(num), "Изменить");
-			GP.BUTTON_MINI("dev_delete_btn_" + String(num), "Удалить");
-			GP.BUTTON_MINI_LINK(page, "Открыть");
+			GP.LABEL(is_act.toInt() ? "В работе" : "Отключен");
+			GP.LED("", is_act.toInt() ? true : false);
+			GP.NUMBER("", "Hours", is_act.toInt(), "20px");
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			if (!New) {
+				GP.BUTTON_MINI("dev_btn_edit/" + String(num), "Изменить");
+				GP.BUTTON_MINI("dev_btn_delete/" + String(num), "Удалить", "", GP_RED);
+				GP.BUTTON_MINI_LINK(page, "Открыть");
+			} else {
+				GP.BUTTON_MINI("dev_btn_add", "Добавить");
+			}
 		GP.BLOCK_END();
 	GP.GRID_END();
 }
+
+
 
 
 
