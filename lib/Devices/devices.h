@@ -57,6 +57,13 @@ struct device {
 
 void Devices_Init();
 void Server_Config();
+void Owner_AddOrUpdate(
+	const char *name, 
+	const char *email, 
+	const char *pass,
+	const char *code = "", 
+	const char *status = ""
+	);
 void Device_AddOrUpdate(
 	const char *name, 
 	const char *type, 
