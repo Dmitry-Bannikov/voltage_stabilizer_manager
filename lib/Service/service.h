@@ -18,3 +18,10 @@ void Web_Tick();
 
 void scanNewBoards();
 void BoardRequest(uint8_t &request);
+bool sendCurrentCalibrate(uint8_t brd);
+bool readCurrentCalibrate(uint8_t brd);
+
+
+
+
+//===============================

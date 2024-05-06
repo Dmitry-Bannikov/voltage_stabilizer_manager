@@ -150,7 +150,7 @@ float Board::readStatsRaw(const uint8_t val_addr, uint8_t vals_cnt) {
 }
 
 int16_t Board::readMainSets(const uint8_t val_addr, uint8_t vals_cnt) {
-	vals_cnt = constrain(vals_cnt, 1, mainSets.structSize/2 - val_addr);
+	vals_cnt = constrain(vals_cnt, 1, 16 - val_addr);
     int16_t result = INT16_MIN;
 	mainSets.packData();
     uint8_t byte_cnt = vals_cnt*2;
@@ -158,7 +158,7 @@ int16_t Board::readMainSets(const uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_MSETS) {
-        result = *(int16_t*)(rxBuffer+1);
+        result = (int16_t)((rxBuffer[2] << 8) | rxBuffer[1]);
 		memcpy(mainSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
 		mainSets.unpackData();
 	}
@@ -176,7 +176,7 @@ int16_t Board::readAddSets(const uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_ASETS) {
-        result = *(int16_t*)(rxBuffer+1);
+        result = (int16_t)((rxBuffer[2] << 8) | rxBuffer[1]);
 		memcpy(addSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
 		addSets.unpackData();
 	}
@@ -193,7 +193,7 @@ uint8_t Board::readSwitches(const uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_SWITCH) {
-		result = *(uint8_t*)(rxBuffer+1);
+		result = (uint8_t)rxBuffer[1];
 		memcpy(addSets.Switches + val_addr*1, rxBuffer + 1, byte_cnt);
 	}
 	delete(rxBuffer);
@@ -230,7 +230,7 @@ uint8_t Board::getData() {
 
 uint8_t Board::sendMainSets(const uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
 	validate();
-	vals_cnt = constrain(vals_cnt, 1, mainSets.structSize/2 - val_addr);
+	vals_cnt = constrain(vals_cnt, 1, 15 - val_addr);	//15 потому что из 15 только читаем
 	mainSets.packData();
     uint8_t byte_cnt = vals_cnt*2;
     uint8_t* txBuffer = new uint8_t[byte_cnt + 4];

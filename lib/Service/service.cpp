@@ -23,6 +23,10 @@ void Board_Init() {
 	board.reserve(MAX_BOARDS);
 	delay(10);
 	scanNewBoards();
+	for (uint8_t i = 0; i < board.size(); i++) {
+		readCurrentCalibrate(i);
+		delay(100);
+	}
 }
 
 void Web_Init() {
@@ -59,9 +63,9 @@ void Board_Tick() {
 	if (millis() - scanTmr > 60000) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
 			board[i].readAll();
+			delay(50);
 		}
-		delay(100);
-		scanNewBoards();
+		boardRequest = 2;
 		scanTmr = millis();
 	}
 }
@@ -85,8 +89,11 @@ void scanNewBoards() {
 	}
 }
 
+//Запросы на плату
 void BoardRequest(uint8_t &request) {
-	if (!request) return;
+	static uint8_t requestTry = 0;
+	static uint32_t tmr = 0;
+	if (!request || millis() - tmr < 500) return;
 	if (!board[activeBoard].isAnswer()) {
 		request = 0;
 		return;
@@ -108,10 +115,14 @@ void BoardRequest(uint8_t &request) {
 			requestResult = 2;
 		} else if (request == 4) {	//set active
 			if (board[activeBoard].readAll()) {
-				webRefresh = true;
 				requestResult = 1;
 			}
-		}		
+			webRefresh = true;
+		} else if (request == 5) {
+			if (!board[activeBoard].sendSwitches(SW_OUTSIGN,1)) {
+				requestResult = 1;
+			}
+		}	
 	} else {
 		uint8_t command = request / 10;
 		uint8_t target = request % 10;
@@ -121,9 +132,14 @@ void BoardRequest(uint8_t &request) {
 			}
 		}
 		else if (command == 2) {//write settings
-			if(!board[target].sendMainSets() && !board[target].sendAddSets()) {
+
+			uint8_t res1 = board[target].sendMainSets();
+			delay(20);
+			uint8_t res2 = board[target].sendAddSets();
+			if (!res1 && !res2) {
 				requestResult = 2;
 			}
+			
 		}
 		else if (command == 3) {//reboot board
 			if(!board[target].sendSwitches(SW_REBOOT, 1, 1)) {
@@ -132,29 +148,39 @@ void BoardRequest(uint8_t &request) {
 			}
 		}
 		else if (command == 4) {
-			if (board[target].sendSwitches(SW_RSTST, 1, 1)) {
+			if (!board[target].sendSwitches(SW_RSTST, 1, 1)) {
 				requestResult = 1;
 			}
 		}
 		else if (command == 5) {
-			if (!board[activeBoard].sendSwitches(SW_OUTSIGN, 1, target)) {
-				requestResult = 1;
-			}
-		}
-		else if (command == 6) {
-			board[target].mainSets.CurrClbrtValue = (int16_t)(board[activeBoard].CurrClbrtValue*100.0);
-			board[target].sendMainSets(14, 1);
-			board[target].readMainSets(15, 1);
-			board[target].CurrClbrtKoeff = ((float)board[target].mainSets.CurrClbrtKoeff/100.0);
-			requestResult = 1;
+			requestResult = sendCurrentCalibrate(target);
 		}
 	}
-	
-	if (requestResult > 0) {
+	Serial.printf("\nBoard request: %d, Result: %d ", request, requestResult);
+	if (requestResult > 0 || requestTry == 3) {
+		requestTry = 0;
 		request = 0;
-		webRefresh = requestResult == 2;
+		if (requestResult == 2) webRefresh = true;
+	} else {
+		requestTry++;
 	}
+	tmr = millis();
 }
+
+bool sendCurrentCalibrate(uint8_t brd) {
+	board[brd].mainSets.CurrClbrtValue = (int16_t)(board[brd].CurrClbrtValue*100.0);
+	board[brd].sendMainSets(14);
+	board[brd].readMainSets(13);
+	board[brd].CurrClbrtKoeff = ((float)board[brd].mainSets.CurrClbrtKoeff/100.0);
+	return (board[brd].mainSets.CurrClbrtKoeff != 100 && board[brd].mainSets.CurrClbrtKoeff != 3588);
+}
+
+bool readCurrentCalibrate(uint8_t brd) {
+	board[brd].readMainSets(13);
+	board[brd].CurrClbrtKoeff = ((float)board[brd].mainSets.CurrClbrtKoeff/100.0);
+	return (board[brd].mainSets.CurrClbrtKoeff != 100 && board[brd].mainSets.CurrClbrtKoeff != 3588);
+}
+
 
 
 //===========================================

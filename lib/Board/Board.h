@@ -93,21 +93,21 @@ struct mainsets {	//32
 	int16_t  FlashCtrl;				//контрольный код
 
 	int16_t Liter = 78;				//0 буква платы
-    int16_t IgnoreSetsFlag = 1;		//2 игнорировать настройки с платы (0...1)
-	int16_t EnableTransit = 0;		//4 транзит при перегрузке
-	int16_t MinVolt = 170;			//6 мин напряжение
-	int16_t MaxVolt = 250;			//8 макс напряжение
-	int16_t Hysteresis = 5;			//10 точность/гистерезис (1...11)
-	int16_t Target = 220;			//12 целевое напряжение (210...240)
-	int16_t TuneInVolt = 0;			//14 подстройка входа (-6...6)
-	int16_t TuneOutVolt = 0;		//16 подстройка выхода (-6...6)
-	int16_t TransRatioIndx = 5;		//18 коэффициент трансворматора тока (0...6) смотри addSets
-	int16_t MotorType = 1;			//20 тип мотора (1...4) (0 - служебный)
-	int16_t EmergencyTON = 2000;	//22 время включения после аварии
-	int16_t EmergencyTOFF = 500;	//24 время аварийного отключения
-	int16_t MaxCurrent = 35;		//26 макс ток платы
-	int16_t CurrClbrtValue = 0;		//28 знач/100 - величина калибровочного тока
-	int16_t	CurrClbrtKoeff = 100;	//30 знач/100 - калибровочный коэффициент
+    int16_t IgnoreSetsFlag = 1;		//1 игнорировать настройки с платы (0...1)
+	int16_t EnableTransit = 0;		//2 транзит при перегрузке
+	int16_t MinVolt = 170;			//3 мин напряжение
+	int16_t MaxVolt = 250;			//4 макс напряжение
+	int16_t Hysteresis = 5;			//5 точность/гистерезис (1...11)
+	int16_t Target = 220;			//6 целевое напряжение (210...240)
+	int16_t TuneInVolt = 0;			//7 подстройка входа (-6...6)
+	int16_t TuneOutVolt = 0;		//8 подстройка выхода (-6...6)
+	int16_t TransRatioIndx = 5;		//9 коэффициент трансворматора тока (0...6) смотри addSets
+	int16_t MotorType = 1;			//10 тип мотора (1...4) (0 - служебный)
+	int16_t EmergencyTON = 2000;	//11 время включения после аварии
+	int16_t EmergencyTOFF = 500;	//12 время аварийного отключения
+	int16_t MaxCurrent = 35;		//13 макс ток платы
+	int16_t CurrClbrtValue = 0;		//14 знач/100 - величина калибровочного тока
+	int16_t	CurrClbrtKoeff = 100;	//15 знач/100 - калибровочный коэффициент
 
 	uint8_t structSize;
 	uint8_t *buffer = nullptr;

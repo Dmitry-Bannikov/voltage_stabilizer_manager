@@ -15,18 +15,18 @@ void GP_data_build() {
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
 			GP.BLOCK_BEGIN(GP_THIN, "100%", String("Плата ")+ board[i].getLiteral());
-			GP.AREA("fld_data/"+i, 7, "Загрузка \nданных...");
-			GP.AREA("fld_stat/"+i, 13, "Загрузка \nстатистики...");
+			GP.AREA(String("fld_data/")+i, 7, "Загрузка \nданных...", "", true);
+			GP.AREA(String("fld_stat/")+i, 10, "Загрузка \nстатистики...", "", true);
 			M_BOX(GP_AROUND,
 				GP.BUTTON_MINI(String("btn_brd_rst/")+i, "Сброс");
-				GP.LED("fld_online/"+i, board[i].isOnline());
+				GP.LED(String("fld_online/")+i, board[i].isOnline());
 			);
 			GP.BLOCK_END();
 		}
 	}
 	
 	GP.GRID_END();
-	if (board.size()) GP.BUTTON_MINI("btn_sys_reboot", "Пересканировать\n платы");
+	if (board.size()) GP.BUTTON_MINI("btn_sys_rescan", "Пересканировать\n платы");
 }
 
 void GP_target_build() {
@@ -57,14 +57,14 @@ void GP_target_build() {
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);//назначение букв
 			for (uint8_t i = 0; i < board.size(); i++) {
-				String label = "Плата " + board[i].getAddress();
+				String label = "Плата " + String(board[i].getAddress());
 				uint8_t select = 0;
 				if (board[i].getLiteral() == 'A') select = 1;
 				else if (board[i].getLiteral() == 'B') select = 2;
 				else if (board[i].getLiteral() == 'C') select = 3;
 				GP.BOX_BEGIN();
 				GP.LABEL(label);
-				GP.SELECT("btn_brd_lit/"+i, "Нет,A,B,C", select); 
+				GP.SELECT(String("btn_brd_lit/")+i, "Нет,A,B,C", select); 
 				GP.BOX_END();
 			}
 		GP.BLOCK_END();
@@ -160,9 +160,14 @@ void GP_OwnerEdit_build() {
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
+		GP.BOX_BEGIN();
+		if (status == "registred") {
 			GP.BUTTON_MINI("own_btn_edit", "Изменить");
-			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN, "", status == "registred" ? false : true);
 			GP.BUTTON_MINI("own_btn_delete", "Удалить", "", GP_RED);
+		} else {
+			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN, "", status == "registred" ? false : true);
+		}
+		GP.BOX_END();
 		GP.BLOCK_END();
 	GP.GRID_END();
 }
@@ -236,15 +241,15 @@ void GP_DeviceInfo(int num) {
 	
 	GP.GRID_BEGIN();
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("dev_name/" + String(num), "Name", name, "", 20);
+			GP.TEXT(String("dev_name/") + num, "Name", name, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("dev_type/" + String(num), "Type", type, "", 20);
+			GP.TEXT(String("dev_type/") + num, "Type", type, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("dev_sn/" + String(num), "SN", sn, "", 20);
+			GP.TEXT(String("dev_sn/") + num, "SN", sn, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
@@ -254,13 +259,15 @@ void GP_DeviceInfo(int num) {
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
+		GP.BOX_BEGIN();
 			if (!New) {
-				GP.BUTTON_MINI("dev_btn_edit/" + String(num), "Изменить");
-				GP.BUTTON_MINI("dev_btn_delete/" + String(num), "Удалить", "", GP_RED);
+				GP.BUTTON_MINI(String("dev_btn_edit/") + num, "Изменить");
+				GP.BUTTON_MINI(String("dev_btn_delete/") + num, "Удалить", "", GP_RED);
 				GP.BUTTON_MINI_LINK(page, "Открыть");
 			} else {
 				GP.BUTTON_MINI("dev_btn_add", "Добавить");
 			}
+		GP.BOX_END();
 		GP.BLOCK_END();
 	GP.GRID_END();
 }

@@ -7,7 +7,6 @@ find WebServer.cpp at line 649 and comment log_e
 #include <Arduino.h>
 #include <service.h>
 
-
 void setup() {
 	System_Init();
 	Board_Init();

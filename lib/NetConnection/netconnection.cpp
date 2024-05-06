@@ -41,7 +41,7 @@ void WiFi_Reconnect() {
 				LED_blink(250);
 				if (millis() - tmr > 30000) break;
 			}
-		} else {
+		} else if (WiFi.status() != WL_CONNECTED){
 			wifi_settings.staModeEn = 0;
 		} 
 	} 

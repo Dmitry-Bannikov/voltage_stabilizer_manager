@@ -28,8 +28,10 @@ void portalBuild() {
 	GP.NAV_TABS_LINKS("/,/dashboard,/brdcfg,/wificfg", "Главная,Мониторинг,Настройки платы,Настройка подключения");
 	
 	if(ui.uri("/")) {
-		GP.BLOCK_BEGIN(GP_THIN, "", "Мои устройства");
+		GP.BLOCK_BEGIN(GP_THIN, "", "Регистрация пользователя");
 		GP_OwnerEdit_build();
+		GP.BLOCK_END();
+		GP.BLOCK_BEGIN(GP_THIN, "", "Мои устройства");
 		GP_CreateDevicesList();
 		GP.BLOCK_END();
 	} 
@@ -130,7 +132,7 @@ void clicksHandler() {
 
 void updatesHandler() {
 	if (!ui.update()) return;
-	ui.updateBool("btn_brd_outsgn", (bool)(board[activeBoard].addSets.Switches[SW_OUTSIGN]));
+	ui.updateBool("btn_brd_outsgn", board[activeBoard].addSets.Switches[SW_OUTSIGN]);
 	ui.updateBool("mqttConnected_led", mqttConnected);
 	if (ui.update("setsalt")) {	//вызов алерта
 		if (requestResult == 2)
@@ -147,9 +149,9 @@ void updatesHandler() {
 		String dataStr, statStr;
 		board[i].getDataStr(dataStr);
 		board[i].getStatisStr(statStr);
-		ui.updateString("fld_data/" + i, dataStr);
-		ui.updateString("fld_stat/" + i, statStr);
-		ui.updateBool("fld_online/" + i, board[i].isOnline());
+		ui.updateString(String("fld_data/") + i, dataStr);
+		ui.updateString(String("fld_stat/") + i, statStr);
+		ui.updateBool(String("fld_online/") + i, board[i].isOnline());
 	}
 	ui.updateFloat("fld_set_CKoef", board[activeBoard].CurrClbrtKoeff, 2);
 	
@@ -170,13 +172,13 @@ void buttons_handler() {
 	if (ui.click("btn_sys_rescan")) 	boardRequest = 2;					//scan boards
 	if (ui.click("btn_brd_saveall")) 	boardRequest = 3;					//save to all boards
 	if (ui.clickInt("btn_brd_active", activeBoard)) boardRequest = 4;		//set an active board
-
+	if (ui.clickBool("btn_brd_outsgn", board[activeBoard].addSets.Switches[SW_OUTSIGN])) boardRequest = 5;	//outsignal on active board
+	
 	if (ui.click("btn_brd_read") ) 		boardRequest = 10 + activeBoard;	//read settings from active board
 	if (ui.click("btn_brd_write"))  	boardRequest = 20 + activeBoard; 	//write settings to active board
 	if (ui.click("btn_brd_reboot")) 	boardRequest = 30 + activeBoard;	//reboot active board
-	if (ui.clickSub("btn_brd_rst"))		boardRequest = 40 + ui.clickNameSub().toInt();	//reset statistic	
-	if (ui.click("btn_brd_outsgn")) 	boardRequest = 50 + ui.getBool();	//outsignal on active board
-	if (ui.click("btn_brd_saveCValue"))	boardRequest = 60 + activeBoard;	//submit current calibration
+	if (ui.clickSub("btn_brd_rst"))		boardRequest = 40 + ui.clickNameSub().toInt();	//reset statistic
+	if (ui.click("btn_brd_saveCValue"))	boardRequest = 50 + activeBoard;	//submit current calibration
 }
 
 void fields_handler() {
@@ -192,7 +194,7 @@ void fields_handler() {
 	ui.clickInt("fld_set_minV", board[activeBoard].mainSets.MinVolt);
 	ui.clickInt("fld_set_toff", board[activeBoard].mainSets.EmergencyTOFF);
 	ui.clickInt("fld_set_ton", board[activeBoard].mainSets.EmergencyTON);
-	ui.clickFloat("fld_set_CurrClbrValue", board[activeBoard].CurrClbrtValue);
+	ui.clickFloat("fld_set_CValue", board[activeBoard].CurrClbrtValue);
 	if (ui.click("fld_set_mottype")) board[activeBoard].mainSets.MotorType = ui.getInt()+1;
 	if (ui.click("fld_set_motKoefs")) board[activeBoard].setMotKoefsList(ui.getString());
 		
@@ -203,29 +205,39 @@ void ActionsDevice_handler() {
 	static String type = "";
 	static String sn = "";
 	int dev = -1;
-
+	
+	
+	for (uint8_t i = 0; i <= Device_Size(); i++) {
+		ui.clickString(String("dev_name/")+ i, name);
+		ui.clickString(String("dev_type/")+ i, type);
+		ui.clickString(String("dev_sn/")+ i, sn);
+	}
+	
 	if (ui.clickSub("dev_btn_edit")) {
 		dev = ui.clickNameSub().toInt();
-		name = ui.getString("dev_name/"+dev);
-		type = ui.getString("dev_type/"+dev);
-		sn = ui.getString("dev_sn/"+dev);
+		//name = ui.getString(String("dev_name/")+dev);
+		//type = ui.getString(String("dev_type/")+dev);
+		if (sn == "") sn = Device_Get(dev, DEV_SN);
 		if (name != "" && type != "") {
 			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
 			Device_Save();
 		}
+		webRefresh = true;
 	}
 	if (ui.clickSub("dev_btn_delete")) {
 		dev = ui.clickNameSub().toInt();
 		Device_Delete(dev);
 		Device_Save();
+		webRefresh = true;
 	}
 	if (ui.click("dev_btn_add")) {
 		dev = Device_Size();
-		name = ui.getString("dev_name/"+dev);
-		type = ui.getString("dev_type/"+dev);
-		sn = ui.getString("dev_sn/"+dev);
-		Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
-		Device_Save();
+		if (sn == "") sn = String(Board_SN);
+		if (name != "" && type != "") {
+			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), "", "/dashboard");
+			Device_Save();
+		}
+		webRefresh = true;
 	}
 
 }

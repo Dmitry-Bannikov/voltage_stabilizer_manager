@@ -4,7 +4,7 @@
 #include <TimeTicker.h>
 #include <Board.h>
 
-
+#define S(arg)  String(arg)
 
 #define MAX_BOARDS	3
 extern GyverPortal ui;
