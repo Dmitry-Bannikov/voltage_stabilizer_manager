@@ -26,11 +26,11 @@ struct owner {
 	char Code[32];
 	char Status[32];
 	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status) {
-		strcpy(Name, name);
-		strcpy(Email, email);
-		strcpy(Pass, pass);
-		strcpy(Code, code);
-		strcpy(Status, status);
+		strlcpy(Name, name, 32);
+		strlcpy(Email, email, 32);
+		strlcpy(Pass, pass, 32);
+		strlcpy(Code, code, 32);
+		strlcpy(Status, status, 32);
 	}
 };
 
@@ -45,13 +45,13 @@ struct device {
 
 	void setParameters(const char *name, const char *type, const char *sn, const char *owner,
 						const char *page, const char *status, const char *is_act) {
-		strcpy(Name, name);
-		strcpy(Type, type);
-		strcpy(Email, owner);
-		strcpy(Page, page);
-		strcpy(Status, status);
-		strcpy(SN, sn);
-		strcpy(IsActive, is_act);
+		strlcpy(Name, name, 32);
+		strlcpy(Type, type, 32);
+		strlcpy(Email, owner, 32);
+		strlcpy(Page, page, 32);
+		strlcpy(Status, status, 32);
+		strlcpy(SN, sn, 32);
+		strlcpy(IsActive, is_act, 32);
 	}
 };
 

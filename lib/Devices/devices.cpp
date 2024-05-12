@@ -1,6 +1,7 @@
 #include "devices.h"
-
-
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
+using string = std::string;
 std::vector<device> Devices;
 owner DeviceOwner;
 
@@ -12,9 +13,6 @@ void Devices_Init() {
 	memoryDevices.begin(memoryOwner.nextAddr(), MEM_KEY);
 }
 
-void Server_Config() {
-
-}
 
 void Device_AddOrUpdate(
 	const char *name, 
@@ -114,25 +112,25 @@ bool Device_Set(uint8_t indx, uint8_t param, const String &data) {
 	const char* set = data.c_str();
 	switch (param) {
 	case DEV_NAME:
-		strcpy(Devices[indx].Name, set);
+		strlcpy(Devices[indx].Name, set, 32);
 		break;
 	case DEV_TYPE:
-		strcpy(Devices[indx].Type, set);
+		strlcpy(Devices[indx].Type, set, 32);
 		break;
 	case DEV_EMAIL:
-		strcpy(Devices[indx].Email, set);
+		strlcpy(Devices[indx].Email, set, 32);
 		break;
 	case DEV_PAGE:
-		strcpy(Devices[indx].Page, set);
+		strlcpy(Devices[indx].Page, set, 32);
 		break;
 	case DEV_STATUS:
-		strcpy(Devices[indx].Status, set);
+		strlcpy(Devices[indx].Status, set, 32);
 		break;
 	case DEV_SN:
-		strcpy(Devices[indx].SN, set);
+		strlcpy(Devices[indx].SN, set, 32);
 		break;
 	case DEV_ISACT:
-		strcpy(Devices[indx].IsActive, set);
+		strlcpy(Devices[indx].IsActive, set, 32);
 		break;
 	default:
 		break;
@@ -172,19 +170,19 @@ bool Owner_Set(uint8_t param, const String &data) {
 	const char* set = data.c_str();
 	switch (param) {
 	case OWN_NAME:
-		strcpy(DeviceOwner.Name, set);
+		strlcpy(DeviceOwner.Name, set, 32);
 		break;
 	case OWN_EMAIL:
-		strcpy(DeviceOwner.Email, set);
+		strlcpy(DeviceOwner.Email, set, 32);
 		break;
 	case OWN_PASS:
-		strcpy(DeviceOwner.Pass, set);
+		strlcpy(DeviceOwner.Pass, set, 32);
 		break;
 	case OWN_CODE:
-		strcpy(DeviceOwner.Code, set);
+		strlcpy(DeviceOwner.Code, set, 32);
 		break;
 	case OWN_STATUS:
-		strcpy(DeviceOwner.Status, set);
+		strlcpy(DeviceOwner.Status, set, 32);
 		break;
 	default:
 		break;
@@ -200,12 +198,79 @@ void Device_Add() {
 	Devices.emplace_back();
 }
 
+std::string Owner_getJson() {
+	json ownJson;
+	ownJson["Name"] = DeviceOwner.Name;
+	ownJson["Email"] = DeviceOwner.Email;
+	ownJson["Pass"] = DeviceOwner.Pass;
+	ownJson["Code"] = DeviceOwner.Code;
+	ownJson["Status"] = DeviceOwner.Status;
+	return ownJson.dump();
+}
 
+void Owner_setJson(const char* json_c) {
+	std::string jsonString = std::string(json_c);
+	try {
+    	auto j = json::parse(jsonString);
+		if (!j["Name"].is_null()) {
+      		strlcpy(DeviceOwner.Name, j["Name"].get<std::string>().c_str(), 32);
+		}
+		if (!j["Email"].is_null()) {
+			strlcpy(DeviceOwner.Email, j["Email"].get<std::string>().c_str(), 32);
+		}
+		if (!j["Pass"].is_null()) {
+			strlcpy(DeviceOwner.Pass, j["Pass"].get<std::string>().c_str(), 32);
+		}
+		if (!j["Code"].is_null()) {
+			strlcpy(DeviceOwner.Code, j["Code"].get<std::string>().c_str(), 32);
+		}
+		if (!j["Status"].is_null()) {
+			strlcpy(DeviceOwner.Status, j["Status"].get<std::string>().c_str(), 32);
+		}
+  	} catch (const std::exception& e) {
+    	Serial.println("Error at json parsing");
+  	}
+}
 
+std::string Device_getJson() {
+    json devicesJson;
+    for (const auto& dev : Devices) {
+        json devJson;
+        devJson["Name"] = dev.Name;
+        devJson["Type"] = dev.Type;
+        devJson["Email"] = dev.Email;
+        devJson["Page"] = dev.Page;
+        devJson["Status"] = dev.Status;
+        devJson["SN"] = dev.SN;
+        devJson["IsActive"] = dev.IsActive;
+        devicesJson.push_back(devJson);
+    }
 
+    return devicesJson.dump();
+}
 
+void parseJsonToDeviceVector(const char* json_c) {
+	string jsonString = string(json_c);
+    json devicesJson = json::parse(jsonString);
 
+    Devices.clear(); // Очищаем вектор, чтобы заполнить его заново
 
+    for (const auto& devJson : devicesJson) {
+        device dev;
+        devJson.at("Name").get_to(dev.Name);
+        devJson.at("Type").get_to(dev.Type);
+        devJson.at("Email").get_to(dev.Email);
+        devJson.at("Page").get_to(dev.Page);
+        devJson.at("Status").get_to(dev.Status);
+        devJson.at("SN").get_to(dev.SN);
+        devJson.at("IsActive").get_to(dev.IsActive);
+
+        // Проверяем, совпадает ли Email владельца с Email устройства
+        if (std::string(dev.Email) == std::string(DeviceOwner.Email)) {
+            //Device_AddOrUpdate(dev.Name, dev.Type, )
+        }
+    }
+}
 
 
 
