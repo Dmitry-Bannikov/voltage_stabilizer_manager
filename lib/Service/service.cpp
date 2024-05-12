@@ -4,7 +4,7 @@
 #include "netconnection.h"
 #include "mqtthandler.h"
 #include "webinterface.h"
-
+#include "devices.h"
 
 
 
@@ -15,7 +15,9 @@ void System_Init() {
 	pinMode(21, INPUT);
 	pinMode(22, INPUT);
 	Serial.begin(115200);
+	EEPROM.begin(2048);
 	Serial.printf("\nProram Started! \rI2C pins state: %d | %d\n", digitalRead(21), digitalRead(22));
+	Devices_Init();
 }
 
 void Board_Init() {

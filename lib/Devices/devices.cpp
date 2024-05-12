@@ -13,6 +13,21 @@ void Devices_Init() {
 	memoryDevices.begin(memoryOwner.nextAddr(), MEM_KEY);
 }
 
+void Owner_AddOrUpdate(
+	const char *name, 
+	const char *email, 
+	const char *pass,
+	const char *code, 
+	const char *status 
+	) 
+{
+    strcpy(DeviceOwner.Name, name);
+	strcpy(DeviceOwner.Email, email);
+	strcpy(DeviceOwner.Pass, pass);
+	strcpy(DeviceOwner.Code, code);
+	strcpy(DeviceOwner.Status, status);
+}
+
 
 void Device_AddOrUpdate(
 	const char *name, 

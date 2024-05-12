@@ -8,7 +8,6 @@ EEManager memoryWIFI(wifi_settings, 20000);
 
 
 void WifiInit() {
-    EEPROM.begin(512);
 	memoryWIFI.begin(0, MEMORY_KEY);
 	WiFi_Reconnect();
 }

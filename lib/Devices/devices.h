@@ -38,6 +38,7 @@ struct device {
 	char Name[32] = ""; //имя устройства
 	char Type[32] = ""; //тип устройства (стаб/мультиметр и тд)
 	char SN[32] = "";  //серийник устройства
+	char SN[32] = "";  //серийник устройства
 	char Email[32] = ""; // е-майл пользователя
 	char Page[32] = ""; //веб адрес устройства (присваивается сервером)
 	char Status[32] = "";
@@ -56,6 +57,14 @@ struct device {
 };
 
 void Devices_Init();
+void Server_Config();
+void Owner_AddOrUpdate(
+	const char *name, 
+	const char *email, 
+	const char *pass,
+	const char *code = "", 
+	const char *status = ""
+	);
 void Device_AddOrUpdate(
 	const char *name, 
 	const char *type, 

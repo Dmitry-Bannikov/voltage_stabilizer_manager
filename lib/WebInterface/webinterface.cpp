@@ -204,6 +204,7 @@ void ActionsDevice_handler() {
 	static String name = "";
 	static String type = "";
 	static String sn = "";
+	static String page = "";
 	int dev = -1;
 	
 	
@@ -233,8 +234,9 @@ void ActionsDevice_handler() {
 	if (ui.click("dev_btn_add")) {
 		dev = Device_Size();
 		if (sn == "") sn = String(Board_SN);
+		if (sn == String(Board_SN)) page = "/dashboard";
 		if (name != "" && type != "") {
-			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), "", "/dashboard");
+			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), "", page.c_str());
 			Device_Save();
 		}
 		webRefresh = true;
@@ -243,7 +245,46 @@ void ActionsDevice_handler() {
 }
 
 void ActionsOwner_handler() {
+	static String name = "";
+	static String type = "";
+	static String sn = "";
+	static String page = "";
+	int dev = -1;
 	
+	
+	for (uint8_t i = 0; i <= Device_Size(); i++) {
+		ui.clickString(String("dev_name/")+ i, name);
+		ui.clickString(String("dev_type/")+ i, type);
+		ui.clickString(String("dev_sn/")+ i, sn);
+	}
+	
+	if (ui.clickSub("dev_btn_edit")) {
+		dev = ui.clickNameSub().toInt();
+		//name = ui.getString(String("dev_name/")+dev);
+		//type = ui.getString(String("dev_type/")+dev);
+		if (sn == "") sn = Device_Get(dev, DEV_SN);
+		if (name != "" && type != "") {
+			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
+			Device_Save();
+		}
+		webRefresh = true;
+	}
+	if (ui.clickSub("dev_btn_delete")) {
+		dev = ui.clickNameSub().toInt();
+		Device_Delete(dev);
+		Device_Save();
+		webRefresh = true;
+	}
+	if (ui.click("dev_btn_add")) {
+		dev = Device_Size();
+		if (sn == "") sn = String(Board_SN);
+		if (sn == String(Board_SN)) page = "/dashboard";
+		if (name != "" && type != "") {
+			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), "", page.c_str());
+			Device_Save();
+		}
+		webRefresh = true;
+	}
 }
 
 
