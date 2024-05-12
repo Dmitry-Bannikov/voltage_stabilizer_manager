@@ -171,7 +171,7 @@ void buttons_handler() {
 		}
 	}
 
-	if (ui.click("btn_sys_reboot")) 	boardRequest = 1;					//esp restart
+	if (ui.click("btn_sys_reboot")) 	ESP.restart();					//esp restart
 	if (ui.click("btn_sys_rescan")) 	boardRequest = 2;					//scan boards
 	if (ui.click("btn_brd_saveall")) 	boardRequest = 3;					//save to all boards
 	if (ui.clickInt("btn_brd_active", activeBoard)) boardRequest = 4;		//set an active board
@@ -236,11 +236,13 @@ void ActionsDevice_handler() {
 		webRefresh = true;
 	}
 	if (ui.click("dev_btn_add")) {
+		String email = Owner_Get(OWN_EMAIL);
+		if (email.length() < 3) return;
 		dev = Device_Size();
 		if (sn == "") sn = String(Board_SN);
 		if (sn == String(Board_SN)) page = "/dashboard";
 		if (name != "" && type != "") {
-			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), Owner_Get(OWN_EMAIL).c_str(), page.c_str());
+			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), email.c_str(), page.c_str());
 			Device_Save();
 		}
 		webRefresh = true;
@@ -268,12 +270,18 @@ void ActionsOwner_handler() {
 
 	if (ui.click("own_btn_reg")) {
 		Owner_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_registration");
+		Owner_Save();
+		webRefresh = true;
 	}
 	if (ui.click("own_btn_edit")) {
 		Owner_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_edit");
+		Owner_Save();
+		webRefresh = true;
 	}
 	if (ui.click("own_btn_delete")) {
 		Owner_Set(OWN_STATUS, "on_delete");
+		Owner_Save();
+		webRefresh = true;
 	}
 	
 }

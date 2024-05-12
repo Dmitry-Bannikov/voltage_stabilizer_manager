@@ -10,7 +10,9 @@ EEManager memoryDevices(Devices);
 
 void Devices_Init() {
 	memoryOwner.begin(100, MEM_KEY);
-	memoryDevices.begin(memoryOwner.nextAddr(), MEM_KEY);
+	Devices.reserve(3);
+	memoryDevices.setSize(sizeof(Devices));
+	memoryDevices.begin(memoryOwner.nextAddr(), 125);
 }
 
 void Device_AddOrUpdate(
@@ -195,6 +197,10 @@ bool Owner_Set(uint8_t param, const String &data) {
 
 void Device_Save() {
 	memoryDevices.updateNow();
+}
+
+void Owner_Save() {
+	memoryOwner.updateNow();
 }
 
 std::string Owner_getJson() {

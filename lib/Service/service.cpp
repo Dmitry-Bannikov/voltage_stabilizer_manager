@@ -40,6 +40,7 @@ void Web_Init() {
 	memcpy(&Board_SN, mac, 4);
 	Serial.printf("\nStab SN: %d \n", Board_SN);
 	Serial.println(WiFi.macAddress());
+	webRefresh = true;
 }
 
 
@@ -57,7 +58,7 @@ void Board_Tick() {
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
-	} else if (boardRequest && board.size()){
+	} else if (boardRequest){
 		denyDataRequest = 3;
 		BoardRequest(boardRequest);
 	}
@@ -96,7 +97,7 @@ void BoardRequest(uint8_t &request) {
 	static uint8_t requestTry = 0;
 	static uint32_t tmr = 0;
 	if (!request || millis() - tmr < 500) return;
-	if (!board[activeBoard].isAnswer()) {
+	if (!board[activeBoard].isAnswer() && request != 1 && request != 2) {
 		request = 0;
 		return;
 	}

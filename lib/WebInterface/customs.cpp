@@ -135,45 +135,6 @@ void GP_CreateDevicesList() {
 	GP_DeviceInfo(Device_Size());
 }
 
-void GP_OwnerEdit_build() {
-	String name = Owner_Get(OWN_NAME);
-	String email = Owner_Get(OWN_EMAIL);
-	String pass = Owner_Get(OWN_PASS);
-	String code = Owner_Get(OWN_CODE);
-	String status = Owner_Get(OWN_STATUS);
-
-	GP.GRID_BEGIN();
-		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_name", "Name", name, "", 20);
-		GP.BLOCK_END();
-
-		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_email", "Email", email, "", 20);
-		GP.BLOCK_END();
-
-		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.PASS_EYE("own_pass", "Pass", pass, "", 20);
-		GP.BLOCK_END();
-
-		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_code", "Code", code, "", 20, "", status == "registred" ? false : true);
-		GP.BLOCK_END();
-
-		GP.BLOCK_BEGIN(GP_DIV_RAW);
-		GP.BOX_BEGIN();
-		if (status == "registred") {
-			GP.BUTTON_MINI("own_btn_edit", "Изменить");
-			GP.BUTTON_MINI("own_btn_delete", "Удалить", "", GP_RED);
-		} else {
-			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN, "", status == "registred" ? false : true);
-		}
-		GP.BOX_END();
-		GP.BLOCK_END();
-	GP.GRID_END();
-}
-
-
-
 
 void GP_wificonnection_build() {
 	GP.BLOCK_BEGIN(GP_THIN, "", "Сетевые настройки");
@@ -249,14 +210,19 @@ void GP_DeviceInfo(int num) {
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT(String("dev_sn/") + num, "SN", sn, "", 20);
+			GP.TEXT(String("dev_sn/") + num, "SN", sn, "", 20, "", New ? false : true);
 		GP.BLOCK_END();
 
-		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.LABEL(is_act.toInt() ? "В работе" : "Отключен");
-			GP.LED("", is_act.toInt() ? true : false);
-			GP.NUMBER("", "Hours", is_act.toInt(), "20px");
-		GP.BLOCK_END();
+		if (!New) {
+			GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.BOX_BEGIN();
+				GP.LED("", is_act.toInt() ? true : false);
+				if (is_act.toInt() > 0)
+					GP.NUMBER("", "Hours", is_act.toInt(), "30px");
+			GP.BOX_END();
+			GP.BLOCK_END();
+		}
+		
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 		GP.BOX_BEGIN();
@@ -272,7 +238,42 @@ void GP_DeviceInfo(int num) {
 	GP.GRID_END();
 }
 
+void GP_OwnerEdit_build() {
+	String name = Owner_Get(OWN_NAME);
+	String email = Owner_Get(OWN_EMAIL);
+	String pass = Owner_Get(OWN_PASS);
+	String code = Owner_Get(OWN_CODE);
+	String status = Owner_Get(OWN_STATUS);
 
+	GP.GRID_BEGIN();
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.TEXT("own_name", "Name", name, "", 20);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.TEXT("own_email", "Email", email, "", 20);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.PASS_EYE("own_pass", "Pass", pass, "", 20);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+			GP.TEXT("own_code", "Code", code, "", 20, "", status == "registred" ? true : false);
+		GP.BLOCK_END();
+
+		GP.BLOCK_BEGIN(GP_DIV_RAW);
+		GP.BOX_BEGIN();
+		if (status != "" && status != "on_delete") {
+			GP.BUTTON_MINI("own_btn_edit", "Изменить");
+			GP.BUTTON_MINI("own_btn_delete", "Удалить", "", GP_RED);
+		} else {
+			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN);
+		}
+		GP.BOX_END();
+		GP.BLOCK_END();
+	GP.GRID_END();
+}
 
 
 

@@ -46,12 +46,16 @@ public:
     }
 
 	// передать данные, работать с новыми данными
-	template <typename T> void setData(T &data, uint16_t tout = 5000) {
+	template <typename T> void setData(T &data, uint16_t tout = 10000) {
 		_data = (uint8_t*)&data;
 		_size = sizeof(T);
 		_tout = tout;
 	}
     
+    void setSize(uint32_t newSize) {
+        _size = newSize;
+    }
+
     // сменить таймаут
     void setTimeout(uint16_t tout = 5000) {
         _tout = tout;

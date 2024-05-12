@@ -20,11 +20,11 @@
 #define OWN_STATUS		4
 
 struct owner {
-	char Name[32];	//имя пользователя
-	char Email[32];	//емайл пользователя
-	char Pass[32];	//пароль пользователя
-	char Code[32];	//код подтверждения от сервера
-	char Status[32];	//статус пользователя
+	char Name[32] = "";	//имя пользователя
+	char Email[32] = "";	//емайл пользователя
+	char Pass[32] = "";	//пароль пользователя
+	char Code[32] = "";	//код подтверждения от сервера
+	char Status[32] = "";	//статус пользователя
 	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status) {
 		strlcpy(Name, name, 32);
 		strlcpy(Email, email, 32);
@@ -78,6 +78,7 @@ int Device_FindIndxFromSN(const char *sn);
 int Device_Size();
 
 void Device_Save();
+void Owner_Save();
 
 std::string Owner_getJson();
 void Owner_setJson(const char* json_c);
