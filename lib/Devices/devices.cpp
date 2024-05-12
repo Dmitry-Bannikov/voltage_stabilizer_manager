@@ -5,14 +5,22 @@ using string = std::string;
 std::vector<device> Devices;
 owner DeviceOwner;
 
+int NumDevices = 1;
+
 EEManager memoryOwner(DeviceOwner);
+EEManager memoryNumDevices(NumDevices);
 EEManager memoryDevices(Devices);
+
+
+
 
 void Devices_Init() {
 	memoryOwner.begin(100, MEM_KEY);
-	Devices.reserve(3);
-	memoryDevices.setSize(sizeof(Devices));
-	memoryDevices.begin(memoryOwner.nextAddr(), 125);
+	memoryNumDevices.begin(memoryOwner.nextAddr(), 123);
+	Devices.reserve(1);
+	uint32_t devices_size = NumDevices*sizeof(Devices);
+	memoryDevices.setSize(devices_size);
+	memoryDevices.begin(memoryNumDevices.nextAddr(), 125);
 }
 
 void Device_AddOrUpdate(
@@ -31,6 +39,8 @@ void Device_AddOrUpdate(
 	if (num == -1) { //если устройства с таким сер. нет, то добавляем в список
 		Devices.emplace_back();
         num = Devices.size() - 1;
+		NumDevices = Devices.size();
+		memoryNumDevices.updateNow();
 		if (num < 0) return;
 	}
 	if (strcmp(name, "")) strlcpy(Devices[num].Name, name, 32);
