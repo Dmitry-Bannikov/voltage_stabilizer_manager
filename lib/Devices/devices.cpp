@@ -5,10 +5,9 @@ using string = std::string;
 std::vector<device> Devices;
 owner DeviceOwner;
 
-int NumDevices = 1;
-
+uint32_t devices_size = 0;
 EEManager memoryOwner(DeviceOwner);
-EEManager memoryNumDevices(NumDevices);
+EEManager memoryNumDevices(devices_size);
 EEManager memoryDevices(Devices);
 
 
@@ -16,11 +15,9 @@ EEManager memoryDevices(Devices);
 
 void Devices_Init() {
 	memoryOwner.begin(100, MEM_KEY);
-	memoryNumDevices.begin(memoryOwner.nextAddr(), 123);
-	Devices.reserve(1);
-	uint32_t devices_size = NumDevices*sizeof(Devices);
-	memoryDevices.setSize(devices_size);
-	memoryDevices.begin(memoryNumDevices.nextAddr(), 125);
+	memoryNumDevices.begin(memoryOwner.nextAddr(), 123); //вспоминаем сколько устройств 
+	memoryDevices.setSize(devices_size);				//устанавливаем размер для менеджера
+	memoryDevices.begin(memoryNumDevices.nextAddr(), 125);	//вспоминаем данные об устройствах
 }
 
 void Device_AddOrUpdate(
@@ -39,8 +36,9 @@ void Device_AddOrUpdate(
 	if (num == -1) { //если устройства с таким сер. нет, то добавляем в список
 		Devices.emplace_back();
         num = Devices.size() - 1;
-		NumDevices = Devices.size();
+		devices_size = sizeof(Devices[0])*Devices.size();
 		memoryNumDevices.updateNow();
+		memoryDevices.setSize(devices_size);
 		if (num < 0) return;
 	}
 	if (strcmp(name, "")) strlcpy(Devices[num].Name, name, 32);
