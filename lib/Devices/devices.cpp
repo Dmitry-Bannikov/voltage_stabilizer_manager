@@ -49,6 +49,28 @@ void Device_AddOrUpdate(
 
 }
 
+
+
+
+
+
+void Owner_AddOrUpdate(
+	const char *name, 
+	const char *email, 
+	const char *pass,
+	const char *code, 
+	const char *status 
+	) 
+{
+    strcpy(DeviceOwner.Name, name);
+	strcpy(DeviceOwner.Email, email);
+	strcpy(DeviceOwner.Pass, pass);
+	strcpy(DeviceOwner.Code, code);
+	strcpy(DeviceOwner.Status, status);
+}
+
+
+
 void Device_CreateList(const char *json) {
 
 }
@@ -194,10 +216,6 @@ void Device_Save() {
 	memoryDevices.updateNow();
 }
 
-void Device_Add() {
-	Devices.emplace_back();
-}
-
 std::string Owner_getJson() {
 	json ownJson;
 	ownJson["Name"] = DeviceOwner.Name;
@@ -210,26 +228,12 @@ std::string Owner_getJson() {
 
 void Owner_setJson(const char* json_c) {
 	std::string jsonString = std::string(json_c);
-	try {
-    	auto j = json::parse(jsonString);
-		if (!j["Name"].is_null()) {
-      		strlcpy(DeviceOwner.Name, j["Name"].get<std::string>().c_str(), 32);
-		}
-		if (!j["Email"].is_null()) {
-			strlcpy(DeviceOwner.Email, j["Email"].get<std::string>().c_str(), 32);
-		}
-		if (!j["Pass"].is_null()) {
-			strlcpy(DeviceOwner.Pass, j["Pass"].get<std::string>().c_str(), 32);
-		}
-		if (!j["Code"].is_null()) {
-			strlcpy(DeviceOwner.Code, j["Code"].get<std::string>().c_str(), 32);
-		}
-		if (!j["Status"].is_null()) {
-			strlcpy(DeviceOwner.Status, j["Status"].get<std::string>().c_str(), 32);
-		}
-  	} catch (const std::exception& e) {
-    	Serial.println("Error at json parsing");
-  	}
+	auto j = json::parse(jsonString);
+	j["Name"].is_null() ? strcpy(DeviceOwner.Name, "NullName") : j.at("Name").get_to(DeviceOwner.Name);
+	j["Email"].is_null() ? strcpy(DeviceOwner.Email, "NullEmail") : j.at("Email").get_to(DeviceOwner.Email);
+	j["Pass"].is_null() ? strcpy(DeviceOwner.Pass, "NullPass") : j.at("Pass").get_to(DeviceOwner.Pass);
+	j["Code"].is_null() ? strcpy(DeviceOwner.Code, "NullCode") : j.at("Code").get_to(DeviceOwner.Code);
+	j["Status"].is_null() ? strcpy(DeviceOwner.Status, "NullStatus") : j.at("Status").get_to(DeviceOwner.Status);
 }
 
 std::string Device_getJson() {
@@ -249,7 +253,7 @@ std::string Device_getJson() {
     return devicesJson.dump();
 }
 
-void parseJsonToDeviceVector(const char* json_c) {
+void Device_setJson(const char* json_c) {
 	string jsonString = string(json_c);
     json devicesJson = json::parse(jsonString);
 
@@ -257,17 +261,17 @@ void parseJsonToDeviceVector(const char* json_c) {
 
     for (const auto& devJson : devicesJson) {
         device dev;
-        devJson.at("Name").get_to(dev.Name);
-        devJson.at("Type").get_to(dev.Type);
-        devJson.at("Email").get_to(dev.Email);
-        devJson.at("Page").get_to(dev.Page);
-        devJson.at("Status").get_to(dev.Status);
-        devJson.at("SN").get_to(dev.SN);
-        devJson.at("IsActive").get_to(dev.IsActive);
+		devJson["Name"].is_null() ? strcpy(dev.Name, "Unknown") : devJson.at("Name").get_to(dev.Name);
+        devJson["Type"].is_null() ? strcpy(dev.Type, "Unknown") : devJson.at("Type").get_to(dev.Type);
+		devJson["SN"].is_null() ? strcpy(dev.SN, "Unknown") : devJson.at("SN").get_to(dev.SN);
+        devJson["Email"].is_null() ? strcpy(dev.Email, "") : devJson.at("Email").get_to(dev.Email);
+        devJson["Page"].is_null() ? strcpy(dev.Page, "") : devJson.at("Page").get_to(dev.Page);
+        devJson["Status"].is_null() ? strcpy(dev.Status, "") : devJson.at("Status").get_to(dev.Status);
+        devJson["IsActive"].is_null() ? strcpy(dev.IsActive, "") : devJson.at("IsActive").get_to(dev.IsActive);
 
         // Проверяем, совпадает ли Email владельца с Email устройства
         if (std::string(dev.Email) == std::string(DeviceOwner.Email)) {
-            //Device_AddOrUpdate(dev.Name, dev.Type, )
+            Device_AddOrUpdate(dev.Name, dev.Type, dev.SN, dev.Email, dev.Page, dev.Status, dev.Type);
         }
     }
 }

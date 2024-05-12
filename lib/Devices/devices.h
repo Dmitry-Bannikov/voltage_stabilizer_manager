@@ -37,10 +37,10 @@ struct owner {
 struct device {
 	char Name[32] = ""; //имя устройства
 	char Type[32] = ""; //тип устройства (стаб/мультиметр и тд)
+	char SN[32] = "";  //серийник устройства
 	char Email[32] = ""; // е-майл пользователя
 	char Page[32] = ""; //веб адрес устройства (присваивается сервером)
 	char Status[32] = "";
-	char SN[32] = "";  //серийник устройства
 	char IsActive[32] = ""; //активно ли сейчас устройство (передает ли данные)
 
 	void setParameters(const char *name, const char *type, const char *sn, const char *owner,
@@ -56,7 +56,6 @@ struct device {
 };
 
 void Devices_Init();
-void Server_Config();
 void Device_AddOrUpdate(
 	const char *name, 
 	const char *type, 
