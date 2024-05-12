@@ -67,7 +67,10 @@ void portalActions() {
 	formsHandler();	
 	clicksHandler();
 	updatesHandler();
-	ActionsDevice_handler();
+	if (ui.clickSub("dev_"))
+		ActionsDevice_handler();
+	if (ui.clickSub("own_"))
+		ActionsOwner_handler();
 }
 
 void portalInit() {
@@ -213,12 +216,13 @@ void ActionsDevice_handler() {
 		ui.clickString(String("dev_type/")+ i, type);
 		ui.clickString(String("dev_sn/")+ i, sn);
 	}
-	
+
 	if (ui.clickSub("dev_btn_edit")) {
 		dev = ui.clickNameSub().toInt();
-		//name = ui.getString(String("dev_name/")+dev);
-		//type = ui.getString(String("dev_type/")+dev);
+		if (name == "") name = Device_Get(dev, DEV_NAME);
+		if (type == "") type = Device_Get(dev, DEV_TYPE);
 		if (sn == "") sn = Device_Get(dev, DEV_SN);
+
 		if (name != "" && type != "") {
 			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
 			Device_Save();
@@ -236,7 +240,7 @@ void ActionsDevice_handler() {
 		if (sn == "") sn = String(Board_SN);
 		if (sn == String(Board_SN)) page = "/dashboard";
 		if (name != "" && type != "") {
-			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), "", page.c_str());
+			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), Owner_Get(OWN_EMAIL).c_str(), page.c_str());
 			Device_Save();
 		}
 		webRefresh = true;
@@ -246,45 +250,32 @@ void ActionsDevice_handler() {
 
 void ActionsOwner_handler() {
 	static String name = "";
-	static String type = "";
-	static String sn = "";
-	static String page = "";
-	int dev = -1;
+	static String email = "";
+	static String pass = "";
+	static String code = "";
 	
-	
-	for (uint8_t i = 0; i <= Device_Size(); i++) {
-		ui.clickString(String("dev_name/")+ i, name);
-		ui.clickString(String("dev_type/")+ i, type);
-		ui.clickString(String("dev_sn/")+ i, sn);
+	ui.clickString("own_name", name);
+	ui.clickString("own_email", email);
+	ui.clickString("own_pass", pass);
+	ui.clickString("own_code", code);
+
+	if (ui.clickSub("own_btn")) {
+		if (code == "") code = Owner_Get(OWN_CODE);
+		if (name == "") name = Owner_Get(OWN_NAME);
+		if (pass == "") pass = Owner_Get(OWN_PASS);
+		if (email == "") email = Owner_Get(OWN_EMAIL);
+	}
+
+	if (ui.click("own_btn_reg")) {
+		Owner_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_registration");
+	}
+	if (ui.click("own_btn_edit")) {
+		Owner_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_edit");
+	}
+	if (ui.click("own_btn_delete")) {
+		Owner_Set(OWN_STATUS, "on_delete");
 	}
 	
-	if (ui.clickSub("dev_btn_edit")) {
-		dev = ui.clickNameSub().toInt();
-		//name = ui.getString(String("dev_name/")+dev);
-		//type = ui.getString(String("dev_type/")+dev);
-		if (sn == "") sn = Device_Get(dev, DEV_SN);
-		if (name != "" && type != "") {
-			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
-			Device_Save();
-		}
-		webRefresh = true;
-	}
-	if (ui.clickSub("dev_btn_delete")) {
-		dev = ui.clickNameSub().toInt();
-		Device_Delete(dev);
-		Device_Save();
-		webRefresh = true;
-	}
-	if (ui.click("dev_btn_add")) {
-		dev = Device_Size();
-		if (sn == "") sn = String(Board_SN);
-		if (sn == String(Board_SN)) page = "/dashboard";
-		if (name != "" && type != "") {
-			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), "", page.c_str());
-			Device_Save();
-		}
-		webRefresh = true;
-	}
 }
 
 

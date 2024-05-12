@@ -20,11 +20,11 @@
 #define OWN_STATUS		4
 
 struct owner {
-	char Name[32];
-	char Email[32];
-	char Pass[32];
-	char Code[32];
-	char Status[32];
+	char Name[32];	//имя пользователя
+	char Email[32];	//емайл пользователя
+	char Pass[32];	//пароль пользователя
+	char Code[32];	//код подтверждения от сервера
+	char Status[32];	//статус пользователя
 	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status) {
 		strlcpy(Name, name, 32);
 		strlcpy(Email, email, 32);
@@ -38,8 +38,7 @@ struct device {
 	char Name[32] = ""; //имя устройства
 	char Type[32] = ""; //тип устройства (стаб/мультиметр и тд)
 	char SN[32] = "";  //серийник устройства
-	char SN[32] = "";  //серийник устройства
-	char Email[32] = ""; // е-майл пользователя
+	char Email[32] = ""; // е-майл владельца
 	char Page[32] = ""; //веб адрес устройства (присваивается сервером)
 	char Status[32] = "";
 	char IsActive[32] = ""; //активно ли сейчас устройство (передает ли данные)
@@ -57,11 +56,10 @@ struct device {
 };
 
 void Devices_Init();
-void Server_Config();
 void Owner_AddOrUpdate(
-	const char *name, 
-	const char *email, 
-	const char *pass,
+	const char *name = "", 
+	const char *email = "", 
+	const char *pass = "",
 	const char *code = "", 
 	const char *status = ""
 	);
@@ -78,15 +76,18 @@ void Device_CreateList(const char *json);
 void Device_Delete(int indx);
 int Device_FindIndxFromSN(const char *sn);
 int Device_Size();
-String Device_Get(uint8_t indx, uint8_t param);
-bool Device_Set(uint8_t indx, uint8_t param, const String &data);
-String Owner_Get(uint8_t param);
-bool Owner_Set(uint8_t param, const String &data);
+
 void Device_Save();
 
+std::string Owner_getJson();
+void Owner_setJson(const char* json_c);
+String Owner_Get(uint8_t param);
+bool Owner_Set(uint8_t param, const String &data);
 
-
-
+std::string Device_getJson();
+void Device_setJson(const char* json_c);
+String Device_Get(uint8_t indx, uint8_t param);
+bool Device_Set(uint8_t indx, uint8_t param, const String &data);
 
 
 

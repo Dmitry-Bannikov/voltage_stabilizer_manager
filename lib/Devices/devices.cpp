@@ -13,22 +13,6 @@ void Devices_Init() {
 	memoryDevices.begin(memoryOwner.nextAddr(), MEM_KEY);
 }
 
-void Owner_AddOrUpdate(
-	const char *name, 
-	const char *email, 
-	const char *pass,
-	const char *code, 
-	const char *status 
-	) 
-{
-    strcpy(DeviceOwner.Name, name);
-	strcpy(DeviceOwner.Email, email);
-	strcpy(DeviceOwner.Pass, pass);
-	strcpy(DeviceOwner.Code, code);
-	strcpy(DeviceOwner.Status, status);
-}
-
-
 void Device_AddOrUpdate(
 	const char *name, 
 	const char *type, 
@@ -40,34 +24,21 @@ void Device_AddOrUpdate(
 	) 
 {
 	uint8_t count = Devices.size();
-    int isExists = -1;
-    isExists = Device_FindIndxFromSN(serial_n); //ищем устройство по его серийнику
-    if (isExists != -1) {   //если устройство с таким серийником есть
-        Devices[isExists].setParameters(
-            name, type, serial_n,
-            owner == "" ? Devices[isExists].Email : owner, 
-            page == "" ? Devices[isExists].Page : page,
-            status == "" ? Devices[isExists].Status : status,
-			is_active == "" ? Devices[isExists].IsActive : is_active
-        );
-    } else {                //иначе добавляем в конец списка
-        Devices.emplace_back();
-        int8_t num = Devices.size() - 1;
-        if (num >= 0) {
-            Devices[num].setParameters(
-                name, type, serial_n, 
-                owner, page,
-                status, is_active
-            );
-        }
-    }
-
+    int num = -1;
+    num = Device_FindIndxFromSN(serial_n); //ищем устройство по его серийнику
+	if (num == -1) { //если устройства с таким сер. нет, то добавляем в список
+		Devices.emplace_back();
+        num = Devices.size() - 1;
+		if (num < 0) return;
+	}
+	if (strcmp(name, "")) strlcpy(Devices[num].Name, name, 32);
+	if (strcmp(type, "")) strlcpy(Devices[num].Type, type, 32) ;
+	if (strcmp(serial_n, "")) strlcpy(Devices[num].SN, serial_n, 32);
+	if (strcmp(owner, "")) strlcpy(Devices[num].Email, owner, 32);
+	if (strcmp(page, "")) strlcpy(Devices[num].Page, page, 32);
+	if (strcmp(status, "")) strlcpy(Devices[num].Status, status, 32);
+	if (strcmp(is_active, "")) strlcpy(Devices[num].IsActive, is_active, 32);
 }
-
-
-
-
-
 
 void Owner_AddOrUpdate(
 	const char *name, 
@@ -77,18 +48,13 @@ void Owner_AddOrUpdate(
 	const char *status 
 	) 
 {
-    strcpy(DeviceOwner.Name, name);
-	strcpy(DeviceOwner.Email, email);
-	strcpy(DeviceOwner.Pass, pass);
-	strcpy(DeviceOwner.Code, code);
-	strcpy(DeviceOwner.Status, status);
+    if (strcmp(name, "")) strlcpy(DeviceOwner.Name, name, 32);
+	if (strcmp(email, "")) strlcpy(DeviceOwner.Email, email, 32);
+	if (strcmp(pass, "")) strlcpy(DeviceOwner.Pass, pass, 32);
+	if (strcmp(code, "")) strlcpy(DeviceOwner.Code, code, 32);
+	if (strcmp(status, "")) strlcpy(DeviceOwner.Status, status, 32);
 }
 
-
-
-void Device_CreateList(const char *json) {
-
-}
 
 void Device_Delete(int indx) {
 	if (indx >= Devices.size()) return;
@@ -195,7 +161,7 @@ String Owner_Get(uint8_t param) {
 		strcpy(get, DeviceOwner.Status);
 		break;
 	default:
-		strcpy(get, "_invalid");
+		strcpy(get, "_null");
 		break;
 	}
 	result = get;
