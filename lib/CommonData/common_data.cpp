@@ -10,6 +10,7 @@ uint8_t activeBoard = 0;
 bool mqttConnected = false;
 bool webRefresh = true;  
 uint8_t boardRequest = 0; //запрос на плату
+int mqttRequest = 0;
 uint8_t requestResult = 0;
 uint32_t Board_SN = 0;
 

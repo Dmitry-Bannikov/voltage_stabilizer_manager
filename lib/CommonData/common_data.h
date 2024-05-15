@@ -16,6 +16,7 @@ extern uint8_t activeBoard;
 extern bool mqttConnected;
 extern bool webRefresh;  
 extern uint8_t boardRequest; //запрос на плату
+extern int mqttRequest;
 extern uint8_t requestResult;
 extern uint32_t Board_SN;
 

@@ -379,14 +379,14 @@ void Board::getJsonData(std::string & result, uint8_t mode) {
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.online[i]*10)/10 << "\"";
 			} else if (mode==1) {
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.min[i]*10)/10 << "\"";
-			} else {
+			} else if (mode==2){
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.max[i]*10)/10 << "\"";
 			}
 			first = false;
 		}
 		ss << "}";
 		//Bdata.dataJson = ss.str();
-	} else if (mode == 4) {
+	} else if (mode == 3) {
 		bool first = true;
 		for (uint8_t i = 0; i < SETS_VALS; i++) {
 			if (!first) ss << ",";

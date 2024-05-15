@@ -25,18 +25,12 @@ PubSubClient mqttClient(espClient);
 void MqttInit() {
     mqttClient.setServer(mqtt_broker, mqtt_port);
     mqttClient.setBufferSize(500);
-	uint8_t mac[6];
-	char macStr[6] = { 0 };
-	WiFi.macAddress(mac);
-	sprintf(macStr, "%02X%02X", mac[4], mac[5]);
-	mqtt_clientId = "stab_brd_" + String(macStr);
-	WiFi.macAddress();
-    MqttReconnect();
-    String esp_mac = WiFi.macAddress();
+	mqtt_clientId = "stab_brd_" + String(Board_SN);
 	for (uint8_t i = 0; i < 3; i++) {
 		String sub_topic_sets = "stab_brd/getsets/fase_" + String((char)(65+i)) + "/";
 		mqttClient.subscribe(sub_topic_sets.c_str());
 	}
+	MqttReconnect();
 	mqttClient.subscribe("stab_brd/getsets/fase_N");
     mqttClient.setCallback(onMqttMessage);
 }
@@ -60,10 +54,11 @@ void MqttReconnect() {
 
 void MqttPublishData() {
     static uint32_t tmr = 0;
-    if (millis() < tmr + 1000) return;
+    if (millis() - tmr < 500) return;
     for (uint8_t i = 0; i < board.size(); i++) {
-        sendFaseMqttData(i);
+        sendFaseMqttData(i, mqttRequest);
     }
+	mqttRequest = 0;
     tmr = millis();
 }
 
@@ -93,50 +88,34 @@ void Mqtt_tick() {
     MqttPublishData();
 }
 
-bool sendFaseMqttData(int8_t numBrd) {
-    static uint8_t sentNullAlarm[3] = {0,0,0};
-    static uint8_t cnt = 0;
-    String Lit = String(board[numBrd].getLiteral());
-    String topic;
-    std::string data;
-    if (cnt < 120) {
-        topic = "stab_brd/data/fase_" + Lit + "/" + WiFi.macAddress();
-        board[numBrd].getJsonData(data, 0);
+bool sendFaseMqttData(int8_t numBrd, int request) {
+	if (request == 0) return true;
+	String Lit = String(board[numBrd].getLiteral());
+	String topic = "";
+	std::string data = "";
+	if (request == 1) {
+		topic = "stab_brd/data/fase_" + Lit + "/" + S(Board_SN);
+        board[numBrd].getJsonData(data, DATA_ACT);
         board[numBrd].Bdata.getMinMax();
-        cnt++;
-    } else {
-        topic = "stab_brd/sets/fase_" + Lit + "/" + WiFi.macAddress();
-        board[numBrd].getJsonData(data, 4);
-        cnt = 0;
-    }
-    mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
-    if (cnt == 60) {
-        String topicMin = "stab_brd/datamin/fase_" + Lit + "/" + WiFi.macAddress();
-        std::string dataMin; board[numBrd].getJsonData(dataMin, 1);
-        String topicMax = "stab_brd/datamax/fase_" + Lit + "/" + WiFi.macAddress();
-        std::string dataMax; board[numBrd].getJsonData(dataMax, 2);
-        mqttConnected = sendMqttJson(topicMin.c_str(), dataMin.c_str());
-        mqttConnected = sendMqttJson(topicMax.c_str(), dataMax.c_str());
-        board[numBrd].Bdata.getMinMax(true);
-    }
-    if (board[numBrd].mainData.Events != 0) {
-        std::string alarm_text;
-        uint8_t alarm_code = 0;
-        String data;
-        String topic = "stab_brd/alarms/fase_" + Lit + "/" + WiFi.macAddress();
-        alarm_code = board[numBrd].getNextActiveAlarm(alarm_text, board[numBrd].mainData.Events);
-        
-        data = "{\"Code\":\"" + String(alarm_code) + "\",";
-        data += "\"Text\":\"" + String(alarm_text.c_str()) + "\"}\0";
-        mqttClient.publish(topic.c_str(), data.c_str());
-        sentNullAlarm[numBrd] = false;
-    } else if (!sentNullAlarm[numBrd]) {
-        String topic = "stab_brd/alarms/fase_" + Lit + "/" + WiFi.macAddress();
-        String data = "{\"Code\":\"0\",\"Text\":\"\"}\0";
-        mqttClient.publish(topic.c_str(), data.c_str());
-        sentNullAlarm[numBrd] = true;
-    }
-    return true;
+	} else if (request == 2) {
+		topic = "stab_brd/datamin/fase_" + Lit + "/" + S(Board_SN);
+		board[numBrd].getJsonData(data, DATA_MIN);
+	} else if (request == 3) {
+		topic = "stab_brd/datamax/fase_" + Lit + "/" + S(Board_SN);
+		board[numBrd].getJsonData(data, DATA_MAX);
+	} else if (request == 4) {
+		topic = "stab_brd/sets/fase_" + Lit + "/" + S(Board_SN);
+		board[numBrd].getJsonData(data, DATA_MAX);
+	} else if (request == 5 || board[numBrd].mainData.Events > 0) {
+		topic = "stab_brd/alarms/fase_" + Lit + "/" + S(Board_SN);
+		uint8_t alarm_code = 0;
+		std::string alarm_text;
+		alarm_code = board[numBrd].getNextActiveAlarm(alarm_text, board[numBrd].mainData.Events);
+		data = "{\"Code\":\"" + std::to_string(alarm_code) + "\",";
+        data += "\"Text\":\"" + alarm_text + "\"}\0";
+	}
+	mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+    return mqttConnected;
 }
 
 
@@ -153,6 +132,48 @@ bool sendMqttJson(const char* topic, const char* data) {
     }
     return isStart && mqttClient.endPublish();
 }
+
+
+void getMqttRequest(const char* json) {
+	String Request = String(json);
+	//if (Request.indexOf("MqttRequest") == -1) return;
+	if (Request.indexOf("Data") != -1) mqttRequest = 1;
+	else if (Request.indexOf("Datamin") != -1) mqttRequest = 2;
+	else if (Request.indexOf("Datamax") != -1) mqttRequest = 3;
+	else if (Request.indexOf("Settings") != -1) mqttRequest = 4;
+	else if (Request.indexOf("Alarms") != -1) mqttRequest = 5;
+}
+
+void createMqttRequest() {
+	if (mqttRequest != 0) return;
+	static uint32_t tmr = 0;
+	static uint8_t cnt = 0;
+	int result = 0;
+	if (millis() - tmr > 1000) {
+		cnt++;
+		tmr = millis();
+	} 
+	if (cnt < 120) {
+		result = 1;
+	} 
+	if (cnt == 60) result = 2;
+	if (cnt == 61) result = 3;
+	if (cnt == 120) {
+		cnt = 0;
+		result = 4;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
