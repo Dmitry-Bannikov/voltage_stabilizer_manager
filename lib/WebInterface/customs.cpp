@@ -238,37 +238,37 @@ void GP_DeviceInfo(int num) {
 	GP.GRID_END();
 }
 
-void GP_OwnerEdit_build() {
-	String name = Owner_Get(OWN_NAME);
-	String email = Owner_Get(OWN_EMAIL);
-	String pass = Owner_Get(OWN_PASS);
-	String code = Owner_Get(OWN_CODE);
-	String status = Owner_Get(OWN_STATUS);
+void GP_UserEdit_build() {
+	String name = User_Get(OWN_NAME);
+	String email = User_Get(OWN_EMAIL);
+	String pass = User_Get(OWN_PASS);
+	String code = User_Get(OWN_CODE);
+	String status = User_Get(OWN_STATUS);
 
 	GP.GRID_BEGIN();
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_name", "Name", name, "", 20);
+			GP.TEXT("user_name", "Name", name, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_email", "Email", email, "", 20);
+			GP.TEXT("user_email", "Email", email, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.PASS_EYE("own_pass", "Pass", pass, "", 20);
+			GP.PASS_EYE("user_pass", "Pass", pass, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_code", "Code", code, "", 20, "", status == "registred" ? true : false);
+			GP.TEXT("user_code", "Code", code, "", 20, "", status == "registred" ? true : false);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 		GP.BOX_BEGIN();
 		if (status != "" && status != "on_delete") {
-			GP.BUTTON_MINI("own_btn_edit", "Изменить");
-			GP.BUTTON_MINI("own_btn_delete", "Удалить", "", GP_RED);
+			GP.BUTTON_MINI("user_btn_edit", "Изменить");
+			GP.BUTTON_MINI("user_btn_delete", "Удалить", "", GP_RED);
 		} else {
-			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN);
+			GP.BUTTON_MINI("user_btn_reg", "Зарегистрировать", "", GP_GREEN);
 		}
 		GP.BOX_END();
 		GP.BLOCK_END();

@@ -3,10 +3,10 @@
 using json = nlohmann::json;
 using string = std::string;
 std::vector<device> Devices;
-owner DeviceOwner;
+user User;
 
 uint32_t devices_size = 0;
-EEManager memoryOwner(DeviceOwner);
+EEManager memoryOwner(User);
 EEManager memoryNumDevices(devices_size);
 EEManager memoryDevices(Devices);
 
@@ -19,6 +19,130 @@ void Devices_Init() {
 	memoryDevices.setSize(devices_size);				//устанавливаем размер для менеджера
 	memoryDevices.begin(memoryNumDevices.nextAddr(), 125);	//вспоминаем данные об устройствах
 }
+
+
+
+void User_AddOrUpdate(
+	const char *name, 
+	const char *email, 
+	const char *pass,
+	const char *code, 
+	const char *status 
+	) 
+{
+    if (strcmp(name, "")) strlcpy(User.Name, name, 32);
+	if (strcmp(email, "")) strlcpy(User.Email, email, 32);
+	if (strcmp(pass, "")) strlcpy(User.Pass, pass, 32);
+	if (strcmp(code, "")) strlcpy(User.Code, code, 32);
+	if (strcmp(status, "")) strlcpy(User.Status, status, 32);
+}
+
+
+
+
+
+//==============USER FUNCTIONS==================//
+void User_AddOrUpdate(
+	const char *name, 
+	const char *email, 
+	const char *pass,
+	const char *code, 
+	const char *status,
+	const char *timezone
+	) 
+{
+    if (strcmp(name, "")) strlcpy(User.Name, name, 32);
+	if (strcmp(email, "")) strlcpy(User.Email, email, 32);
+	if (strcmp(pass, "")) strlcpy(User.Pass, pass, 32);
+	if (strcmp(code, "")) strlcpy(User.Code, code, 32);
+	if (strcmp(status, "")) strlcpy(User.Status, status, 32);
+	if (strcmp(timezone, "")) strlcpy(User.Timezone, timezone, 10);
+}
+
+String User_Get(uint8_t param) {
+	String result = "_no_owner";
+	char get[32];
+	switch (param) {
+	case OWN_NAME:
+		strcpy(get, User.Name);
+		break;
+	case OWN_EMAIL:
+		strcpy(get, User.Email);
+		break;
+	case OWN_PASS:
+		strcpy(get, User.Pass);
+		break;
+	case OWN_CODE:
+		strcpy(get, User.Code);
+		break;
+	case OWN_STATUS:
+		strcpy(get, User.Status);
+		break;
+	case OWN_TIMEZONE:
+		strcpy(get, User.Timezone);
+		break;
+	default:
+		strcpy(get, "_null");
+		break;
+	}
+	result = get;
+	return result;
+}
+
+bool User_Set(uint8_t param, const String &data) {
+	if (data.length() > 31) return false;
+	const char* set = data.c_str();
+	switch (param) {
+	case OWN_NAME:
+		strlcpy(User.Name, set, 32);
+		break;
+	case OWN_EMAIL:
+		strlcpy(User.Email, set, 32);
+		break;
+	case OWN_PASS:
+		strlcpy(User.Pass, set, 32);
+		break;
+	case OWN_CODE:
+		strlcpy(User.Code, set, 32);
+		break;
+	case OWN_STATUS:
+		strlcpy(User.Status, set, 32);
+		break;
+	case OWN_TIMEZONE:
+		strlcpy(User.Timezone, set, 32);
+		break;
+	default:
+		break;
+	}
+	return true;
+}
+
+std::string User_getJson() {
+	json ownJson;
+	ownJson["Name"] = User.Name;
+	ownJson["Email"] = User.Email;
+	ownJson["Pass"] = User.Pass;
+	ownJson["Code"] = User.Code;
+	ownJson["Status"] = User.Status;
+	ownJson["Timezone"] = User.Timezone;
+	return ownJson.dump();
+}
+
+void User_setJson(const char* json_c) {
+	std::string jsonString = std::string(json_c);
+	auto j = json::parse(jsonString);
+	j["Name"].is_null() ? strcpy(User.Name, "NullName") : j.at("Name").get_to(User.Name);
+	j["Email"].is_null() ? strcpy(User.Email, "NullEmail") : j.at("Email").get_to(User.Email);
+	j["Pass"].is_null() ? strcpy(User.Pass, "NullPass") : j.at("Pass").get_to(User.Pass);
+	j["Code"].is_null() ? strcpy(User.Code, "NullCode") : j.at("Code").get_to(User.Code);
+	j["Status"].is_null() ? strcpy(User.Status, "NullStatus") : j.at("Status").get_to(User.Status);
+}
+
+void User_Save() {
+	memoryOwner.updateNow();
+}
+
+//==============DEVICE FUNCTIONS==================//
 
 void Device_AddOrUpdate(
 	const char *name, 
@@ -49,22 +173,6 @@ void Device_AddOrUpdate(
 	if (strcmp(status, "")) strlcpy(Devices[num].Status, status, 32);
 	if (strcmp(is_active, "")) strlcpy(Devices[num].IsActive, is_active, 32);
 }
-
-void Owner_AddOrUpdate(
-	const char *name, 
-	const char *email, 
-	const char *pass,
-	const char *code, 
-	const char *status 
-	) 
-{
-    if (strcmp(name, "")) strlcpy(DeviceOwner.Name, name, 32);
-	if (strcmp(email, "")) strlcpy(DeviceOwner.Email, email, 32);
-	if (strcmp(pass, "")) strlcpy(DeviceOwner.Pass, pass, 32);
-	if (strcmp(code, "")) strlcpy(DeviceOwner.Code, code, 32);
-	if (strcmp(status, "")) strlcpy(DeviceOwner.Status, status, 32);
-}
-
 
 void Device_Delete(int indx) {
 	if (indx >= Devices.size()) return;
@@ -151,86 +259,6 @@ bool Device_Set(uint8_t indx, uint8_t param, const String &data) {
 	return true;
 }
 
-String Owner_Get(uint8_t param) {
-	String result = "_no_owner";
-	char get[32];
-	switch (param) {
-	case OWN_NAME:
-		strcpy(get, DeviceOwner.Name);
-		break;
-	case OWN_EMAIL:
-		strcpy(get, DeviceOwner.Email);
-		break;
-	case OWN_PASS:
-		strcpy(get, DeviceOwner.Pass);
-		break;
-	case OWN_CODE:
-		strcpy(get, DeviceOwner.Code);
-		break;
-	case OWN_STATUS:
-		strcpy(get, DeviceOwner.Status);
-		break;
-	default:
-		strcpy(get, "_null");
-		break;
-	}
-	result = get;
-	return result;
-}
-
-bool Owner_Set(uint8_t param, const String &data) {
-	if (data.length() > 31) return false;
-	const char* set = data.c_str();
-	switch (param) {
-	case OWN_NAME:
-		strlcpy(DeviceOwner.Name, set, 32);
-		break;
-	case OWN_EMAIL:
-		strlcpy(DeviceOwner.Email, set, 32);
-		break;
-	case OWN_PASS:
-		strlcpy(DeviceOwner.Pass, set, 32);
-		break;
-	case OWN_CODE:
-		strlcpy(DeviceOwner.Code, set, 32);
-		break;
-	case OWN_STATUS:
-		strlcpy(DeviceOwner.Status, set, 32);
-		break;
-	default:
-		break;
-	}
-	return true;
-}
-
-void Device_Save() {
-	memoryDevices.updateNow();
-}
-
-void Owner_Save() {
-	memoryOwner.updateNow();
-}
-
-std::string Owner_getJson() {
-	json ownJson;
-	ownJson["Name"] = DeviceOwner.Name;
-	ownJson["Email"] = DeviceOwner.Email;
-	ownJson["Pass"] = DeviceOwner.Pass;
-	ownJson["Code"] = DeviceOwner.Code;
-	ownJson["Status"] = DeviceOwner.Status;
-	return ownJson.dump();
-}
-
-void Owner_setJson(const char* json_c) {
-	std::string jsonString = std::string(json_c);
-	auto j = json::parse(jsonString);
-	j["Name"].is_null() ? strcpy(DeviceOwner.Name, "NullName") : j.at("Name").get_to(DeviceOwner.Name);
-	j["Email"].is_null() ? strcpy(DeviceOwner.Email, "NullEmail") : j.at("Email").get_to(DeviceOwner.Email);
-	j["Pass"].is_null() ? strcpy(DeviceOwner.Pass, "NullPass") : j.at("Pass").get_to(DeviceOwner.Pass);
-	j["Code"].is_null() ? strcpy(DeviceOwner.Code, "NullCode") : j.at("Code").get_to(DeviceOwner.Code);
-	j["Status"].is_null() ? strcpy(DeviceOwner.Status, "NullStatus") : j.at("Status").get_to(DeviceOwner.Status);
-}
-
 std::string Device_getJson() {
     json devicesJson;
     for (const auto& dev : Devices) {
@@ -265,13 +293,15 @@ void Device_setJson(const char* json_c) {
         devJson["IsActive"].is_null() ? strcpy(dev.IsActive, "") : devJson.at("IsActive").get_to(dev.IsActive);
 
         // Проверяем, совпадает ли Email владельца с Email устройства
-        if (std::string(dev.Email) == std::string(DeviceOwner.Email)) {
+        if (std::string(dev.Email) == std::string(User.Email)) {
             Device_AddOrUpdate(dev.Name, dev.Type, dev.SN, dev.Email, dev.Page, dev.Status, dev.Type);
         }
     }
 }
 
-
+void Device_Save() {
+	memoryDevices.updateNow();
+}
 
 
 

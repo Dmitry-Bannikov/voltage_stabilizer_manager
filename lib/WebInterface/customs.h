@@ -11,7 +11,7 @@ void GP_wificonnection_build();
 void GP_SUBMIT_MINI_LINK(const String &text, const String &link, PGM_P st = GP_GREEN, const String &cls = "");
 void GP_CreateDevicesList();
 void GP_DeviceInfo(int num);
-void GP_OwnerEdit_build();
+void GP_UserEdit_build();
 
 
 

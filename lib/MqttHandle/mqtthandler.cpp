@@ -1,5 +1,6 @@
 #include "mqtthandler.h"
 #include <common_data.h>
+#include <devices.h>
 
 
 #define USE_ORTEA
@@ -58,6 +59,19 @@ void MqttPublishData() {
     for (uint8_t i = 0; i < board.size(); i++) {
         sendFaseMqttData(i, mqttRequest);
     }
+    if (mqttRequest == 6) {
+        String topic = "";
+	    std::string data = "";
+        topic = "stab_brd/user/" + S(Board_SN);
+        data = User_getJson();
+        sendMqttJson(topic.c_str(), data.c_str());
+    } else if (mqttRequest == 7) {
+        String topic = "";
+	    std::string data = "";
+        topic = "stab_brd/device/" + S(Board_SN);
+        data = Device_getJson();
+        sendMqttJson(topic.c_str(), data.c_str());
+    }
 	mqttRequest = 0;
     tmr = millis();
 }
@@ -114,6 +128,10 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 		data = "{\"Code\":\"" + std::to_string(alarm_code) + "\",";
         data += "\"Text\":\"" + alarm_text + "\"}\0";
 	}
+
+
+
+
 	mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
     return mqttConnected;
 }

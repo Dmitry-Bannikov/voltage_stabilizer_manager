@@ -372,9 +372,7 @@ void Board::getJsonData(std::string & result, uint8_t mode) {
 	std::stringstream ss;
 	ss << "{\"Fase\":\"" << getLiteral() << "\",";
 	if (mode < 3) {
-		bool first = true;
 		for (uint8_t i = 0; i < NUM_VALS; i++) {
-			if (!first) ss << ",";
 			if (mode==0) {
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.online[i]*10)/10 << "\"";
 			} else if (mode==1) {
@@ -382,8 +380,9 @@ void Board::getJsonData(std::string & result, uint8_t mode) {
 			} else if (mode==2){
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.max[i]*10)/10 << "\"";
 			}
-			first = false;
+			ss << ",";
 		}
+		//ss << "\"deviceId\":" << ""
 		ss << "}";
 		//Bdata.dataJson = ss.str();
 	} else if (mode == 3) {

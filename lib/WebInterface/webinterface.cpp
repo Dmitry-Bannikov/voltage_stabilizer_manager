@@ -29,7 +29,7 @@ void portalBuild() {
 	
 	if(ui.uri("/")) {
 		GP.BLOCK_BEGIN(GP_THIN, "", "Регистрация пользователя");
-		GP_OwnerEdit_build();
+		GP_UserEdit_build();
 		GP.BLOCK_END();
 		GP.BLOCK_BEGIN(GP_THIN, "", "Мои устройства");
 		GP_CreateDevicesList();
@@ -69,8 +69,8 @@ void portalActions() {
 	updatesHandler();
 	if (ui.clickSub("dev_"))
 		ActionsDevice_handler();
-	if (ui.clickSub("own_"))
-		ActionsOwner_handler();
+	if (ui.clickSub("user_"))
+		ActionsUser_handler();
 }
 
 void portalInit() {
@@ -227,16 +227,18 @@ void ActionsDevice_handler() {
 			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
 			Device_Save();
 		}
+		mqttRequest = 7;
 		webRefresh = true;
 	}
 	if (ui.clickSub("dev_btn_delete")) {
 		dev = ui.clickNameSub().toInt();
 		Device_Delete(dev);
 		Device_Save();
+		mqttRequest = 7;
 		webRefresh = true;
 	}
 	if (ui.click("dev_btn_add")) {
-		String email = Owner_Get(OWN_EMAIL);
+		String email = User_Get(OWN_EMAIL);
 		if (email.length() < 3) return;
 		dev = Device_Size();
 		if (sn == "") sn = String(Board_SN);
@@ -245,42 +247,44 @@ void ActionsDevice_handler() {
 			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), email.c_str(), page.c_str());
 			Device_Save();
 		}
+		mqttRequest = 7;
 		webRefresh = true;
 	}
 
 }
 
-void ActionsOwner_handler() {
+void ActionsUser_handler() {
 	static String name = "";
 	static String email = "";
 	static String pass = "";
 	static String code = "";
 	
-	ui.clickString("own_name", name);
-	ui.clickString("own_email", email);
-	ui.clickString("own_pass", pass);
-	ui.clickString("own_code", code);
+	ui.clickString("user_name", name);
+	ui.clickString("user_email", email);
+	ui.clickString("user_pass", pass);
+	ui.clickString("user_code", code);
 
-	if (ui.clickSub("own_btn")) {
-		if (code == "") code = Owner_Get(OWN_CODE);
-		if (name == "") name = Owner_Get(OWN_NAME);
-		if (pass == "") pass = Owner_Get(OWN_PASS);
-		if (email == "") email = Owner_Get(OWN_EMAIL);
+	if (ui.clickSub("user_btn")) {
+		if (code == "") code = User_Get(OWN_CODE);
+		if (name == "") name = User_Get(OWN_NAME);
+		if (pass == "") pass = User_Get(OWN_PASS);
+		if (email == "") email = User_Get(OWN_EMAIL);
 	}
 
-	if (ui.click("own_btn_reg")) {
-		Owner_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_registration");
-		Owner_Save();
+	if (ui.click("user_btn_reg")) {
+		User_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_registration");
+		User_Save();
+		mqttRequest = 6;
 		webRefresh = true;
 	}
-	if (ui.click("own_btn_edit")) {
-		Owner_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_edit");
-		Owner_Save();
+	if (ui.click("user_btn_edit")) {
+		User_AddOrUpdate(name.c_str(), email.c_str(), pass.c_str(), code.c_str(), "on_edit");
+		User_Save();
 		webRefresh = true;
 	}
-	if (ui.click("own_btn_delete")) {
-		Owner_Set(OWN_STATUS, "on_delete");
-		Owner_Save();
+	if (ui.click("user_btn_delete")) {
+		User_Set(OWN_STATUS, "on_delete");
+		User_Save();
 		webRefresh = true;
 	}
 	
