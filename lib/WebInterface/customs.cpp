@@ -149,8 +149,9 @@ void GP_wificonnection_build() {
 				GP.PASS_EYE("staPass","Password STA", wifi_settings.staPass, "", 20);
 			GP.BLOCK_END();
 			GP.BLOCK_BEGIN(GP_DIV_RAW);
-				String open = "http://" + String(globalData.webInterfaceDNS) + ".local/";
-				GP_SUBMIT_MINI_LINK("Запомнить", open);
+				//String open = "http://" + String(globalData.webInterfaceDNS) + ".local/";
+				//GP_SUBMIT_MINI_LINK("Запомнить", open);
+				GP.SUBMIT_MINI("Запомнить");
 			GP.BLOCK_END();
 		GP.GRID_END();
 		GP.BUTTON_LINK("/ota_update", "Обновление прошивки");
@@ -239,11 +240,11 @@ void GP_DeviceInfo(int num) {
 }
 
 void GP_OwnerEdit_build() {
-	String name = Owner_Get(OWN_NAME);
-	String email = Owner_Get(OWN_EMAIL);
-	String pass = Owner_Get(OWN_PASS);
-	String code = Owner_Get(OWN_CODE);
-	String status = Owner_Get(OWN_STATUS);
+	String name = User_Get(OWN_NAME);
+	String email = User_Get(OWN_EMAIL);
+	String pass = User_Get(OWN_PASS);
+	String code = User_Get(OWN_CODE);
+	String status = User_Get(OWN_STATUS);
 
 	GP.GRID_BEGIN();
 		GP.BLOCK_BEGIN(GP_DIV_RAW);

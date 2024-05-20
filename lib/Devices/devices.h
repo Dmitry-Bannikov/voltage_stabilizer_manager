@@ -18,19 +18,22 @@
 #define OWN_PASS		2
 #define OWN_CODE		3
 #define OWN_STATUS		4
+#define OWN_TIMEZONE	5
 
-struct owner {
+struct user {
 	char Name[32] = "";	//имя пользователя
 	char Email[32] = "";	//емайл пользователя
 	char Pass[32] = "";	//пароль пользователя
 	char Code[32] = "";	//код подтверждения от сервера
 	char Status[32] = "";	//статус пользователя
-	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status) {
+	char Timezone[10] = "GMT+3";
+	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status, const char* t_zone) {
 		strlcpy(Name, name, 32);
 		strlcpy(Email, email, 32);
 		strlcpy(Pass, pass, 32);
 		strlcpy(Code, code, 32);
 		strlcpy(Status, status, 32);
+		strlcpy(Timezone, t_zone, 10);
 	}
 };
 
@@ -56,12 +59,13 @@ struct device {
 };
 
 void Devices_Init();
-void Owner_AddOrUpdate(
+void User_AddOrUpdate(
 	const char *name = "", 
 	const char *email = "", 
 	const char *pass = "",
 	const char *code = "", 
-	const char *status = ""
+	const char *status = "",
+	const char *timezone = ""
 	);
 void Device_AddOrUpdate(
 	const char *name, 
@@ -78,19 +82,17 @@ int Device_FindIndxFromSN(const char *sn);
 int Device_Size();
 
 void Device_Save();
-void Owner_Save();
+void User_Save();
 
-std::string Owner_getJson();
-void Owner_setJson(const char* json_c);
-String Owner_Get(uint8_t param);
-bool Owner_Set(uint8_t param, const String &data);
+std::string User_getJson();
+void User_setJson(const char* json_c);
+String User_Get(uint8_t param);
+bool User_Set(uint8_t param, const String &data);
 
 std::string Device_getJson();
 void Device_setJson(const char* json_c);
 String Device_Get(uint8_t indx, uint8_t param);
 bool Device_Set(uint8_t indx, uint8_t param, const String &data);
-
-
 
 
 

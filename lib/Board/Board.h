@@ -183,7 +183,6 @@ public:
 	bool 		isOnline();												//проверить, онлайн ли плата
 	bool 		isAnswer();
 	uint8_t 	getAddress() {return _board_addr;};						//получить адрес платы		
-
 	uint8_t 	getData();		
 	//=============================Получение данных с платы=========================================//										
 	float 		readDataRaw(const uint8_t val_addr = 0, uint8_t vals_cnt = 5);		//получить данные с платы
@@ -200,7 +199,7 @@ public:
 	bool 		writeAll();
 	void 		getDataStr(String & result);
 	void 		getStatisStr(String & result);
-	void 		getJsonData(std::string & result, uint8_t mode);
+	void 		getJsonData(std::string & result, uint8_t mode, const std::string &time);
 	uint8_t 	setJsonData(std::string input);
 	void 		getMotKoefsList(String &result, bool typeNumber);
 	void 		setMotKoefsList(String str);
@@ -209,7 +208,7 @@ public:
 	void 		setLiteral(char lit);
 	char 		getLiteral();
 	float 		getData(std::string request);
-	void 		tick(const String time);
+	void 		tick();
 	void 		detach();
 	~Board();
 	

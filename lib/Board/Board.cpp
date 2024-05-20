@@ -368,13 +368,11 @@ float Board::getData(std::string request) {
 	return nan("");
 }
 
-void Board::getJsonData(std::string & result, uint8_t mode) {
+void Board::getJsonData(std::string & result, uint8_t mode, const std::string &time) {
 	std::stringstream ss;
 	ss << "{\"Fase\":\"" << getLiteral() << "\",";
 	if (mode < 3) {
-		bool first = true;
 		for (uint8_t i = 0; i < NUM_VALS; i++) {
-			if (!first) ss << ",";
 			if (mode==0) {
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.online[i]*10)/10 << "\"";
 			} else if (mode==1) {
@@ -382,10 +380,10 @@ void Board::getJsonData(std::string & result, uint8_t mode) {
 			} else if (mode==2){
 				ss << "\"" << jsonDataNames[i] << "\":\"" << round(Bdata.max[i]*10)/10 << "\"";
 			}
-			first = false;
+			ss << ",";
 		}
+		ss << "\"createdAt\":\"" << time;
 		ss << "}";
-		//Bdata.dataJson = ss.str();
 	} else if (mode == 3) {
 		bool first = true;
 		for (uint8_t i = 0; i < SETS_VALS; i++) {
@@ -394,7 +392,6 @@ void Board::getJsonData(std::string & result, uint8_t mode) {
 			first = false;
 		}
 		ss << "}";
-		//Bdata.settingsJson = ss.str();
 	}
 	
 	result = ss.str();
@@ -433,8 +430,7 @@ uint8_t Board::setJsonData(std::string input) {
 	return 0;
 }
 
-void Board::tick(const String time) {
-	actTime = time;
+void Board::tick() {
 	getData();
 }
 

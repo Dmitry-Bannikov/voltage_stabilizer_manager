@@ -1,5 +1,6 @@
 #include "mqtthandler.h"
 #include <common_data.h>
+#include <devices.h>
 
 
 #define USE_ORTEA
@@ -54,9 +55,19 @@ void MqttReconnect() {
 
 void MqttPublishData() {
     static uint32_t tmr = 0;
-    if (millis() - tmr < 500) return;
+    if (millis() - tmr < 500 || mqttRequest==0) return;
     for (uint8_t i = 0; i < board.size(); i++) {
         sendFaseMqttData(i, mqttRequest);
+    }
+    if (mqttRequest == 5) {
+        String topic = "stab_brd/user/" + S(Board_SN);
+        std::string data = User_getJson();
+        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+    }
+    if (mqttRequest == 6) {
+        String topic = "stab_brd/devices/" + S(Board_SN);
+        std::string data = Device_getJson();
+        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
     }
 	mqttRequest = 0;
     tmr = millis();
@@ -64,6 +75,9 @@ void MqttPublishData() {
 
 void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
     String topicStr = String(topic);
+    if (topicStr.indexOf("MqttRequest") != -1) {
+        getMqttRequest((char*)payload);
+    }
     int index = topicStr.indexOf("fase_") + 5;
     if (index == -1) return;
     char fase = topicStr.charAt(index);
@@ -86,6 +100,7 @@ void Mqtt_tick() {
     mqttClient.loop();
     MqttReconnect();
     MqttPublishData();
+    createMqttRequest();
 }
 
 bool sendFaseMqttData(int8_t numBrd, int request) {
@@ -93,20 +108,23 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 	String Lit = String(board[numBrd].getLiteral());
 	String topic = "";
 	std::string data = "";
+    String time_S = ui.getSystemTime().encode();
+    std::string time =  time_S.c_str();
 	if (request == 1) {
 		topic = "stab_brd/data/fase_" + Lit + "/" + S(Board_SN);
-        board[numBrd].getJsonData(data, DATA_ACT);
+        board[numBrd].getJsonData(data, DATA_ACT, time);
         board[numBrd].Bdata.getMinMax();
 	} else if (request == 2) {
 		topic = "stab_brd/datamin/fase_" + Lit + "/" + S(Board_SN);
-		board[numBrd].getJsonData(data, DATA_MIN);
+		board[numBrd].getJsonData(data, DATA_MIN, time);
+        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+        topic = "stab_brd/datamax/fase_" + Lit + "/" + S(Board_SN);
+		board[numBrd].getJsonData(data, DATA_MAX, time);
+        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
 	} else if (request == 3) {
-		topic = "stab_brd/datamax/fase_" + Lit + "/" + S(Board_SN);
-		board[numBrd].getJsonData(data, DATA_MAX);
-	} else if (request == 4) {
 		topic = "stab_brd/sets/fase_" + Lit + "/" + S(Board_SN);
-		board[numBrd].getJsonData(data, DATA_MAX);
-	} else if (request == 5 || board[numBrd].mainData.Events > 0) {
+		board[numBrd].getJsonData(data, DATA_MAX, time);
+	} else if (request == 4 || board[numBrd].mainData.Events > 0) {
 		topic = "stab_brd/alarms/fase_" + Lit + "/" + S(Board_SN);
 		uint8_t alarm_code = 0;
 		std::string alarm_text;
@@ -138,30 +156,34 @@ void getMqttRequest(const char* json) {
 	String Request = String(json);
 	//if (Request.indexOf("MqttRequest") == -1) return;
 	if (Request.indexOf("Data") != -1) mqttRequest = 1;
-	else if (Request.indexOf("Datamin") != -1) mqttRequest = 2;
-	else if (Request.indexOf("Datamax") != -1) mqttRequest = 3;
-	else if (Request.indexOf("Settings") != -1) mqttRequest = 4;
-	else if (Request.indexOf("Alarms") != -1) mqttRequest = 5;
+	else if (Request.indexOf("DataStat") != -1) mqttRequest = 2;
+	else if (Request.indexOf("Settings") != -1) mqttRequest = 3;
+	else if (Request.indexOf("Alarms") != -1) mqttRequest = 4;
 }
 
 void createMqttRequest() {
-	if (mqttRequest != 0) return;
-	static uint32_t tmr = 0;
-	static uint8_t cnt = 0;
-	int result = 0;
-	if (millis() - tmr > 1000) {
-		cnt++;
-		tmr = millis();
-	} 
-	if (cnt < 120) {
-		result = 1;
-	} 
-	if (cnt == 60) result = 2;
-	if (cnt == 61) result = 3;
-	if (cnt == 120) {
-		cnt = 0;
-		result = 4;
-	}
+    if (mqttRequest) return;
+    static uint32_t lastSecondTime = 0;
+    static uint32_t lastMinuteTime = 0;
+    static uint32_t lastTwoMinutesTime = 0;
+    
+    uint32_t currentTime = millis();
+
+    
+    if (millis() - lastSecondTime >= 1000) {
+        mqttRequest = 1;
+        lastSecondTime = millis();
+    }
+
+    if (millis() - lastMinuteTime >= 60000) {
+        mqttRequest = 2;
+        lastMinuteTime = millis();
+    }
+
+    if (millis() - lastTwoMinutesTime >= 120000) {
+        mqttRequest = 3;
+        lastTwoMinutesTime = millis();
+    }
 }
 
 

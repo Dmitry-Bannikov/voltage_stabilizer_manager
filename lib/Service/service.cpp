@@ -53,8 +53,8 @@ void Board_Tick() {
 	uint8_t boardsAmnt = board.size();
 	if (millis() - tmr > period && !boardRequest) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			t = ui.getSystemTime();
-			board[i].tick(t.encode());
+			//t = ui.getSystemTime().encode();
+			board[i].tick();
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
