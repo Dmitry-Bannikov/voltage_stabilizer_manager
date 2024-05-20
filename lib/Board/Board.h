@@ -147,16 +147,17 @@ struct addsets {
 };
 
 struct mqttDataMetrics {
-	const char* Names[17] = {
+	const char* Names[19] = {
 		"Uin" , "Uout" , "I" , "P" , 
 		"Uin_avg" , "Uout_avg" , "I_avg" , "P_avg" ,
 		"Uin_max" , "Uout_max" , "I_max" , "P_max" ,
-		"Uin_min" , "Uout_min" , "I_min" , "P_min"
-		"work_h"
+		"Uin_min" , "Uout_min" , "I_min" , "P_min" ,
+		"work_h"  , "Events"   , "lastEvents"
 	};
 	float Act[17] = {-1};
 	float Min[4] = {-1};
 	float Max[4] = {-1};
+	
 	void getMinMax(bool set_zero) {
 		static uint32_t tmr = 0;
 		if (millis() -  tmr > 70000) {
@@ -174,11 +175,11 @@ struct mqttDataMetrics {
 		}
 	}
 	void Sync(data Data, stats Stat) {
-		Act[0] = Data.Uin; Act[1] = Data.Uout; Act[2] = Data.Current; Act[3] = Data.Power;
-		Act[4] = Stat.Uin[AVG]; Act[5] = Stat.Uout[AVG]; Act[6] = Stat.Current[AVG]; Act[7] = Stat.Power[AVG]; 
-		Act[8] = Stat.Uin[MAX]; Act[9] = Stat.Uout[MAX]; Act[10] = Stat.Current[MAX]; Act[11] = Stat.Power[MAX]; 
-		Act[12] = Stat.Uin[MIN]; Act[13] = Stat.Uout[MIN]; Act[14] = Stat.Current[MIN]; Act[15] = Stat.Power[MIN]; 
-		Act[16] = Stat.WorkTimeMins/60;
+		Act[0] = Data.Uin; Act[1] = Data.Uout; Act[2] = Data.Current; Act[3] = Data.Power; Act[4] = Data.Events;
+		Act[5] = Stat.Uin[AVG]; Act[6] = Stat.Uout[AVG]; Act[7] = Stat.Current[AVG]; Act[8] = Stat.Power[AVG]; 
+		Act[9] = Stat.Uin[MAX]; Act[10] = Stat.Uout[MAX]; Act[11] = Stat.Current[MAX]; Act[12] = Stat.Power[MAX]; 
+		Act[13] = Stat.Uin[MIN]; Act[14] = Stat.Uout[MIN]; Act[15] = Stat.Current[MIN]; Act[16] = Stat.Power[MIN]; 
+		Act[17] = Stat.WorkTimeMins/60; Act[18] = Stat.Events;
 	}
 };
 
@@ -198,7 +199,7 @@ struct mqttDataSettings {
 		Values[12] = Add.SerialNumber[0]; Values[13] = Add.SerialNumber[1]; Values[14] = 0; Values[15] = 0;
 		Values[16] = Add.Switches[SW_OUTSIGN];
 	};
-}
+};
 
 
 
