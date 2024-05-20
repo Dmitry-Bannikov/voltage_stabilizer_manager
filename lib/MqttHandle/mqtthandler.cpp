@@ -121,6 +121,7 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
         topic = "stab_brd/datamax/fase_" + Lit + "/" + S(Board_SN);
 		board[numBrd].getJsonData(data, DATA_MAX, time);
         mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+        return;
 	} else if (request == 3) {
 		topic = "stab_brd/sets/fase_" + Lit + "/" + S(Board_SN);
 		board[numBrd].getJsonData(data, DATA_MAX, time);
