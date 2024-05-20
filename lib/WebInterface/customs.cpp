@@ -248,28 +248,28 @@ void GP_OwnerEdit_build() {
 
 	GP.GRID_BEGIN();
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_name", "Name", name, "", 20);
+			GP.TEXT("user_name", "Name", name, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_email", "Email", email, "", 20);
+			GP.TEXT("user_email", "Email", email, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.PASS_EYE("own_pass", "Pass", pass, "", 20);
+			GP.PASS_EYE("user_pass", "Pass", pass, "", 20);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
-			GP.TEXT("own_code", "Code", code, "", 20, "", status == "registred" ? true : false);
+			GP.TEXT("user_code", "Code", code, "", 20, "", status == "registred" ? true : false);
 		GP.BLOCK_END();
 
 		GP.BLOCK_BEGIN(GP_DIV_RAW);
 		GP.BOX_BEGIN();
 		if (status != "" && status != "on_delete") {
-			GP.BUTTON_MINI("own_btn_edit", "Изменить");
-			GP.BUTTON_MINI("own_btn_delete", "Удалить", "", GP_RED);
+			GP.BUTTON_MINI("user_btn_edit", "Изменить");
+			GP.BUTTON_MINI("user_btn_delete", "Удалить", "", GP_RED);
 		} else {
-			GP.BUTTON_MINI("own_btn_reg", "Зарегистрировать", "", GP_GREEN);
+			GP.BUTTON_MINI("user_btn_reg", "Зарегистрировать", "", GP_GREEN);
 		}
 		GP.BOX_END();
 		GP.BLOCK_END();

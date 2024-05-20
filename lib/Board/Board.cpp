@@ -213,18 +213,8 @@ uint8_t Board::getData() {
 		disconn = 0;
 		_disconnected = 0;
 	}
-	Bdata.settings[0] = mainSets.EnableTransit; Bdata.settings[1] = mainSets.MinVolt; Bdata.settings[2] = mainSets.MaxVolt; 
-	Bdata.settings[3] = mainSets.Hysteresis; Bdata.settings[4] = mainSets.Target; Bdata.settings[5] = mainSets.TuneInVolt; 
-	Bdata.settings[6] = mainSets.TuneOutVolt; Bdata.settings[7] = addSets.tcRatioList[mainSets.TransRatioIndx]; Bdata.settings[8] = mainSets.MotorType; 
-	Bdata.settings[9] = mainSets.EmergencyTON; Bdata.settings[10] = mainSets.EmergencyTOFF; Bdata.settings[11] = addSets.password; 
-	Bdata.settings[12] = addSets.SerialNumber[0]; Bdata.settings[13] = addSets.SerialNumber[1]; Bdata.settings[14] = 0; 
-	Bdata.settings[15] = 0; Bdata.settings[16] = addSets.Switches[SW_OUTSIGN];
-
-	Bdata.online[0] = mainData.Uin; Bdata.online[1] = mainData.Uout; Bdata.online[2] = mainData.Current; 
-	Bdata.online[3] = mainData.Power/1000.0; Bdata.online[4] = mainStats.Uin[1]; Bdata.online[5] = mainStats.Uout[1]; 
-	Bdata.online[6] = mainStats.Current[1]; Bdata.online[7] = mainStats.Power[1]/1000.0; Bdata.online[8] = mainStats.Uin[0]; 
-	Bdata.online[9] = mainStats.Uout[0]; Bdata.online[10] = mainStats.Current[0]; Bdata.online[11] = mainStats.Power[0]/1000.0; 
-	Bdata.online[12] = mainStats.WorkTimeMins/60; 
+	Metrics.Sync(mainData, mainStats);
+	Settings.Sync(mainSets, addSets);
 	return _disconnected;
 }
 
