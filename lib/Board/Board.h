@@ -101,7 +101,7 @@ struct mainsets {	//32
 	int16_t Target = 220;			//6 целевое напряжение (210...240)
 	int16_t TuneInVolt = 0;			//7 подстройка входа (-6...6)
 	int16_t TuneOutVolt = 0;		//8 подстройка выхода (-6...6)
-	int16_t TcRatioIndx = 5;		//9 коэффициент трансворматора тока (0...6) смотри addSets
+	int16_t TransRatioIndx = 5;		//9 коэффициент трансворматора тока (0...6) смотри addSets
 	int16_t MotorType = 1;			//10 тип мотора (1...4) (0 - служебный)
 	int16_t EmergencyTON = 2000;	//11 время включения после аварии
 	int16_t EmergencyTOFF = 500;	//12 время аварийного отключения
@@ -127,7 +127,7 @@ struct addsets {
 	int16_t password = 1234;
 	int16_t motKoefsList[5] = {0,30,60,90,120};			//(0 - служебный)коэффициент мощности мотора в % от motorDefPwr
 	int16_t motorMaxCurrentList[4] = {3000, 4000, 5000, 6000};
-	int16_t TcRatioList[7] = {25,40,50,60,80,100,150};		//список коэффициентов трансов
+	int16_t tcRatioList[7] = {25,40,50,60,80,100,150};		//список коэффициентов трансов
 	int32_t SerialNumber[2] = {123456789, 123456};
 	
 	uint8_t structSize;
@@ -146,67 +146,10 @@ struct addsets {
 	}
 };
 
-struct mqttDataMetrics {
-	const char* Names[19] = {
-		"Uin" , "Uout" , "I" , "P" , 
-		"Uin_avg" , "Uout_avg" , "I_avg" , "P_avg" ,
-		"Uin_max" , "Uout_max" , "I_max" , "P_max" ,
-		"Uin_min" , "Uout_min" , "I_min" , "P_min" ,
-		"work_h"  , "Events"   , "lastEvents"
-	};
-	float Act[17] = {-1};
-	float Min[4] = {-1};
-	float Max[4] = {-1};
-	
-	void getMinMax(bool set_zero) {
-		static uint32_t tmr = 0;
-		if (millis() -  tmr > 70000) {
-			set_zero = true;
-		}
-		if (set_zero) {
-			memset(Min, 0x46, 16);
-			memset(Max, 0, 16);
-			tmr = millis();
-			return;
-		}
-		for (uint8_t i = 0; i < 4; i++) {
-			Min[i] = (Act[i] < Min[i] ? Act[i] : Min[i]);
-			Max[i] = (Act[i] > Max[i] ? Act[i] : Max[i]);
-		}
-	}
-	void Sync(data Data, stats Stat) {
-		Act[0] = Data.Uin; Act[1] = Data.Uout; Act[2] = Data.Current; Act[3] = Data.Power; Act[4] = Data.Events;
-		Act[5] = Stat.Uin[AVG]; Act[6] = Stat.Uout[AVG]; Act[7] = Stat.Current[AVG]; Act[8] = Stat.Power[AVG]; 
-		Act[9] = Stat.Uin[MAX]; Act[10] = Stat.Uout[MAX]; Act[11] = Stat.Current[MAX]; Act[12] = Stat.Power[MAX]; 
-		Act[13] = Stat.Uin[MIN]; Act[14] = Stat.Uout[MIN]; Act[15] = Stat.Current[MIN]; Act[16] = Stat.Power[MIN]; 
-		Act[17] = Stat.WorkTimeMins/60; Act[18] = Stat.Events;
-	}
-};
-
-struct mqttDataSettings {
-	const char* Names[17] = {
-		"Transit" , "Uout_minoff" , "Uout_maxoff" , "Accuracy",
-		"Target"  , "Uin_tune"    , "Uout_tune"   , "T_5",
-		"M_type"  , "Time_on"     , "Time_off"    ,"Password", 
-		"SN_1"    , "SN_2"        ,"Rst_max"      , "Save", 
-		"Outsignal"
-	};
-	int16_t Values[17] = {-1};
-	void Sync(mainsets Sets, addsets Add) {
-		Values[0] = Sets.EnableTransit; Values[1] = Sets.MinVolt; Values[2] = Sets.MaxVolt; Values[3] = Sets.Hysteresis;
-		Values[4] = Sets.Target; Values[5] = Sets.TuneInVolt; Values[6] = Sets.TuneOutVolt; Values[7] = Add.TcRatioList[Sets.TcRatioIndx];
-		Values[8] = Sets.MotorType; Values[9] = Sets.EmergencyTON; Values[10] = Sets.EmergencyTOFF; Values[11] = Add.password;
-		Values[12] = Add.SerialNumber[0]; Values[13] = Add.SerialNumber[1]; Values[14] = 0; Values[15] = 0;
-		Values[16] = Add.Switches[SW_OUTSIGN];
-	};
-};
-
-
-
-
 
 // =======================================================================================//
-
+#define NUM_VALS 13
+#define SETS_VALS 17
 
 class Board
 {
@@ -273,7 +216,15 @@ public:
 	stats mainStats;
 	mainsets mainSets;
 	addsets addSets;
-	mqttDataMetrics Metrics;
+	struct board_data_t {
+		std::string dataJson;
+		std::string settingsJson;
+		int32_t settings[SETS_VALS];
+		float online[NUM_VALS];
+		float min[NUM_VALS];
+		float max[NUM_VALS];
+		void getMinMax(bool set_zero = false);
+	} Bdata;
 	float CurrClbrtKoeff = 1.0;
 	float CurrClbrtValue = 0;
 };

@@ -29,7 +29,7 @@ void portalBuild() {
 	
 	if(ui.uri("/")) {
 		GP.BLOCK_BEGIN(GP_THIN, "", "Регистрация пользователя");
-		GP_UserEdit_build();
+		GP_OwnerEdit_build();
 		GP.BLOCK_END();
 		GP.BLOCK_BEGIN(GP_THIN, "", "Мои устройства");
 		GP_CreateDevicesList();
@@ -69,8 +69,8 @@ void portalActions() {
 	updatesHandler();
 	if (ui.clickSub("dev_"))
 		ActionsDevice_handler();
-	if (ui.clickSub("user_"))
-		ActionsUser_handler();
+	if (ui.clickSub("own_"))
+		ActionsOwner_handler();
 }
 
 void portalInit() {
@@ -253,16 +253,16 @@ void ActionsDevice_handler() {
 
 }
 
-void ActionsUser_handler() {
+void ActionsOwner_handler() {
 	static String name = "";
 	static String email = "";
 	static String pass = "";
 	static String code = "";
 	
-	ui.clickString("user_name", name);
-	ui.clickString("user_email", email);
-	ui.clickString("user_pass", pass);
-	ui.clickString("user_code", code);
+	ui.clickString("own_name", name);
+	ui.clickString("own_email", email);
+	ui.clickString("own_pass", pass);
+	ui.clickString("own_code", code);
 
 	if (ui.clickSub("own_btn")) {
 		if (code == "") code = User_Get(OWN_CODE);
