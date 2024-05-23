@@ -382,7 +382,7 @@ void Board::getJsonData(std::string & result, uint8_t mode, const std::string &t
 			}
 			ss << ",";
 		}
-		ss << "\"createdAt\":\"" << time;
+		ss << "\"createdAt\":\"" << time << "\"";
 		ss << "}";
 	} else if (mode == 3) {
 		bool first = true;
@@ -479,7 +479,6 @@ void Board::setMotKoefsList(String str) {
 	str.toCharArray(strArr, sizeof(str));
 	sscanf(strArr, "%d,%d,%d,%d", 
 	&array[1],&array[2],&array[3],&array[4]);
-	Serial.printf("\n%d %d %d %d", array[1],array[2],array[3],array[4]);
 	addSets.motKoefsList[1] = constrain(array[1], 0, 300);
 	addSets.motKoefsList[2] = constrain(array[2], 0, 300);
 	addSets.motKoefsList[3] = constrain(array[3], 0, 300);

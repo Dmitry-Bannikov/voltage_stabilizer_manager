@@ -16,30 +16,34 @@ void System_Init() {
 	pinMode(22, INPUT);
 	Serial.begin(115200);
 	EEPROM.begin(2048);
-	Serial.printf("\nProram Started! \rI2C pins state: %d | %d\n", digitalRead(21), digitalRead(22));
+	Serial.printf("\n\n\nProram Started! \nI2C pins state: %d | %d\n", digitalRead(21), digitalRead(22));
 	Devices_Init();
 }
 
 void Board_Init() {
+	
 	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
 	delay(10);
 	scanNewBoards();
+	Serial.printf("Boards found: %d \n", board.size());
 	for (uint8_t i = 0; i < board.size(); i++) {
 		readCurrentCalibrate(i);
 		delay(100);
 	}
+	Serial.println("Test 1");
 }
 
 void Web_Init() {
+	Serial.println("Test 2");
 	WifiInit();
 	MqttInit();
 	portalInit();
 	uint8_t mac[6];
 	WiFi.macAddress(mac);
 	memcpy(&Board_SN, mac, 4);
+	Board_SN += *(uint16_t*)(mac + 4);
 	Serial.printf("\nStab SN: %d \n", Board_SN);
-	Serial.println(WiFi.macAddress());
 	webRefresh = true;
 }
 

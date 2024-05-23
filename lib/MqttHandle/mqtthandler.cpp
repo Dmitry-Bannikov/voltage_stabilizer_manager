@@ -55,7 +55,7 @@ void MqttReconnect() {
 
 void MqttPublishData() {
     static uint32_t tmr = 0;
-    if (millis() - tmr < 500 || mqttRequest==0) return;
+    if (mqttRequest==0) return;
     for (uint8_t i = 0; i < board.size(); i++) {
         sendFaseMqttData(i, mqttRequest);
     }
@@ -140,15 +140,17 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 bool sendMqttJson(const char* topic, const char* data) {
     size_t length = strlen(data)+1;
     size_t bytesWritten = 0;
-    const char* topicPtr = topic;
-    const char* dataPtr = data;
-    bool isStart = mqttClient.beginPublish(topicPtr, length, false);
+    bool isStart = mqttClient.beginPublish(topic, length, false);
     while (bytesWritten < length) {
         size_t chunkSize = (length - bytesWritten) > 50 ? 50 : (length - bytesWritten) ;
-        mqttClient.write((uint8_t*)(dataPtr + bytesWritten), chunkSize);
+        mqttClient.write((uint8_t*)(data + bytesWritten), chunkSize);
         bytesWritten += chunkSize;
     }
-    return isStart && mqttClient.endPublish();
+    Serial.printf("Sended via mqtt, request: %d\n", mqttRequest);
+    Serial.println(topic);
+    Serial.println(data);
+    bool result = isStart && mqttClient.endPublish();
+    return result;
 }
 
 
@@ -163,6 +165,7 @@ void getMqttRequest(const char* json) {
 
 void createMqttRequest() {
     if (mqttRequest) return;
+    
     static uint32_t lastSecondTime = 0;
     static uint32_t lastMinuteTime = 0;
     static uint32_t lastTwoMinutesTime = 0;
@@ -174,7 +177,7 @@ void createMqttRequest() {
         mqttRequest = 1;
         lastSecondTime = millis();
     }
-
+    
     if (millis() - lastMinuteTime >= 60000) {
         mqttRequest = 2;
         lastMinuteTime = millis();
@@ -184,6 +187,7 @@ void createMqttRequest() {
         mqttRequest = 3;
         lastTwoMinutesTime = millis();
     }
+    
 }
 
 

@@ -1,6 +1,6 @@
 #include "devices.h"
 #include "nlohmann/json.hpp"
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 using string = std::string;
 std::vector<device> Devices;
 user User;
@@ -18,6 +18,7 @@ void Devices_Init() {
 	memoryNumDevices.begin(memoryOwner.nextAddr(), 123); //вспоминаем сколько устройств 
 	memoryDevices.setSize(devices_size);				//устанавливаем размер для менеджера
 	memoryDevices.begin(memoryNumDevices.nextAddr(), 125);	//вспоминаем данные об устройствах
+	delay(10);
 }
 
 
