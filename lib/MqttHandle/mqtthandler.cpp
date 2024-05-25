@@ -61,6 +61,7 @@ void MqttPublishData() {
     for (uint8_t i = 0; i < board.size(); i++) {
         if (!sendFaseMqttData(i, mqttRequest)) mqttReqResult = false;
     }
+    if (mqttRequest != 1) Serial.printf("Mqtt Request = %d \n", mqttRequest);
     if (mqttRequest == 5) {
         String topic = "stab_brd/user/" + S(Board_SN);
         std::string data = User_getJson();
@@ -105,7 +106,7 @@ void Mqtt_tick() {
 }
 
 bool sendFaseMqttData(int8_t numBrd, int request) {
-	if (request == 0) return true;
+	if (request == 0 || request == 5 || request == 6) return true;
 	String Lit = String(board[numBrd].getLiteral());
 	String topic = "";
 	std::string data = "";
@@ -161,29 +162,26 @@ void getMqttRequest(const char* json) {
 }
 
 void createMqttRequest() {
-    if (mqttRequest > 3) return;
+    
     static uint32_t lastSec = 0;
     static uint32_t lastMin = 0;
     static uint32_t last2Min = 0;
-    static uint32_t lastMinRem = 0;
 
     if (mqttReqResult) {
-        if (mqttRequest == 2) lastMin = lastMinRem;
         mqttRequest = 0;
         if (mqttNextRequest) {
             mqttRequest = mqttNextRequest;
             mqttNextRequest = 0;
-            return;
         }
     }
-    
+    if (mqttRequest > 3) return;
     if (millis() - lastSec >= 1000 && mqttRequest != 2) {
         mqttRequest = 1;
         lastSec = millis();
     }
     
     if (millis() - lastMin >= 60000) {
-        lastMinRem = millis();
+        lastMin = millis();
         mqttRequest = 2;
     }
 

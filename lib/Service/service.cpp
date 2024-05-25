@@ -15,7 +15,7 @@ void System_Init() {
 	pinMode(21, INPUT);
 	pinMode(22, INPUT);
 	Serial.begin(115200);
-	EEPROM.begin(2048);
+	EEPROM.begin(4096);
 	Serial.printf("\n\n\nProram Started! \nI2C pins state: %d | %d\n", digitalRead(21), digitalRead(22));
 	Devices_Init();
 }

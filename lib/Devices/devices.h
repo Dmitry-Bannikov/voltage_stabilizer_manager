@@ -94,7 +94,13 @@ void Device_setJson(const char* json_c);
 String Device_Get(uint8_t indx, uint8_t param);
 bool Device_Set(uint8_t indx, uint8_t param, const String &data);
 
+template <typename T>
+size_t get_vector_memory_usage(const std::vector<T>& vec) {
+    size_t capacity_in_bytes = vec.capacity() * sizeof(T); // Размер выделенной памяти для элементов
+    size_t overhead_in_bytes = sizeof(std::vector<T>);      // Накладные расходы вектора
 
+    return capacity_in_bytes + overhead_in_bytes;
+}
 
 
 

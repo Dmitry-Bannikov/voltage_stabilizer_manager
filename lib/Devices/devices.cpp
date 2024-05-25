@@ -5,40 +5,19 @@ using string = std::string;
 std::vector<device> Devices;
 user User;
 
-uint32_t devices_size = 0;
 EEManager memoryOwner(User);
-EEManager memoryNumDevices(devices_size);
 EEManager memoryDevices(Devices);
 
 
 
 
 void Devices_Init() {
-	memoryOwner.begin(100, MEM_KEY);
-	memoryNumDevices.begin(memoryOwner.nextAddr(), 123); //вспоминаем сколько устройств 
-	memoryDevices.setSize(devices_size);				//устанавливаем размер для менеджера
-	memoryDevices.begin(memoryNumDevices.nextAddr(), 125);	//вспоминаем данные об устройствах
+	memoryOwner.begin(200, 1);
+	Devices.reserve(5);
+	memoryDevices.setSize(sizeof(Devices));				//устанавливаем размер для менеджера
+	memoryDevices.begin(memoryOwner.nextAddr(), 2);	//вспоминаем данные об устройствах
 	delay(10);
 }
-
-
-
-void User_AddOrUpdate(
-	const char *name, 
-	const char *email, 
-	const char *pass,
-	const char *code, 
-	const char *status 
-	) 
-{
-    if (strcmp(name, "")) strlcpy(User.Name, name, 32);
-	if (strcmp(email, "")) strlcpy(User.Email, email, 32);
-	if (strcmp(pass, "")) strlcpy(User.Pass, pass, 32);
-	if (strcmp(code, "")) strlcpy(User.Code, code, 32);
-	if (strcmp(status, "")) strlcpy(User.Status, status, 32);
-}
-
-
 
 
 
@@ -162,9 +141,6 @@ void Device_AddOrUpdate(
 	if (num == -1) { //если устройства с таким сер. нет, то добавляем в список
 		Devices.emplace_back();
         num = Devices.size() - 1;
-		devices_size = sizeof(Devices[0])*Devices.size();
-		memoryNumDevices.updateNow();
-		memoryDevices.setSize(devices_size);
 		if (num < 0) return;
 	}
 	if (strcmp(name, "")) strlcpy(Devices[num].Name, name, 32);
