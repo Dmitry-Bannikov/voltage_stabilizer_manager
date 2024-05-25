@@ -31,11 +31,9 @@ void Board_Init() {
 		readCurrentCalibrate(i);
 		delay(100);
 	}
-	Serial.println("Test 1");
 }
 
 void Web_Init() {
-	Serial.println("Test 2");
 	WifiInit();
 	MqttInit();
 	portalInit();

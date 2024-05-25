@@ -3,6 +3,7 @@
 #include "customs.h"
 #include "common_data.h"
 #include "devices.h"
+#include "mqtthandler.h"
 
 
 
@@ -40,7 +41,7 @@ void portalBuild() {
 		dataReqDelay = false;
 		GP.HR();
 		GP.LABEL("Соединение по MQTT");
-		GP.LED("mqttConnected_led", mqttConnected);
+		GP.LED("mqttConnected_led", mqttReqResult);
 		GP.BLOCK_BEGIN(GP_DIV_RAW, "", "Основные данные и статистика");
 			GP_data_build();
 		GP.BLOCK_END();
@@ -136,7 +137,7 @@ void clicksHandler() {
 void updatesHandler() {
 	if (!ui.update()) return;
 	ui.updateBool("btn_brd_outsgn", board[activeBoard].addSets.Switches[SW_OUTSIGN]);
-	ui.updateBool("mqttConnected_led", mqttConnected);
+	ui.updateBool("mqttConnected_led", mqttReqResult);
 	if (ui.update("setsalt")) {	//вызов алерта
 		if (requestResult == 2)
 		{
@@ -227,14 +228,14 @@ void ActionsDevice_handler() {
 			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str());
 			Device_Save();
 		}
-		mqttRequest = 6;
+		setMqttRequest(6);
 		webRefresh = true;
 	}
 	if (ui.clickSub("dev_btn_delete")) {
 		dev = ui.clickNameSub().toInt();
 		Device_Delete(dev);
 		Device_Save();
-		mqttRequest = 6;
+		setMqttRequest(6);
 		webRefresh = true;
 	}
 	if (ui.click("dev_btn_add")) {
@@ -247,7 +248,7 @@ void ActionsDevice_handler() {
 			Device_AddOrUpdate(name.c_str(), type.c_str(), sn.c_str(), email.c_str(), page.c_str());
 			Device_Save();
 		}
-		mqttRequest = 6;
+		setMqttRequest(6);
 		webRefresh = true;
 	}
 
@@ -269,7 +270,7 @@ void ActionsOwner_handler() {
 		if (name == "") name = User_Get(OWN_NAME);
 		if (pass == "") pass = User_Get(OWN_PASS);
 		if (email == "") email = User_Get(OWN_EMAIL);
-		mqttRequest = 5;
+		setMqttRequest(5);
 	}
 
 	if (ui.click("own_btn_reg")) {

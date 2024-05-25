@@ -21,6 +21,7 @@ bool sendFaseMqttData(int8_t numBrd, int request);
 bool sendMqttJson(const char* topic, const char* data);
 void getMqttRequest(const char* json);
 void createMqttRequest();
+void setMqttRequest(const int request);
 
 
 

@@ -20,7 +20,8 @@ const int mqtt_port = 15164;
 #endif
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
-
+int mqttRequest = 0;
+int mqttNextRequest = 0;
 
 
 void MqttInit() {
@@ -56,20 +57,20 @@ void MqttReconnect() {
 void MqttPublishData() {
     static uint32_t tmr = 0;
     if (mqttRequest==0) return;
+    if (board.size()) mqttReqResult = true;
     for (uint8_t i = 0; i < board.size(); i++) {
-        sendFaseMqttData(i, mqttRequest);
+        if (!sendFaseMqttData(i, mqttRequest)) mqttReqResult = false;
     }
     if (mqttRequest == 5) {
         String topic = "stab_brd/user/" + S(Board_SN);
         std::string data = User_getJson();
-        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+        mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
     }
     if (mqttRequest == 6) {
         String topic = "stab_brd/devices/" + S(Board_SN);
         std::string data = Device_getJson();
-        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+        mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
     }
-	mqttRequest = 0;
     tmr = millis();
 }
 
@@ -117,10 +118,10 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 	} else if (request == 2) {
 		topic = "stab_brd/datamin/fase_" + Lit + "/" + S(Board_SN);
 		board[numBrd].getJsonData(data, DATA_MIN, time);
-        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+        mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
         topic = "stab_brd/datamax/fase_" + Lit + "/" + S(Board_SN);
 		board[numBrd].getJsonData(data, DATA_MAX, time);
-        mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
+        mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
 	} else if (request == 3) {
 		topic = "stab_brd/sets/fase_" + Lit + "/" + S(Board_SN);
 		board[numBrd].getJsonData(data, DATA_MAX, time);
@@ -132,8 +133,7 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 		data = "{\"Code\":\"" + std::to_string(alarm_code) + "\",";
         data += "\"Text\":\"" + alarm_text + "\"}\0";
 	}
-	mqttConnected = sendMqttJson(topic.c_str(), data.c_str());
-    return mqttConnected;
+	return sendMqttJson(topic.c_str(), data.c_str());
 }
 
 
@@ -146,9 +146,6 @@ bool sendMqttJson(const char* topic, const char* data) {
         mqttClient.write((uint8_t*)(data + bytesWritten), chunkSize);
         bytesWritten += chunkSize;
     }
-    Serial.printf("Sended via mqtt, request: %d\n", mqttRequest);
-    Serial.println(topic);
-    Serial.println(data);
     bool result = isStart && mqttClient.endPublish();
     return result;
 }
@@ -164,33 +161,42 @@ void getMqttRequest(const char* json) {
 }
 
 void createMqttRequest() {
-    if (mqttRequest) return;
-    
-    static uint32_t lastSecondTime = 0;
-    static uint32_t lastMinuteTime = 0;
-    static uint32_t lastTwoMinutesTime = 0;
-    
-    uint32_t currentTime = millis();
+    if (mqttRequest > 3) return;
+    static uint32_t lastSec = 0;
+    static uint32_t lastMin = 0;
+    static uint32_t last2Min = 0;
+    static uint32_t lastMinRem = 0;
 
+    if (mqttReqResult) {
+        if (mqttRequest == 2) lastMin = lastMinRem;
+        mqttRequest = 0;
+        if (mqttNextRequest) {
+            mqttRequest = mqttNextRequest;
+            mqttNextRequest = 0;
+            return;
+        }
+    }
     
-    if (millis() - lastSecondTime >= 1000) {
+    if (millis() - lastSec >= 1000 && mqttRequest != 2) {
         mqttRequest = 1;
-        lastSecondTime = millis();
+        lastSec = millis();
     }
     
-    if (millis() - lastMinuteTime >= 60000) {
+    if (millis() - lastMin >= 60000) {
+        lastMinRem = millis();
         mqttRequest = 2;
-        lastMinuteTime = millis();
     }
 
-    if (millis() - lastTwoMinutesTime >= 120000) {
+    if (millis() - last2Min >= 150000  && mqttRequest != 2) {
         mqttRequest = 3;
-        lastTwoMinutesTime = millis();
+        last2Min = millis();
     }
     
 }
 
-
+void setMqttRequest(const int request) {
+    mqttNextRequest = request;
+}
 
 
 
