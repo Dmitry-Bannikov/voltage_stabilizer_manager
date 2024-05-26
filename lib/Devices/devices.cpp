@@ -12,7 +12,7 @@ EEManager memoryDevices(Devices);
 
 
 void Devices_Init() {
-	memoryOwner.begin(200, 1);
+	memoryOwner.begin(200, 2);
 	Devices.reserve(5);
 	memoryDevices.setSize(sizeof(Devices));				//устанавливаем размер для менеджера
 	memoryDevices.begin(memoryOwner.nextAddr(), 2);	//вспоминаем данные об устройствах

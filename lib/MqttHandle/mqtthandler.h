@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+//#include <timemodule.h>
 
 
 #define DATA_ACT 0
@@ -22,7 +23,7 @@ bool sendMqttJson(const char* topic, const char* data);
 void getMqttRequest(const char* json);
 void createMqttRequest();
 void setMqttRequest(const int request);
-
+int parseTimeZone(const String& tz);
 
 
 

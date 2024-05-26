@@ -26,7 +26,7 @@ struct user {
 	char Pass[32] = "";	//пароль пользователя
 	char Code[32] = "";	//код подтверждения от сервера
 	char Status[32] = "";	//статус пользователя
-	char Timezone[10] = "GMT+3";
+	char Timezone[10] = "UTC+3";
 	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status, const char* t_zone) {
 		strlcpy(Name, name, 32);
 		strlcpy(Email, email, 32);

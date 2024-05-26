@@ -1,7 +1,7 @@
 #include "mqtthandler.h"
 #include <common_data.h>
 #include <devices.h>
-
+#include <timemodule.h>
 
 #define USE_ORTEA
 
@@ -25,6 +25,7 @@ int mqttNextRequest = 0;
 
 
 void MqttInit() {
+    Time_begin(parseTimeZone(User_Get(OWN_TIMEZONE)));
     mqttClient.setServer(mqtt_broker, mqtt_port);
     mqttClient.setBufferSize(500);
 	mqtt_clientId = "stab_brd_" + String(Board_SN);
@@ -61,7 +62,6 @@ void MqttPublishData() {
     for (uint8_t i = 0; i < board.size(); i++) {
         if (!sendFaseMqttData(i, mqttRequest)) mqttReqResult = false;
     }
-    if (mqttRequest != 1) Serial.printf("Mqtt Request = %d \n", mqttRequest);
     if (mqttRequest == 5) {
         String topic = "stab_brd/user/" + S(Board_SN);
         std::string data = User_getJson();
@@ -110,22 +110,22 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 	String Lit = String(board[numBrd].getLiteral());
 	String topic = "";
 	std::string data = "";
-    String time_S = ui.getSystemTime().encode();
-    std::string time =  time_S.c_str();
+    //std::string time_S =  "null";
+    std::string time_S =  Time_getCurrent();
 	if (request == 1) {
 		topic = "stab_brd/data/fase_" + Lit + "/" + S(Board_SN);
-        board[numBrd].getJsonData(data, DATA_ACT, time);
+        board[numBrd].getJsonData(data, DATA_ACT, time_S);
         board[numBrd].Bdata.getMinMax();
 	} else if (request == 2) {
 		topic = "stab_brd/datamin/fase_" + Lit + "/" + S(Board_SN);
-		board[numBrd].getJsonData(data, DATA_MIN, time);
+		board[numBrd].getJsonData(data, DATA_MIN, time_S);
         mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
         topic = "stab_brd/datamax/fase_" + Lit + "/" + S(Board_SN);
-		board[numBrd].getJsonData(data, DATA_MAX, time);
+		board[numBrd].getJsonData(data, DATA_MAX, time_S);
         mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
 	} else if (request == 3) {
 		topic = "stab_brd/sets/fase_" + Lit + "/" + S(Board_SN);
-		board[numBrd].getJsonData(data, DATA_MAX, time);
+		board[numBrd].getJsonData(data, DATA_MAX, time_S);
 	} else if (request == 4 || board[numBrd].mainData.Events > 0) {
 		topic = "stab_brd/alarms/fase_" + Lit + "/" + S(Board_SN);
 		uint8_t alarm_code = 0;
@@ -196,7 +196,23 @@ void setMqttRequest(const int request) {
     mqttNextRequest = request;
 }
 
+int parseTimeZone(const String& tz) {
+    if (tz.length() < 4 || tz.substring(0, 3) != "UTC") {
+        // Некорректный формат строки
+        return 0;
+    }
 
+    char sign = tz.charAt(3);
+    if (sign != '+' && sign != '-') {
+        // Некорректный знак
+        return 0;
+    }
+
+    int hours = tz.substring(4).toInt();
+    int offsetSeconds = hours * 3600;
+
+    return (sign == '+') ? offsetSeconds : -offsetSeconds;
+}
 
 
 
