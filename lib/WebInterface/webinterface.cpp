@@ -26,7 +26,7 @@ void portalBuild() {
 	} else {
 		GP.TITLE("Менеджер плат (STA)");
 	}
-	GP.NAV_TABS_LINKS("/,/dashboard,/brdcfg,/wificfg", "Главная,Мониторинг,Настройки платы,Настройка подключения");
+	GP.NAV_TABS_LINKS("/,/dashboard,/brdcfg,/wificfg", "Главная,Мониторинг,Настройки,Подключение");
 	
 	if(ui.uri("/")) {
 		GP.BLOCK_BEGIN(GP_THIN, "", "Регистрация пользователя");

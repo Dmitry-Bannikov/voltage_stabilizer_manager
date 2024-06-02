@@ -29,11 +29,11 @@ void MqttInit() {
     mqttClient.setServer(mqtt_broker, mqtt_port);
     mqttClient.setBufferSize(500);
 	mqtt_clientId = "stab_brd_" + String(Board_SN);
+    MqttReconnect();
 	for (uint8_t i = 0; i < 3; i++) {
 		String sub_topic_sets = "stab_brd/getsets/fase_" + String((char)(65+i)) + "/";
 		mqttClient.subscribe(sub_topic_sets.c_str());
 	}
-	MqttReconnect();
 	mqttClient.subscribe("stab_brd/getsets/fase_N");
     mqttClient.setCallback(onMqttMessage);
 }
