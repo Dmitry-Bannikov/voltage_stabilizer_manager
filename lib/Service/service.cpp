@@ -20,7 +20,7 @@ void System_Init() {
 }
 
 void Board_Init() {
-	
+	//========================//
 	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
 	delay(10);
