@@ -120,6 +120,9 @@ void formsHandler() {
 		wifi_updateCFG();
 		WiFi_Reconnect();
 		LED_blink(0);
+		String open = "http://" + String(globalData.webInterfaceDNS) + ".local/dashboard";
+		ui.server.sendHeader("Location", open, true);
+		ui.server.send(302, "text/plain", "");
 	}
 
 }

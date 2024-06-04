@@ -20,3 +20,4 @@ extern uint8_t requestResult;
 extern uint32_t Board_SN;
 
 void LED_blink(uint16_t period_on, uint16_t period_off = 0);
+int getBoardSN(int sn);

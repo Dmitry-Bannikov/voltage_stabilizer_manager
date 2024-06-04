@@ -1,24 +1,35 @@
 #include "devices.h"
 #include "nlohmann/json.hpp"
+#include <common_data.h>
 using json = nlohmann::ordered_json;
 using string = std::string;
 std::vector<device> Devices;
 user User;
-
+device LocalDevice;
 EEManager memoryOwner(User);
-EEManager memoryDevices(Devices);
+EEManager memoryDevices(LocalDevice, 23000);
 
 
 
 
 void Devices_Init() {
-	memoryOwner.begin(200, 2);
-	Devices.reserve(5);
-	memoryDevices.setSize(sizeof(Devices));				//устанавливаем размер для менеджера
-	memoryDevices.begin(memoryOwner.nextAddr(), 2);	//вспоминаем данные об устройствах
+	memoryOwner.begin(200, 4);
+	LocalDevice.setParameters("Стабилизатор 1", "stab_brd", String(Board_SN).c_str(), User.Email, "/dashboard", "onreg", "0", "13");
+	Devices.emplace_back(LocalDevice);
+	memoryDevices.begin(memoryOwner.nextAddr() + 1, 4);	//вспоминаем данные об устройствах
 	delay(10);
 }
 
+void Devices_Tick() {
+	uint32_t tmr = 0;
+	if (millis() - tmr > 120000) {
+		if (Devices.size()) {
+			if (Device_Get(0, DEV_SN) != S(Board_SN)) return;
+			Device_Set(0, DEV_ISACT, String(millis()/60000));
+		}
+	}
+	memoryDevices.tick();
+}
 
 
 //==============USER FUNCTIONS==================//
@@ -36,7 +47,7 @@ void User_AddOrUpdate(
 	if (strcmp(pass, "")) strlcpy(User.Pass, pass, 32);
 	if (strcmp(code, "")) strlcpy(User.Code, code, 32);
 	if (strcmp(status, "")) strlcpy(User.Status, status, 32);
-	if (strcmp(timezone, "")) strlcpy(User.Timezone, timezone, 10);
+	if (strcmp(timezone, "")) strlcpy(User.Timezone, timezone, 7);
 }
 
 String User_Get(uint8_t param) {
@@ -77,7 +88,7 @@ bool User_Set(uint8_t param, const String &data) {
 		strlcpy(User.Name, set, 32);
 		break;
 	case OWN_EMAIL:
-		strlcpy(User.Email, set, 32);
+		strlcpy(User.Email, set, 64);
 		break;
 	case OWN_PASS:
 		strlcpy(User.Pass, set, 32);
@@ -89,7 +100,7 @@ bool User_Set(uint8_t param, const String &data) {
 		strlcpy(User.Status, set, 32);
 		break;
 	case OWN_TIMEZONE:
-		strlcpy(User.Timezone, set, 32);
+		strlcpy(User.Timezone, set, 7);
 		break;
 	default:
 		break;
@@ -132,7 +143,8 @@ void Device_AddOrUpdate(
 	const char *owner, 
 	const char *page, 
 	const char *status, 
-	const char *is_active
+	const char *is_active,
+	const char *timezone
 	) 
 {
 	uint8_t count = Devices.size();
@@ -143,13 +155,17 @@ void Device_AddOrUpdate(
         num = Devices.size() - 1;
 		if (num < 0) return;
 	}
-	if (strcmp(name, "")) strlcpy(Devices[num].Name, name, 32);
+	if (strcmp(name, "")) strlcpy(Devices[num].Name, name, 32); //если имя не пустое...
 	if (strcmp(type, "")) strlcpy(Devices[num].Type, type, 32) ;
 	if (strcmp(serial_n, "")) strlcpy(Devices[num].SN, serial_n, 32);
-	if (strcmp(owner, "")) strlcpy(Devices[num].Email, owner, 32);
+	if (strcmp(owner, "")) strlcpy(Devices[num].Email, owner, 64);
 	if (strcmp(page, "")) strlcpy(Devices[num].Page, page, 32);
 	if (strcmp(status, "")) strlcpy(Devices[num].Status, status, 32);
 	if (strcmp(is_active, "")) strlcpy(Devices[num].IsActive, is_active, 32);
+	if (strcmp(timezone, "")) strlcpy(Devices[num].TimeZone, timezone, 32);
+	if (num == 0 && S(serial_n).toInt() == Board_SN) {
+		LocalDevice = Devices[0];
+	}
 }
 
 void Device_Delete(int indx) {
@@ -198,6 +214,9 @@ String Device_Get(uint8_t indx, uint8_t param) {
 	case DEV_ISACT:
 		strcpy(get, Devices[indx].IsActive);
 		break;
+	case DEV_TIMEZONE:
+		strcpy(get, Devices[indx].TimeZone);
+		break;
 	default:
 		strcpy(get, "_invalid");
 		break;
@@ -217,7 +236,7 @@ bool Device_Set(uint8_t indx, uint8_t param, const String &data) {
 		strlcpy(Devices[indx].Type, set, 32);
 		break;
 	case DEV_EMAIL:
-		strlcpy(Devices[indx].Email, set, 32);
+		strlcpy(Devices[indx].Email, set, 64);
 		break;
 	case DEV_PAGE:
 		strlcpy(Devices[indx].Page, set, 32);
@@ -230,6 +249,9 @@ bool Device_Set(uint8_t indx, uint8_t param, const String &data) {
 		break;
 	case DEV_ISACT:
 		strlcpy(Devices[indx].IsActive, set, 32);
+		break;
+	case DEV_TIMEZONE:
+		strlcpy(Devices[indx].TimeZone, set, 32);
 		break;
 	default:
 		break;
@@ -262,13 +284,14 @@ void Device_setJson(const char* json_c) {
 
     for (const auto& devJson : devicesJson) {
         device dev;
-		devJson["Name"].is_null() ? strcpy(dev.Name, "Unknown") : devJson.at("Name").get_to(dev.Name);
-        devJson["Type"].is_null() ? strcpy(dev.Type, "Unknown") : devJson.at("Type").get_to(dev.Type);
-		devJson["SN"].is_null() ? strcpy(dev.SN, "Unknown") : devJson.at("SN").get_to(dev.SN);
+		devJson["Name"].is_null() ? strcpy(dev.Name, "") : devJson.at("Name").get_to(dev.Name);
+        devJson["Type"].is_null() ? strcpy(dev.Type, "") : devJson.at("Type").get_to(dev.Type);
+		devJson["SN"].is_null() ? strcpy(dev.SN, "") : devJson.at("SN").get_to(dev.SN);
         devJson["Email"].is_null() ? strcpy(dev.Email, "") : devJson.at("Email").get_to(dev.Email);
         devJson["Page"].is_null() ? strcpy(dev.Page, "") : devJson.at("Page").get_to(dev.Page);
         devJson["Status"].is_null() ? strcpy(dev.Status, "") : devJson.at("Status").get_to(dev.Status);
         devJson["IsActive"].is_null() ? strcpy(dev.IsActive, "") : devJson.at("IsActive").get_to(dev.IsActive);
+		devJson["TimeZone"].is_null() ? strcpy(dev.TimeZone, "") : devJson.at("TimeZone").get_to(dev.TimeZone);
 
         // Проверяем, совпадает ли Email владельца с Email устройства
         if (std::string(dev.Email) == std::string(User.Email)) {
@@ -278,13 +301,21 @@ void Device_setJson(const char* json_c) {
 }
 
 void Device_Save() {
+	Serial.println(LocalDevice.Name);
 	memoryDevices.updateNow();
 }
 
+uint32_t hashEmail(const char* str) {
+	uint32_t hash = 0;
+    uint32_t prime = 31;
 
+    while (*str) {
+        hash = hash * prime + static_cast<uint32_t>(*str);
+        str++;
+    }
 
-
-
+    return hash;
+}
 
 
 

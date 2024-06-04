@@ -1,13 +1,15 @@
 #include "timemodule.h"
+#include <GyverPortal.h>
+#include <common_data.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
+GPtime t;
 
 
 void Time_begin(int offset) {
-    
     timeClient.begin();
     timeClient.setTimeOffset(offset); // Установите смещение времени, если необходимо
 }
@@ -24,3 +26,32 @@ std::string Time_getCurrent() {
 
     return std::string(buffer);
 }
+
+
+int Time_syncTZ() {
+    timeClient.update();
+    t = ui.getSystemTime();
+    unsigned long epochTime = timeClient.getEpochTime();
+    struct tm *ptm = gmtime ((time_t *)&epochTime);
+    if (ptm->tm_year + 1900 < 2000 || (!t.hour && !t.minute && !t.second)) return 13;
+    if (t.hour != ptm->tm_hour) {
+        int utc = t.hour - ptm->tm_hour;
+        timeClient.setTimeOffset(utc*3600);
+        Serial.printf("TimeZone: %d\n", utc);
+        return utc;
+    }
+    return 13;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//===============================================================================

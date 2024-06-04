@@ -37,9 +37,7 @@ void Web_Init() {
 	MqttInit();
 	portalInit();
 	uint8_t mac[6];
-	WiFi.macAddress(mac);
-	memcpy(&Board_SN, mac, 4);
-	Board_SN += *(uint16_t*)(mac + 4);
+	Board_SN = getBoardSN(0);
 	Serial.printf("\nStab SN: %d \n", Board_SN);
 	webRefresh = true;
 }
@@ -82,6 +80,7 @@ void Web_Tick() {
 	wifi_tick();
 	Mqtt_tick();
 	portalTick();
+	Devices_Tick();
 }
 
 void scanNewBoards() {

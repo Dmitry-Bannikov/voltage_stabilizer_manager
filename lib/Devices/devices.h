@@ -12,6 +12,7 @@
 #define DEV_STATUS	4
 #define DEV_SN		5
 #define DEV_ISACT	6
+#define DEV_TIMEZONE 7
 
 #define	OWN_NAME		0
 #define OWN_EMAIL		1
@@ -26,14 +27,14 @@ struct user {
 	char Pass[32] = "";	//пароль пользователя
 	char Code[32] = "";	//код подтверждения от сервера
 	char Status[32] = "";	//статус пользователя
-	char Timezone[10] = "UTC+3";
+	char Timezone[7] = "3";
 	void setParameters(const char *name, const char *email, const char *pass, const char *code, const char* status, const char* t_zone) {
 		strlcpy(Name, name, 32);
 		strlcpy(Email, email, 32);
 		strlcpy(Pass, pass, 32);
 		strlcpy(Code, code, 32);
 		strlcpy(Status, status, 32);
-		strlcpy(Timezone, t_zone, 10);
+		strlcpy(Timezone, t_zone, 7);
 	}
 };
 
@@ -41,20 +42,21 @@ struct device {
 	char Name[32] = ""; //имя устройства
 	char Type[32] = ""; //тип устройства (стаб/мультиметр и тд)
 	char SN[32] = "";  //серийник устройства
-	char Email[32] = ""; // е-майл владельца
+	char Email[64] = ""; // е-майл владельца
 	char Page[32] = ""; //веб адрес устройства (присваивается сервером)
 	char Status[32] = "";
 	char IsActive[32] = ""; //активно ли сейчас устройство (передает ли данные)
-
+	char TimeZone[7] = "0";
 	void setParameters(const char *name, const char *type, const char *sn, const char *owner,
-						const char *page, const char *status, const char *is_act) {
+						const char *page, const char *status, const char *is_act, const char* timezone) {
 		strlcpy(Name, name, 32);
 		strlcpy(Type, type, 32);
-		strlcpy(Email, owner, 32);
+		strlcpy(Email, owner, 64);
 		strlcpy(Page, page, 32);
 		strlcpy(Status, status, 32);
 		strlcpy(SN, sn, 32);
 		strlcpy(IsActive, is_act, 32);
+		strlcpy(TimeZone, timezone, 7);
 	}
 };
 
@@ -74,13 +76,11 @@ void Device_AddOrUpdate(
 	const char *owner = "", 
 	const char *page = "", 
 	const char *status = "", 
-	const char *is_active = ""
+	const char *is_active = "",
+	const char *timezone = ""
 	);
-void Device_CreateList(const char *json);
-void Device_Delete(int indx);
-int Device_FindIndxFromSN(const char *sn);
 int Device_Size();
-
+void Devices_Tick();
 void Device_Save();
 void User_Save();
 
@@ -89,18 +89,14 @@ void User_setJson(const char* json_c);
 String User_Get(uint8_t param);
 bool User_Set(uint8_t param, const String &data);
 
+void Device_Delete(int indx);
+int Device_FindIndxFromSN(const char *sn);
 std::string Device_getJson();
 void Device_setJson(const char* json_c);
 String Device_Get(uint8_t indx, uint8_t param);
 bool Device_Set(uint8_t indx, uint8_t param, const String &data);
+uint32_t hashEmail(const char* str);
 
-template <typename T>
-size_t get_vector_memory_usage(const std::vector<T>& vec) {
-    size_t capacity_in_bytes = vec.capacity() * sizeof(T); // Размер выделенной памяти для элементов
-    size_t overhead_in_bytes = sizeof(std::vector<T>);      // Накладные расходы вектора
-
-    return capacity_in_bytes + overhead_in_bytes;
-}
 
 
 

@@ -23,7 +23,6 @@ bool sendMqttJson(const char* topic, const char* data);
 void getMqttRequest(const char* json);
 void createMqttRequest();
 void setMqttRequest(const int request);
-int parseTimeZone(const String& tz);
 
 
 

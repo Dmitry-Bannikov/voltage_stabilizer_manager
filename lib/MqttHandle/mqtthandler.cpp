@@ -22,19 +22,23 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 int mqttRequest = 0;
 int mqttNextRequest = 0;
-
+uint32_t User_HASH = 0;
+String devices_subscribe;
 
 void MqttInit() {
-    Time_begin(parseTimeZone(User_Get(OWN_TIMEZONE)));
+    Time_begin(0);
+    Time_syncTZ();
+    User_HASH = hashEmail(User_Get(OWN_EMAIL).c_str());
+    devices_subscribe = "users/devices/" + S(User_HASH);
     mqttClient.setServer(mqtt_broker, mqtt_port);
     mqttClient.setBufferSize(500);
 	mqtt_clientId = "stab_brd_" + String(Board_SN);
     MqttReconnect();
-	for (uint8_t i = 0; i < 3; i++) {
-		String sub_topic_sets = "stab_brd/getsets/fase_" + String((char)(65+i)) + "/";
-		mqttClient.subscribe(sub_topic_sets.c_str());
-	}
+    mqttClient.subscribe(S("stab_brd/getsets/fase_A/" + Board_SN).c_str());
+    mqttClient.subscribe(S("stab_brd/getsets/fase_B/" + Board_SN).c_str());
+    mqttClient.subscribe(S("stab_brd/getsets/fase_N/" + Board_SN).c_str());
 	mqttClient.subscribe("stab_brd/getsets/fase_N");
+    mqttClient.subscribe(devices_subscribe.c_str());
     mqttClient.setCallback(onMqttMessage);
 }
 
@@ -63,14 +67,16 @@ void MqttPublishData() {
         if (!sendFaseMqttData(i, mqttRequest)) mqttReqResult = false;
     }
     if (mqttRequest == 5) {
-        String topic = "stab_brd/user/" + S(Board_SN);
+        String topic = "users/info/" + S(User_HASH);
         std::string data = User_getJson();
         mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
     }
     if (mqttRequest == 6) {
-        String topic = "stab_brd/devices/" + S(Board_SN);
+        mqttClient.unsubscribe(devices_subscribe.c_str());
+        String topic = devices_subscribe;
         std::string data = Device_getJson();
         mqttReqResult = sendMqttJson(topic.c_str(), data.c_str());
+        mqttClient.subscribe(devices_subscribe.c_str());
     }
     tmr = millis();
 }
@@ -79,6 +85,9 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
     String topicStr = String(topic);
     if (topicStr.indexOf("MqttRequest") != -1) {
         getMqttRequest((char*)payload);
+    }
+    if (topicStr.indexOf(devices_subscribe) != -1) {
+        Device_setJson((char*)payload);
     }
     int index = topicStr.indexOf("fase_") + 5;
     if (index == -1) return;
@@ -99,10 +108,15 @@ void onMqttMessage(char* topic, uint8_t* payload, size_t len) {
 }
 
 void Mqtt_tick() {
+    static uint32_t tmr = 0;
     mqttClient.loop();
     MqttReconnect();
     MqttPublishData();
     createMqttRequest();
+    if (millis() -  tmr > 10000) {
+        tmr = millis();
+        Device_Set(0, DEV_TIMEZONE, S(Time_syncTZ()));
+    }
 }
 
 bool sendFaseMqttData(int8_t numBrd, int request) {
@@ -110,7 +124,6 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 	String Lit = String(board[numBrd].getLiteral());
 	String topic = "";
 	std::string data = "";
-    //std::string time_S =  "null";
     std::string time_S =  Time_getCurrent();
 	if (request == 1) {
 		topic = "stab_brd/data/fase_" + Lit + "/" + S(Board_SN);
@@ -194,24 +207,6 @@ void createMqttRequest() {
 
 void setMqttRequest(const int request) {
     mqttNextRequest = request;
-}
-
-int parseTimeZone(const String& tz) {
-    if (tz.length() < 4 || tz.substring(0, 3) != "UTC") {
-        // Некорректный формат строки
-        return 0;
-    }
-
-    char sign = tz.charAt(3);
-    if (sign != '+' && sign != '-') {
-        // Некорректный знак
-        return 0;
-    }
-
-    int hours = tz.substring(4).toInt();
-    int offsetSeconds = hours * 3600;
-
-    return (sign == '+') ? offsetSeconds : -offsetSeconds;
 }
 
 

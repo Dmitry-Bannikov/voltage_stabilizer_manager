@@ -2,7 +2,6 @@
 
 
 GyverPortal ui;
-GPtime t;
 std::vector<Board> board;					//объекты плат
 
 bool dataReqDelay = false;
@@ -31,4 +30,16 @@ void LED_blink(uint16_t period_on, uint16_t period_off) {
 			tick = millis();
 		}
 	}
+}
+
+int getBoardSN(int sn) {
+	int new_sn = 0;
+	if (sn == 0) {
+		uint8_t mac[6];
+		WiFi.macAddress(mac);
+		memcpy(&new_sn, mac, 4);
+		new_sn += *(uint16_t*)(mac + 4);
+		return new_sn;
+	}
+	return sn;
 }
