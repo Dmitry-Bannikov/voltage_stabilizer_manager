@@ -27,7 +27,7 @@ void Board_Init() {
 	scanNewBoards();
 	Serial.printf("Boards found: %d \n", board.size());
 	for (uint8_t i = 0; i < board.size(); i++) {
-		readCurrentCalibrate(i);
+		// readCurrentCalibrate(i);
 		delay(100);
 	}
 }
@@ -36,7 +36,6 @@ void Web_Init() {
 	WifiInit();
 	MqttInit();
 	portalInit();
-	uint8_t mac[6];
 	Board_SN = getBoardSN(0);
 	Serial.printf("\nStab SN: %d \n", Board_SN);
 	webRefresh = true;
@@ -46,28 +45,28 @@ void Web_Init() {
 
 
 void Board_Tick() {
-	static uint32_t tmr = 0, scanTmr = 0;
+	static uint32_t tmr = 0, scanTmr = 0, scan_period = 60000;
 	static uint8_t denyDataRequest = 0;
 	uint32_t period = dataReqDelay ? 5000 : 1000;
 	uint8_t boardsAmnt = board.size();
 	if (millis() - tmr > period && !boardRequest) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			//t = ui.getSystemTime().encode();
 			board[i].tick();
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
 	} else if (boardRequest){
-		denyDataRequest = 3;
+		//denyDataRequest = 3;
 		BoardRequest(boardRequest);
 	}
 
-	if (millis() - scanTmr > 60000) {
-		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
+	if (millis() - scanTmr > scan_period) {
+		scanNewBoards();
+		if (board.size() < 3) scan_period = 4500;
+		else scan_period = 60000;
+		for (uint8_t i = 0; i < board.size() && !boardRequest; i++) {
 			board[i].readAll();
-			delay(50);
 		}
-		boardRequest = 2;
 		scanTmr = millis();
 	}
 }
@@ -108,21 +107,24 @@ void BoardRequest(uint8_t &request) {
 			requestResult = 1;
 			ESP.restart();
 		} else  if (request == 2) { //rescan boards
-			scanNewBoards();
+			//scanNewBoards();
 			requestResult = 1;
 		} else if (request == 3) { //save liters
+			requestResult = 2;
 			for (uint8_t i = 0; i < board.size(); i++) {
 				delay(50);
-				if (board[i].sendMainSets(0, 1, board[i].mainSets.Liter)) return;
+				if (!board[i].sendMainSets(0, board[i].mainSets.Liter)) {
+					requestResult = 0;
+					break;
+				}
 			}
-			requestResult = 2;
 		} else if (request == 4) {	//set active
 			if (board[activeBoard].readAll()) {
-				requestResult = 1;
+				requestResult = 2;
 			}
-			webRefresh = true;
+			//webRefresh = true;
 		} else if (request == 5) {
-			if (!board[activeBoard].sendSwitches(SW_OUTSIGN,1)) {
+			if (board[activeBoard].sendSwitches(SW_OUTSIGN,1)) {
 				requestResult = 1;
 			}
 		}	
@@ -135,32 +137,28 @@ void BoardRequest(uint8_t &request) {
 			}
 		}
 		else if (command == 2) {//write settings
-
-			uint8_t res1 = board[target].sendMainSets();
-			delay(20);
-			uint8_t res2 = board[target].sendAddSets();
-			if (!res1 && !res2) {
+			if (board[target].sendMainSets()) {
 				requestResult = 2;
 			}
-			
 		}
 		else if (command == 3) {//reboot board
-			if(!board[target].sendSwitches(SW_REBOOT, 1, 1)) {
+			if(board[target].sendSwitches(SW_REBOOT, 1, 1)) {
 				delay(250);
 				requestResult = 2;
 			}
 		}
-		else if (command == 4) {
-			if (!board[target].sendSwitches(SW_RSTST, 1, 1)) {
+		else if (command == 4) {	//удалить статистику
+			if (board[target].sendSwitches(SW_RSTST, 1, 1)) {
 				requestResult = 1;
 			}
 		}
-		else if (command == 5) {
-			requestResult = sendCurrentCalibrate(target);
+		else if (command == 5) {	//записать коэффициент в плату
+			requestResult = board[target].setCurrClbrt();
+			if (board[target].getCurrClbrt() == 0.0) requestResult = 0;
 		}
 	}
 	Serial.printf("\nBoard request: %d, Result: %d ", request, requestResult);
-	if (requestResult > 0 || requestTry == 3) {
+	if (requestResult > 0 || requestTry == 10) {
 		requestTry = 0;
 		request = 0;
 		if (requestResult == 2) webRefresh = true;
@@ -169,21 +167,6 @@ void BoardRequest(uint8_t &request) {
 	}
 	tmr = millis();
 }
-
-bool sendCurrentCalibrate(uint8_t brd) {
-	board[brd].mainSets.CurrClbrtValue = (int16_t)(board[brd].CurrClbrtValue*100.0);
-	board[brd].sendMainSets(14);
-	board[brd].readMainSets(13);
-	board[brd].CurrClbrtKoeff = ((float)board[brd].mainSets.CurrClbrtKoeff/100.0);
-	return (board[brd].mainSets.CurrClbrtKoeff != 100 && board[brd].mainSets.CurrClbrtKoeff != 3588);
-}
-
-bool readCurrentCalibrate(uint8_t brd) {
-	board[brd].readMainSets(13);
-	board[brd].CurrClbrtKoeff = ((float)board[brd].mainSets.CurrClbrtKoeff/100.0);
-	return (board[brd].mainSets.CurrClbrtKoeff != 100 && board[brd].mainSets.CurrClbrtKoeff != 3588);
-}
-
 
 
 //===========================================

@@ -79,7 +79,7 @@ void portalInit() {
 	ui.attach(portalActions);
 	ui.start(globalData.webInterfaceDNS);
 	ui.enableOTA("admin", "1234");
-	ui.onlineTimeout(5000);
+	//ui.onlineTimeout(5000);
 }
 
 void portalTick() {
@@ -120,9 +120,29 @@ void formsHandler() {
 		wifi_updateCFG();
 		WiFi_Reconnect();
 		LED_blink(0);
+
 		String open = "http://" + String(globalData.webInterfaceDNS) + ".local/dashboard";
+		String html = "<html><body><script type=\"text/javascript\">";
+		html += "window.open('" + open + "', '_blank');";
+		//html += "window.location.href = '/';"; // перенаправление обратно на главную страницу
+		html += "</script></body></html>";
+
+		ui.server.send(200, "text/html", html);
+
+		/*
+		String open = "http://" + String(globalData.webInterfaceDNS) + ".local/dashboard";
+		String html = "<html><body><script type=\"text/javascript\">";
+		html += "window.open('" + open + "', '_blank');";
+		html += "window.location.href = '/';"; // перенаправление обратно на главную страницу
+		html += "</script></body></html>";
+
+		ui.server.send(200, "text/html", html);
+
+		/*
+		
 		ui.server.sendHeader("Location", open, true);
 		ui.server.send(302, "text/plain", "");
+		*/
 	}
 
 }
@@ -139,7 +159,7 @@ void clicksHandler() {
 
 void updatesHandler() {
 	if (!ui.update()) return;
-	ui.updateBool("btn_brd_outsgn", board[activeBoard].addSets.Switches[SW_OUTSIGN]);
+	ui.updateBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN]);
 	ui.updateBool("mqttConnected_led", mqttReqResult);
 	if (ui.update("setsalt")) {	//вызов алерта
 		if (requestResult == 2)
@@ -156,12 +176,12 @@ void updatesHandler() {
 		String dataStr, statStr;
 		board[i].getDataStr(dataStr);
 		board[i].getStatisStr(statStr);
-		ui.updateString(String("fld_data/") + i, dataStr);
+		Serial.println(dataStr);
+		ui.updateString("fld_data/" + String(i), dataStr);
 		ui.updateString(String("fld_stat/") + i, statStr);
 		ui.updateBool(String("fld_online/") + i, board[i].isOnline());
 	}
-	ui.updateFloat("fld_set_CKoef", board[activeBoard].CurrClbrtKoeff, 2);
-	
+	ui.updateFloat("fld_set_CKoef", board[activeBoard].mainSets.CurrClbrtKoeff, 2);
 }
 
 void buttons_handler() {
@@ -179,7 +199,7 @@ void buttons_handler() {
 	if (ui.click("btn_sys_rescan")) 	boardRequest = 2;					//scan boards
 	if (ui.click("btn_brd_saveall")) 	boardRequest = 3;					//save to all boards
 	if (ui.clickInt("btn_brd_active", activeBoard)) boardRequest = 4;		//set an active board
-	if (ui.clickBool("btn_brd_outsgn", board[activeBoard].addSets.Switches[SW_OUTSIGN])) boardRequest = 5;	//outsignal on active board
+	if (ui.clickBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN])) boardRequest = 5;	//outsignal on active board
 	
 	if (ui.click("btn_brd_read") ) 		boardRequest = 10 + activeBoard;	//read settings from active board
 	if (ui.click("btn_brd_write"))  	boardRequest = 20 + activeBoard; 	//write settings to active board
@@ -201,7 +221,7 @@ void fields_handler() {
 	ui.clickInt("fld_set_minV", board[activeBoard].mainSets.MinVolt);
 	ui.clickInt("fld_set_toff", board[activeBoard].mainSets.EmergencyTOFF);
 	ui.clickInt("fld_set_ton", board[activeBoard].mainSets.EmergencyTON);
-	ui.clickFloat("fld_set_CValue", board[activeBoard].CurrClbrtValue);
+	ui.clickFloat("fld_set_CValue", board[activeBoard].mainSets.CurrClbrtValue);
 	if (ui.click("fld_set_mottype")) board[activeBoard].mainSets.MotorType = ui.getInt()+1;
 	if (ui.click("fld_set_motKoefs")) board[activeBoard].setMotKoefsList(ui.getString());
 		

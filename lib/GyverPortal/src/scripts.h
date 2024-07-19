@@ -76,7 +76,7 @@ arg.style.color=p.type=='text'?'#bbb':'#13161a';}
 function getEl(id){return document.getElementById(id);}
 function sdbTgl(){let flag=getEl('dashOver').style.display=='block';getEl('dashOver').style.display=flag?'none':'block';
 getEl('dashSdb').style.left=flag?'-250px':'0';}
-function onlShow(s){getEl('onlBlock').style.right=s?'0px':'-50px';}
+//function onlShow(s){getEl('onlBlock').style.right=s?'0px':'-50px';}
 function logClear(id){getEl(id).innerHTML=''}
 function logToggle(id){log=getEl(id);log.name=(log.name=='_gplog')?'_gplog_ns':'_gplog';}
 )";

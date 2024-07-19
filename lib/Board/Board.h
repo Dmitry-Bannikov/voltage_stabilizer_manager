@@ -27,10 +27,9 @@
 #define AVG						1
 #define MIN						2
 
-#define HEADER_DATA			0x10
-#define HEADER_STATS		0x20
-#define HEADER_MSETS		0x30
-#define HEADER_ASETS		0x40
+#define HEADER_DATA			0x20
+#define HEADER_STATS		0x30
+#define HEADER_MSETS		0x40
 #define HEADER_SWITCH		0x50
 
 #define XFER_WRITE	0x04
@@ -89,62 +88,47 @@ struct stats {	//56
 
 };
 
-struct mainsets {	//32
-	int16_t  FlashCtrl;				//контрольный код
+struct mainsets {	//38
+	int16_t  FlashCtrl;				//контрольный код ля сохранения во флэш
 
-	int16_t Liter = 78;				//0 буква платы
-    int16_t IgnoreSetsFlag = 1;		//1 игнорировать настройки с платы (0...1)
-	int16_t EnableTransit = 0;		//2 транзит при перегрузке
-	int16_t MinVolt = 170;			//3 мин напряжение
-	int16_t MaxVolt = 250;			//4 макс напряжение
-	int16_t Hysteresis = 5;			//5 точность/гистерезис (1...11)
-	int16_t Target = 220;			//6 целевое напряжение (210...240)
-	int16_t TuneInVolt = 0;			//7 подстройка входа (-6...6)
-	int16_t TuneOutVolt = 0;		//8 подстройка выхода (-6...6)
-	int16_t TransRatioIndx = 5;		//9 коэффициент трансворматора тока (0...6) смотри addSets
-	int16_t MotorType = 1;			//10 тип мотора (1...4) (0 - служебный)
-	int16_t EmergencyTON = 2000;	//11 время включения после аварии
-	int16_t EmergencyTOFF = 500;	//12 время аварийного отключения
-	int16_t MaxCurrent = 35;		//13 макс ток платы
-	int16_t CurrClbrtValue = 0;		//14 знач/100 - величина калибровочного тока
-	int16_t	CurrClbrtKoeff = 100;	//15 знач/100 - калибровочный коэффициент
+	int16_t Liter = 78;				//буква платы	//#0
+	int16_t IgnoreSetsFlag = 0;		//игнорировать настройки с платы (0...1)
+	int16_t EnableTransit = 0;		//транзит при перегрузке
+	int16_t MinVolt = 170;			//мин напряжение
+	int16_t MaxVolt = 250;			//макс напряжение
+	int16_t Hysteresis = 5;			//точность/гистерезис (1...11)
+	int16_t Target = 222;			//целевое напряжение (210...240)
+	int16_t TuneInVolt = 0;			//подстройка входа (-6...6)
+	int16_t TuneOutVolt = 0;		//подстройка выхода (-6...6)
+	int16_t TransRatioIndx = 5;		//коэффициент трансворматора тока (0...6)
+	int16_t MotorType = 1;			//тип мотора (1...4) (0 - служебный)
+	int16_t EmergencyTON = 2000;	//время включения после аварии
+	int16_t EmergencyTOFF = 500;	//время аварийного отключения
+	int16_t MaxCurrent = 40;		//макс ток платы
+	int16_t password = 1234;		//пароль доступа к настройкам //#14
 
-	uint8_t structSize;
-	uint8_t *buffer = nullptr;
-	mainsets() {
-        structSize = offsetof(struct mainsets, structSize) - sizeof(FlashCtrl); //вычисляем размер структуры
-	    buffer = new uint8_t[structSize];	
-    }
-	void packData() {
-        memcpy(buffer, (uint8_t*)&Liter, structSize);
-    }
-	void unpackData() {
-        memcpy((uint8_t*)&Liter, buffer, structSize);
-    }
-};
+	int16_t motKoefsList[5] = {0,150,250,300,350};						//(0 - служебный)коэффициент мощности мотора в % от motorDefPwr |#15
+	int32_t SerialNumber[2] = {123456789, 123456};					//серийник платы |#20
+	float CurrClbrtKoeff = 1.0 ;	//калибровочный коэффициент |#24
+	float CurrClbrtValue = 0;		//величина калибровочного тока (A) |#26
+	uint8_t structSize = 56;
+	uint8_t buffer[56];	//буфер для передачи/приема настроек
 
-struct addsets {
-	int16_t password = 1234;
-	int16_t motKoefsList[5] = {0,30,60,90,120};			//(0 - служебный)коэффициент мощности мотора в % от motorDefPwr
-	int16_t motorMaxCurrentList[4] = {3000, 4000, 5000, 6000};
-	int16_t tcRatioList[7] = {25,40,50,60,80,100,150};		//список коэффициентов трансов
-	int32_t SerialNumber[2] = {123456789, 123456};
-	
-	uint8_t structSize;
-	uint8_t *buffer = nullptr;
+	uint8_t i2c_addr = 0;
+	int16_t motorStartPwr = 100;
+	int16_t motorMaxCurr = 3000;
+	int16_t tcRatioList[7] = {25,40,50,60,80,100,150};				//список коэффициентов транс-ов тока |#24
+	int16_t motorMaxCurrentList[4] = {3000, 4000, 5000, 6000}; 		//список максимальных токов моторов (в мА) |#20
 	uint8_t Switches[8] = {0,0,0,0,0,0,0,0};
-	
-	addsets() {
-		structSize = offsetof(struct addsets, structSize); //вычисляем размер структуры
-		buffer = new uint8_t[structSize];//выделяем место под буфер
-	}
+	//mainsets();
 	void packData() {
-		memcpy(buffer, (uint8_t*)&password, structSize);
+		memcpy(buffer,	&Liter, sizeof(buffer));
 	}
 	void unpackData() {
-		memcpy((uint8_t*)&password, buffer, structSize);
+		memcpy((uint8_t*)&Liter, buffer, sizeof(buffer));
 	}
 };
+
 
 
 // =======================================================================================//
@@ -177,26 +161,29 @@ public:
 	Board(const uint8_t addr) {attach(addr, 'N');};
 	static int8_t StartI2C();		
 	static int8_t StopI2C();
+	static bool	  setLiterRaw(uint8_t addr, char newLit);
 	bool 		attach(const uint8_t addr, const char Liter);								//подключить плату (указать адрес)
-	static uint8_t isBoard(const uint8_t addr);
+	static uint8_t getLiterRaw(const uint8_t addr);
 	static uint8_t scanBoards(std::vector<Board>&brd, const uint8_t max);
 	bool 		isOnline();												//проверить, онлайн ли плата
 	bool 		isAnswer();
 	uint8_t 	getAddress() {return _board_addr;};						//получить адрес платы		
 	uint8_t 	getData();		
 	//=============================Получение данных с платы=========================================//										
-	float 		readDataRaw(const uint8_t val_addr = 0, uint8_t vals_cnt = 5);		//получить данные с платы
-	float 		readStatsRaw(const uint8_t val_addr = 0, uint8_t vals_cnt = 14);		//получить статистику с платы
-	int16_t 	readMainSets(const uint8_t val_addr = 0, uint8_t vals_cnt = 16);		//получить настройки с платы
-	int16_t 	readAddSets(const uint8_t val_addr = 0, uint8_t vals_cnt = 21);		//получить настройки с платы
-	uint8_t 	readSwitches(const uint8_t val_addr = 0, uint8_t vals_cnt = 8);
-	//=============================Отправка данных на плату========================================//	
-	uint8_t 	sendMainSets(const uint8_t val_addr = 0, uint8_t vals_cnt = 14, int16_t value = INT16_MIN);	
-	uint8_t 	sendAddSets( const uint8_t val_addr = 0, uint8_t vals_cnt = 21, int16_t value = INT16_MIN);
-	uint8_t 	sendSwitches(const uint8_t val_addr = 0, uint8_t vals_cnt = 8, uint8_t value = 255);
-	
+	float 		readDataRaw(uint8_t val_addr = 0, uint8_t vals_cnt = 5);		//получить данные с платы
+	float 		readStatsRaw(uint8_t val_addr = 0, uint8_t vals_cnt = 14);		//получить статистику с платы
+	int16_t 	readMainSets(uint8_t val_addr = 0, uint8_t vals_cnt = 28);		//получить настройки с платы
+	uint8_t 	readSwitches(uint8_t val_addr = 0, uint8_t vals_cnt = 8);
+	float		getCurrClbrt();
 	bool 		readAll();
+	//=============================Отправка данных на плату========================================//	
+	uint8_t 	sendMainSets(uint8_t val_addr = 0, uint8_t vals_cnt = 24, int16_t value = INT16_MIN);	
+	uint8_t 	sendSwitches(uint8_t val_addr = 0, uint8_t vals_cnt = 8, uint8_t value = 255);
+	bool		setCurrClbrt(float clbrtCurr = 0);
 	bool 		writeAll();
+
+	
+	
 	void 		getDataStr(String & result);
 	void 		getStatisStr(String & result);
 	void 		getJsonData(std::string & result, uint8_t mode, const std::string &time);
@@ -208,6 +195,8 @@ public:
 	void 		setLiteral(char lit);
 	char 		getLiteral();
 	float 		getData(std::string request);
+	
+	
 	void 		tick();
 	void 		detach();
 	~Board();
@@ -215,7 +204,6 @@ public:
 	data mainData;
 	stats mainStats;
 	mainsets mainSets;
-	addsets addSets;
 	struct board_data_t {
 		std::string dataJson;
 		std::string settingsJson;
@@ -225,8 +213,6 @@ public:
 		float max[NUM_VALS];
 		void getMinMax(bool set_zero = false);
 	} Bdata;
-	float CurrClbrtKoeff = 1.0;
-	float CurrClbrtValue = 0;
 };
 
 

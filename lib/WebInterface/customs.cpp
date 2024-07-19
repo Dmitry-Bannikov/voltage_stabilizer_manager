@@ -119,11 +119,11 @@ void GP_addsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Время отключения, мс");  GP.NUMBER("fld_set_toff", "", brd.mainSets.EmergencyTOFF, "70px"););
 	M_BOX(GP_EDGES, GP.LABEL("Время включения, мс");  GP.NUMBER("fld_set_ton", "", brd.mainSets.EmergencyTON, "70px"););
 	M_BOX(GP_EDGES, 
-		GP.LABEL("Калибровочный ток:"); GP.NUMBER_F("fld_set_CValue", "", brd.CurrClbrtValue, 2, "70px");
-		GP.LABEL("Коэффициент", "", GP_GRAY); GP.NUMBER_F("fld_set_CKoef", "", brd.CurrClbrtKoeff, 2, "70px");
+		GP.LABEL("Калибровочный ток:"); GP.NUMBER_F("fld_set_CValue", "", brd.mainSets.CurrClbrtValue, 2, "70px");
+		GP.LABEL("Коэффициент", "", GP_GRAY); GP.NUMBER_F("fld_set_CKoef", "", brd.mainSets.CurrClbrtKoeff, 2, "70px");
 		GP.BUTTON_MINI("btn_brd_saveCValue", "Применить");
 	);
-	M_BOX(GP_EDGES, GP.LABEL("Внеш. сигнал"); GP.CHECK("btn_brd_outsgn", (bool)(brd.addSets.Switches[SW_OUTSIGN])););
+	M_BOX(GP_EDGES, GP.LABEL("Внеш. сигнал"); GP.CHECK("btn_brd_outsgn", (bool)(brd.mainSets.Switches[SW_OUTSIGN])););
 
 	GP.BLOCK_END();
 }
@@ -149,40 +149,14 @@ void GP_wificonnection_build() {
 				GP.PASS_EYE("staPass","Password STA", wifi_settings.staPass, "", 20);
 			GP.BLOCK_END();
 			GP.BLOCK_BEGIN(GP_DIV_RAW);
-				//String open = "http://" + String(globalData.webInterfaceDNS) + ".local/";
-				//GP_SUBMIT_MINI_LINK("Запомнить", open);
+				GP.BREAK();
+				GP.BREAK();
 				GP.SUBMIT_MINI("Запомнить");
 			GP.BLOCK_END();
 		GP.GRID_END();
 		GP.BUTTON_LINK("/ota_update", "Обновление прошивки");
 	GP.FORM_END();
 	GP.BLOCK_END();
-}
-
-void GP_SUBMIT_MINI_LINK(const String &text, const String &link, PGM_P st, const String &cls) {
-    *_GPP += F("<input type='submit' onclick='openNewTab(");
-	*_GPP += link;
-	*_GPP += F(")' value='");
-    *_GPP += text;
-    if (st != GP_GREEN) {
-        *_GPP += F("' style='background:");
-        *_GPP += FPSTR(st);
-    }
-    if (cls.length()) {
-        *_GPP += F("' class='");
-        *_GPP += cls;
-    }
-    *_GPP += F("' >\n");
-
-    *_GPP += F("<script>");
-    *_GPP += F("function openNewTab(linkText) {");
-    *_GPP += F("var NewTab = window.open('");
-    *_GPP += link;
-    *_GPP += F("', '_blank');");
-	*_GPP += F("NewTab.focus();");
-    *_GPP += F("return false;}");
-    *_GPP += F("</script>");
-    GP.send();
 }
 
 void GP_DeviceInfo(int num) {
