@@ -51,12 +51,9 @@ struct data {	//20
 	volatile float Current = 0;
 	volatile float Power = 0;
 	int Events = 0;
-	uint8_t structSize;
-	uint8_t* buffer = nullptr;
-	data() {
-        structSize = offsetof(struct data, structSize);
-	    buffer = new uint8_t[structSize];
-    }
+	static constexpr uint8_t structSize = 20;
+	uint8_t buffer[structSize];
+
 	void unpackData() {
         memcpy((uint8_t*)&Uin, buffer, structSize);
     }
@@ -65,7 +62,7 @@ struct data {	//20
     }
 };
 
-struct stats {	//56
+struct stats {	//60
 	int FlashCtrl;					//контрольный код
 	float Uin[3] = { 0, 0, 300 };	//max,avg,min
 	float Uout[3] = { 0, 0, 300 };
@@ -73,12 +70,10 @@ struct stats {	//56
 	float Power[3] = { 0, 0, 0 };
 	int WorkTimeMins = 0;
 	int Events = 0;
-	uint8_t structSize;
-	uint8_t* buffer = nullptr;
-	stats() {
-        structSize = offsetof(struct stats, structSize) - sizeof(FlashCtrl);
-	    buffer = new uint8_t[structSize];
-    }
+	int ResetFnc = 0;
+	static constexpr uint8_t structSize = 60;
+	uint8_t buffer[structSize];
+
 	void unpackData() {
         memcpy((uint8_t*)Uin, buffer, structSize);
     }
@@ -111,16 +106,14 @@ struct mainsets {	//38
 	int32_t SerialNumber[2] = {123456789, 123456};					//серийник платы |#20
 	float CurrClbrtKoeff = 1.0 ;	//калибровочный коэффициент |#24
 	float CurrClbrtValue = 0;		//величина калибровочного тока (A) |#26
-	uint8_t structSize = 56;
-	uint8_t buffer[56];	//буфер для передачи/приема настроек
+
+	static constexpr uint8_t structSize = 56;
+	uint8_t buffer[structSize];	//буфер для передачи/приема настроек
 
 	uint8_t i2c_addr = 0;
-	int16_t motorStartPwr = 100;
-	int16_t motorMaxCurr = 3000;
 	int16_t tcRatioList[7] = {25,40,50,60,80,100,150};				//список коэффициентов транс-ов тока |#24
-	int16_t motorMaxCurrentList[4] = {3000, 4000, 5000, 6000}; 		//список максимальных токов моторов (в мА) |#20
 	uint8_t Switches[8] = {0,0,0,0,0,0,0,0};
-	//mainsets();
+	
 	void packData() {
 		memcpy(buffer,	&Liter, sizeof(buffer));
 	}

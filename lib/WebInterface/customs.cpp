@@ -119,11 +119,11 @@ void GP_addsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Время отключения, мс");  GP.NUMBER("fld_set_toff", "", brd.mainSets.EmergencyTOFF, "70px"););
 	M_BOX(GP_EDGES, GP.LABEL("Время включения, мс");  GP.NUMBER("fld_set_ton", "", brd.mainSets.EmergencyTON, "70px"););
 	M_BOX(GP_EDGES, 
-		GP.LABEL("Калибровочный ток:"); GP.NUMBER_F("fld_set_CValue", "", brd.CurrClbrtValue, 2, "70px");
-		GP.LABEL("Коэффициент", "", GP_GRAY); GP.NUMBER_F("fld_set_CKoef", "", brd.CurrClbrtKoeff, 2, "70px");
+		GP.LABEL("Калибровочный ток:"); GP.NUMBER_F("fld_set_CValue", "", brd.mainSets.CurrClbrtValue, 2, "70px");
+		GP.LABEL("Коэффициент", "", GP_GRAY); GP.NUMBER_F("fld_set_CKoef", "", brd.mainSets.CurrClbrtKoeff, 2, "70px");
 		GP.BUTTON_MINI("btn_brd_saveCValue", "Применить");
 	);
-	M_BOX(GP_EDGES, GP.LABEL("Внеш. сигнал"); GP.CHECK("btn_brd_outsgn", (bool)(brd.addSets.Switches[SW_OUTSIGN])););
+	M_BOX(GP_EDGES, GP.LABEL("Внеш. сигнал"); GP.CHECK("btn_brd_outsgn", (bool)(brd.mainSets.Switches[SW_OUTSIGN])););
 
 	GP.BLOCK_END();
 }

@@ -27,7 +27,7 @@ void Board_Init() {
 	scanNewBoards();
 	Serial.printf("Boards found: %d \n", board.size());
 	for (uint8_t i = 0; i < board.size(); i++) {
-		readCurrentCalibrate(i);
+		board[i].getCurrClbrt();
 		delay(100);
 	}
 }
@@ -135,14 +135,8 @@ void BoardRequest(uint8_t &request) {
 			}
 		}
 		else if (command == 2) {//write settings
-
 			uint8_t res1 = board[target].sendMainSets();
-			delay(20);
-			uint8_t res2 = board[target].sendAddSets();
-			if (!res1 && !res2) {
-				requestResult = 2;
-			}
-			
+			if (!res1) requestResult = 2;
 		}
 		else if (command == 3) {//reboot board
 			if(!board[target].sendSwitches(SW_REBOOT, 1, 1)) {
@@ -156,7 +150,8 @@ void BoardRequest(uint8_t &request) {
 			}
 		}
 		else if (command == 5) {
-			requestResult = sendCurrentCalibrate(target);
+			requestResult = board[target].setCurrClbrt();
+			board[target].getCurrClbrt();
 		}
 	}
 	Serial.printf("\nBoard request: %d, Result: %d ", request, requestResult);
@@ -168,20 +163,6 @@ void BoardRequest(uint8_t &request) {
 		requestTry++;
 	}
 	tmr = millis();
-}
-
-bool sendCurrentCalibrate(uint8_t brd) {
-	board[brd].mainSets.CurrClbrtValue = (int16_t)(board[brd].CurrClbrtValue*100.0);
-	board[brd].sendMainSets(14);
-	board[brd].readMainSets(13);
-	board[brd].CurrClbrtKoeff = ((float)board[brd].mainSets.CurrClbrtKoeff/100.0);
-	return (board[brd].mainSets.CurrClbrtKoeff != 100 && board[brd].mainSets.CurrClbrtKoeff != 3588);
-}
-
-bool readCurrentCalibrate(uint8_t brd) {
-	board[brd].readMainSets(13);
-	board[brd].CurrClbrtKoeff = ((float)board[brd].mainSets.CurrClbrtKoeff/100.0);
-	return (board[brd].mainSets.CurrClbrtKoeff != 100 && board[brd].mainSets.CurrClbrtKoeff != 3588);
 }
 
 
