@@ -47,7 +47,7 @@ void Web_Init() {
 void Board_Tick() {
 	static uint32_t tmr = 0, scanTmr = 0, scan_period = 60000;
 	static uint8_t denyDataRequest = 0;
-	uint32_t period = dataReqDelay ? 5000 : 1000;
+	uint32_t period = dataReqDelay ? 1000 : 1000;
 	uint8_t boardsAmnt = board.size();
 	if (millis() - tmr > period && !boardRequest) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {

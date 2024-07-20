@@ -149,7 +149,7 @@ float Board::readDataRaw(uint8_t val_addr, uint8_t vals_cnt) {
 	mainData.packData();
     float result = -1.0;
     uint8_t byte_cnt = vals_cnt*offset;
-    uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, val_addr*offset, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_DATA) {
@@ -168,7 +168,7 @@ float Board::readStatsRaw(uint8_t val_addr, uint8_t vals_cnt) {
 	mainStats.packData();
     float result = -1.0;
     uint8_t byte_cnt = vals_cnt*offset;
-    uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, val_addr*offset, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_STATS) {
@@ -187,7 +187,7 @@ int16_t Board::readMainSets(uint8_t val_addr, uint8_t vals_cnt) {
     int16_t result = INT16_MIN;
 	mainSets.packData();
     uint8_t byte_cnt = vals_cnt*offset;
-    uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, val_addr*offset, byte_cnt};
+    uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(100));
 	if (rxBuffer[0] == HEADER_MSETS && val_addr < 24) {
@@ -349,7 +349,7 @@ U выход  |
 	);
 	s += String(statis);
 	s += F("\nСобытия: ");
-	s += errorsToStr(mainStats.Events, EVENTS_SHORT);
+	s += errorsToStr(mainStats.Events, EVENTS_FULL);
 	result = s;
 }
 

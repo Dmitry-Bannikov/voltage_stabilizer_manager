@@ -102,6 +102,8 @@ void createUpdateList(String &list) {
 		list += ",";
 	}
 	list += "setsalt,reload,btn_brd_outsgn,mqttConnected_led,fld_set_CKoef";
+	Serial.println("Update list: ");
+	Serial.println(list);
 }
 
 void formsHandler() {
@@ -123,26 +125,10 @@ void formsHandler() {
 
 		String open = "http://" + String(globalData.webInterfaceDNS) + ".local/dashboard";
 		String html = "<html><body><script type=\"text/javascript\">";
-		html += "window.open('" + open + "', '_blank');";
-		//html += "window.location.href = '/';"; // перенаправление обратно на главную страницу
+		html += "window.open('" + open + "', '_self');";
 		html += "</script></body></html>";
 
 		ui.server.send(200, "text/html", html);
-
-		/*
-		String open = "http://" + String(globalData.webInterfaceDNS) + ".local/dashboard";
-		String html = "<html><body><script type=\"text/javascript\">";
-		html += "window.open('" + open + "', '_blank');";
-		html += "window.location.href = '/';"; // перенаправление обратно на главную страницу
-		html += "</script></body></html>";
-
-		ui.server.send(200, "text/html", html);
-
-		/*
-		
-		ui.server.sendHeader("Location", open, true);
-		ui.server.send(302, "text/plain", "");
-		*/
 	}
 
 }
@@ -172,14 +158,16 @@ void updatesHandler() {
 		webRefresh = false;
 		ui.answer(1);
 	}
+	static bool online = true;
+	online = !online;
 	for (uint8_t i = 0; i < board.size(); i++) {
-		String dataStr, statStr;
+		String dataStr, statStr, testStr;
 		board[i].getDataStr(dataStr);
 		board[i].getStatisStr(statStr);
-		Serial.println(dataStr);
-		ui.updateString("fld_data/" + String(i), dataStr);
-		ui.updateString(String("fld_stat/") + i, statStr);
-		ui.updateBool(String("fld_online/") + i, board[i].isOnline());
+		testStr = "Статистика";
+		ui.updateString(S("fld_data/")+i, dataStr);
+		ui.updateString(S("fld_stat/") + i, testStr);
+		ui.updateBool(S("fld_online/") + i, online);
 	}
 	ui.updateFloat("fld_set_CKoef", board[activeBoard].mainSets.CurrClbrtKoeff, 2);
 }
