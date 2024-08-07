@@ -12,7 +12,8 @@ int actionDevice = -1;
 void portalBuild() {
   //------------------------------------------//
 	GP.BUILD_BEGIN(900);
-	GP.ONLINE_CHECK(6000);
+	GP.setTimeout(1000);
+	GP.ONLINE_CHECK(4000);
 	GP.THEME(GP_LIGHT);
 	String update = "";
 	createUpdateList(update);
@@ -142,11 +143,11 @@ void updatesHandler() {
 	ui.updateBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN]);
 	ui.updateBool("mqttConnected_led", mqttReqResult);
 	if (ui.update("setsalt")) {	//вызов алерта
-		if (requestResult == 2)
+		if (reqSuccess == 4)
 		{
 			ui.answer("Выполнено!");
 		}
-		requestResult = 0;
+		reqSuccess = 0;
 	}
 	if (ui.update("reload") && webRefresh) { //перезагрузка страницы
 		webRefresh = false;
@@ -175,17 +176,16 @@ void buttons_handler() {
 		}
 	}
 
-	if (ui.click("btn_sys_reboot")) 	ESP.restart();					//esp restart
+	if (ui.click("btn_sys_reboot")) 	boardRequest = 1;					//esp restart
 	if (ui.click("btn_sys_rescan")) 	boardRequest = 2;					//scan boards
 	if (ui.click("btn_brd_saveall")) 	boardRequest = 3;					//save to all boards
-	if (ui.clickInt("btn_brd_active", activeBoard)) boardRequest = 4;		//set an active board
+	if (ui.clickInt("btn_brd_active", activeBoard) || ui.click("btn_brd_read")) boardRequest = 4;		//set an active board
 	if (ui.clickBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN])) boardRequest = 5;	//outsignal on active board
 	
-	if (ui.click("btn_brd_read") ) 		boardRequest = 10 + activeBoard;	//read settings from active board
-	if (ui.click("btn_brd_write"))  	boardRequest = 20 + activeBoard; 	//write settings to active board
-	if (ui.click("btn_brd_reboot")) 	boardRequest = 30 + activeBoard;	//reboot active board
-	if (ui.clickSub("btn_brd_rst"))		boardRequest = 40 + ui.clickNameSub().toInt();	//reset statistic
-	if (ui.click("btn_brd_saveCValue"))	boardRequest = 50 + activeBoard;	//submit current calibration
+	if (ui.click("btn_brd_write"))  	boardRequest = 6; 	//write settings to active board
+	if (ui.click("btn_brd_reboot")) 	boardRequest = 7;	//reboot active board
+	if (ui.click("btn_brd_saveCValue"))	boardRequest = 8;	//submit current calibration
+	if (ui.clickSub("btn_brd_rst"))		boardRequest = 90 + ui.clickNameSub().toInt();	//reset statistic
 }
 
 void fields_handler() {

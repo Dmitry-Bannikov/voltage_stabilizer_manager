@@ -23,13 +23,8 @@ void Board_Init() {
 	//========================//
 	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
-	delay(10);
 	scanNewBoards();
 	Serial.printf("Boards found: %d \n", board.size());
-	for (uint8_t i = 0; i < board.size(); i++) {
-		board[i].getCurrClbrt();
-		delay(100);
-	}
 }
 
 void Web_Init() {
@@ -48,25 +43,18 @@ void Web_Init() {
 void Board_Tick() {
 	static uint32_t tmr = 0, scanTmr = 0;
 	static uint8_t denyDataRequest = 0;
-	uint32_t period = dataReqDelay ? 5000 : 1000;
 	uint8_t boardsAmnt = board.size();
-	if (millis() - tmr > period && !boardRequest) {
+	if (millis() - tmr > 1000 && !boardRequest) {
 		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			//t = ui.getSystemTime().encode();
 			board[i].tick();
 		}
 		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
 		tmr = millis();
-	} else if (boardRequest){
-		denyDataRequest = 3;
-		BoardRequest(boardRequest);
 	}
+	reqSuccess = BoardRequest(boardRequest);
+	
 
-	if (millis() - scanTmr > 60000) {
-		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			board[i].readAll();
-			delay(50);
-		}
+	if (millis() - scanTmr > 30000) {
 		boardRequest = 2;
 		scanTmr = millis();
 	}
@@ -83,86 +71,55 @@ void Web_Tick() {
 	Devices_Tick();
 }
 
-void scanNewBoards() {
+bool scanNewBoards() {
+	bool res = false;
 	static uint8_t old_amount = 0; 
 	Board::scanBoards(board, MAX_BOARDS);
-	if (old_amount != board.size()) {
-		webRefresh = true;
-		old_amount = board.size();
-	}
+	if (old_amount != board.size()) res = true;
+	old_amount = board.size();
+	return res;
 }
 
 //Запросы на плату
-void BoardRequest(uint8_t &request) {
+uint8_t BoardRequest(uint8_t &request) {
+	uint8_t res = 0;
 	static uint8_t requestTry = 0;
 	static uint32_t tmr = 0;
-	if (!request || millis() - tmr < 500) return;
-	if (!board[activeBoard].isAnswer() && request != 1 && request != 2) {
-		request = 0;
-		return;
+	if (!request || millis() - tmr < 500) return reqSuccess;
+
+	if (request == 1) ESP.restart(); 			//1 - рестарт менеджера
+	else if (request == 2) {					//2 - сканирование плат
+		res = scanNewBoards()+1;
+	} else if (request == 3) {					//3 - передача букв всем платам
+		res = 2;
+		ForBrds {
+			if (!board[i].sendMainSets(0, 1, board[i].mainSets.Liter)) res = 1;
+		}
+	} else if (request == 4) {					//4 - выбор активной платы или нажатие на кнопку чтения настроек
+		res = board[activeBoard].readAll() + 1;
+	} else if (request == 5) {					//5 - отправка внешнего сигнала на активную плату
+		res = board[activeBoard].sendSwitches(SW_OUTSIGN,1);
+	} else if (request == 6) {					//6 - отправка настроек на активную плату
+		res = board[activeBoard].sendMainSets() + 3;
+	} else if (request == 7) {					//7 - рестарт активной платы
+		res = board[activeBoard].sendSwitches(SW_REBOOT, 1);
+	}  else if (request == 8) {					//8 - кнопка подстройки тока
+		res = (board[activeBoard].setCurrClbrt() > 0.0);
+	} else if (request >= 90) {					//90|91|92 - кнопки сброса статистики
+		uint8_t target = request - 90;
+		res = board[target].sendSwitches(SW_RSTST, 1);
 	}
-	delay(30);
-	if (request < 10) {
-		if (request == 1) {//reboot esp
-			delay(1000);
-			requestResult = 1;
-			ESP.restart();
-		} else  if (request == 2) { //rescan boards
-			scanNewBoards();
-			requestResult = 1;
-		} else if (request == 3) { //save liters
-			for (uint8_t i = 0; i < board.size(); i++) {
-				delay(50);
-				if (board[i].sendMainSets(0, 1, board[i].mainSets.Liter)) return;
-			}
-			requestResult = 2;
-		} else if (request == 4) {	//set active
-			if (board[activeBoard].readAll()) {
-				requestResult = 1;
-			}
-			webRefresh = true;
-		} else if (request == 5) {
-			if (!board[activeBoard].sendSwitches(SW_OUTSIGN,1)) {
-				requestResult = 1;
-			}
-		}	
-	} else {
-		uint8_t command = request / 10;
-		uint8_t target = request % 10;
-		if (command == 1) {//read settings
-			if (board[target].readAll()) {
-				requestResult = 2;
-			}
-		}
-		else if (command == 2) {//write settings
-			uint8_t res1 = board[target].sendMainSets();
-			if (!res1) requestResult = 2;
-		}
-		else if (command == 3) {//reboot board
-			if(!board[target].sendSwitches(SW_REBOOT, 1, 1)) {
-				delay(250);
-				requestResult = 2;
-			}
-		}
-		else if (command == 4) {
-			if (!board[target].sendSwitches(SW_RSTST, 1, 1)) {
-				requestResult = 1;
-			}
-		}
-		else if (command == 5) {
-			requestResult = board[target].setCurrClbrt();
-			board[target].getCurrClbrt();
-		}
-	}
-	Serial.printf("\nBoard request: %d, Result: %d ", request, requestResult);
-	if (requestResult > 0 || requestTry == 3) {
+	Serial.printf("\nBoard request: %d, Result: %d ", request, res);
+	if (res > 0 || requestTry == 3) {
+		if (res == 2) webRefresh = true;
 		requestTry = 0;
 		request = 0;
-		if (requestResult == 2) webRefresh = true;
+		
 	} else {
 		requestTry++;
 	}
 	tmr = millis();
+	return res;
 }
 
 

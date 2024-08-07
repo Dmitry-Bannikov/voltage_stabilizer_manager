@@ -16,8 +16,8 @@ void Board_Tick();
 void System_Tick();
 void Web_Tick();
 
-void scanNewBoards();
-void BoardRequest(uint8_t &request);
+bool scanNewBoards();
+uint8_t BoardRequest(uint8_t &request);
 
 
 
