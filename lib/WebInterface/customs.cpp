@@ -15,8 +15,8 @@ void GP_data_build() {
 	} else {
 		for (uint8_t i = 0; i < board.size(); i++) {
 			GP.BLOCK_BEGIN(GP_THIN, "100%", String("Плата ")+ board[i].getLiteral());
-			GP.AREA(String("fld_data/")+i, 7, "Загрузка \nданных...", "", false);
-			GP.AREA(String("fld_stat/")+i, 10, "Загрузка \nстатистики", "", true);
+			GP.AREA(String("fld_data/")+i, 7, "Загрузка \nданных...", "", true);
+			GP.AREA(String("fld_stat/")+i, 10, "Загрузка \nстатистики...", "", true);
 			M_BOX(GP_EDGES,
 				GP.BUTTON_MINI(String("btn_brd_rst/")+i, "Сброс");
 				GP.LED(String("fld_online/")+i, board[i].isOnline());
