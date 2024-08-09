@@ -44,7 +44,7 @@
 #define SW_RSTST	3
 #define SW_TRANSIT	4
 
-//#define TEST_BRD_ADDR	6
+#define TEST_BRD_ADDR	6
 
 struct data {	//20
 	volatile float Uin = 0;

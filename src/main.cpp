@@ -10,13 +10,13 @@ find WebServer.cpp at line 649 and comment log_e
 void setup() {
 	System_Init();
 	Board_Init();
-	Web_Init();
+	//Web_Init();
 	esp_task_wdt_init(10, true);
     esp_task_wdt_add(NULL);
 }
 
 void loop() {
 	Board_Tick();
-	Web_Tick();
+	//Web_Tick();
 	esp_task_wdt_reset();
 }

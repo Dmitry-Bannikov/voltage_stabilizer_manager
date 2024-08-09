@@ -23,7 +23,8 @@ void Board_Init() {
 	//========================//
 	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
-	scanNewBoards();
+	board.emplace_back(6);
+	//scanNewBoards();
 	Serial.printf("Boards found: %d \n", board.size());
 }
 
@@ -40,6 +41,18 @@ void Web_Init() {
 
 
 void Board_Tick() {
+	static uint32_t tmr = 0;
+	if (millis() - tmr < 5000) return;
+	uint32_t start = millis();
+	float result = board[0].readDataRaw(2);
+	Serial.printf("\nTime: %d | Result: %.1f ", millis() - start, result);
+	tmr = millis();
+
+
+
+
+
+	/*
 	static uint32_t tmr = 0, scanTmr = 0, scan_period = 60000;
 	static uint8_t denyDataRequest = 0;
 	uint8_t boardsAmnt = board.size();
@@ -57,6 +70,7 @@ void Board_Tick() {
 		boardRequest = 2;
 		scanTmr = millis();
 	}
+	*/
 }
 
 void System_Tick() {

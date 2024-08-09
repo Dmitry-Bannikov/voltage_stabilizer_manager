@@ -60,6 +60,9 @@
         "any": "cpp",
         "codecvt": "cpp",
         "forward_list": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "i2c_ll.h": "c",
+        "task.h": "c",
+        "i2c_hal.h": "c"
     }
 }

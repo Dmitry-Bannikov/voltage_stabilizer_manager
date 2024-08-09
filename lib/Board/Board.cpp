@@ -3,6 +3,7 @@
 #include <driver/gpio.h>
 #include <esp_err.h>
 
+
 #define isEvent(event)					(bitRead(mainData.Events, event))
 #define json	nlohmann::json
 
@@ -24,7 +25,11 @@ const char* jsonSetsNames[SETS_VALS] = {
 
 
 //==================Public=================//
+/*
+C:\Users\Viktoriya\.platformio\packages\framework-espidf\components\driver\i2c.c
+C:\Users\Viktoriya\.platformio\packages\framework-arduinoespressif32\tools\sdk\esp32\include\driver\include\driver\i2c.h
 
+*/
 
 
 int8_t Board::StartI2C() {
@@ -149,7 +154,7 @@ float Board::readDataRaw(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(30));
-	if (rxBuffer[0] == HEADER_DATA) {
+	if (!ret && rxBuffer[0] == HEADER_DATA) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainData.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
 		mainData.unpackData();
