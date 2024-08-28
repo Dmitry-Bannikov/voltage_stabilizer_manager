@@ -162,10 +162,7 @@ private:
 	uint8_t _board_addr = 0;
 	static const int _poll = 200;
 	bool startFlag = false;
-	uint32_t _dataUpdatePrd = 1000UL;		//период обновления значений
-	uint32_t _statisUpdatePrd = 60000UL;	//период обновления статистики
-	bool _active = false;
-	uint8_t _disconnected = 0;
+	uint32_t _board_coonected_tmr = 0;
 	String actTime;
 	void 	validate();
 	String getWorkTime(const uint32_t mins);

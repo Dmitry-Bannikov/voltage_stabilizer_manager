@@ -166,7 +166,7 @@ void updatesHandler() {
 		board[i].getStatisStr(statStr);
 		ui.updateString(S("fld_data/")+i, dataStr);
 		ui.updateString(S("fld_stat/") + i, statStr);
-		ui.updateBool(S("fld_online/") + i, true);
+		ui.updateBool(S("fld_online/") + i, board[i].isAnswer());
 	}
 	ui.updateFloat("fld_set_CKoef", board[activeBoard].mainSets.CurrClbrtKoeff, 2);
 	

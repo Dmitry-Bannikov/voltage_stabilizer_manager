@@ -101,6 +101,7 @@ float Board::setCurrClbrt(float clbrtCurr) {
 		mainSets.CurrClbrtValue = clbrtCurr;
 		memcpy(&res, rxBuffer+1, 4);
 		if (res > 0.0) mainSets.CurrClbrtKoeff = res;
+		_board_coonected_tmr = millis();
 	}
     return res;
 }
@@ -131,13 +132,14 @@ bool Board::isOnline() {
     wire_master_start(cmd);
     wire_master_write_byte(cmd, (_board_addr << 1) | I2C_MASTER_WRITE, true);
     wire_master_stop(cmd);
-    esp_err_t error = wire_master_cmd_begin(0, cmd, pdMS_TO_TICKS(5));
+    esp_err_t ret = wire_master_cmd_begin(0, cmd, pdMS_TO_TICKS(5));
     wire_cmd_link_delete(cmd);
-	return !error;							
+	if (!ret) _board_coonected_tmr = millis();
+	return !ret;							
 }
 
 bool Board::isAnswer() {
-	if (_disconnected) return false;
+	if (millis() - _board_coonected_tmr > 30000) return false;
 	return true;
 }
 
@@ -155,6 +157,7 @@ float Board::readDataRaw(uint8_t val_addr, uint8_t vals_cnt) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainData.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
 		mainData.unpackData();
+		_board_coonected_tmr = millis();
 	}
 	delete(rxBuffer);
 	return result;
@@ -170,10 +173,11 @@ float Board::readStatsRaw(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
-	if (rxBuffer[0] == HEADER_STATS) {
+	if (!ret && rxBuffer[0] == HEADER_STATS) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainStats.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
 		mainStats.unpackData();
+		_board_coonected_tmr = millis();
 	}
 	delete(rxBuffer);
 	return result;
@@ -189,10 +193,11 @@ int16_t Board::readMainSets(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
-	if (rxBuffer[0] == HEADER_MSETS && val_addr < 24) {
+	if (!ret && rxBuffer[0] == HEADER_MSETS) {
         result = *((int16_t*)(rxBuffer+1));
 		memcpy(mainSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
 		mainSets.unpackData();
+		_board_coonected_tmr = millis();
 	}
 	delete(rxBuffer);
 	return result;
@@ -206,9 +211,10 @@ uint8_t Board::readSwitches(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t txBuffer[4] = {HEADER_SWITCH, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
 	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
-	if (rxBuffer[0] == HEADER_SWITCH) {
+	if (!ret && rxBuffer[0] == HEADER_SWITCH) {
 		result = (uint8_t)rxBuffer[1];
 		memcpy(mainSets.Switches + val_addr*1, rxBuffer + 1, byte_cnt);
+		_board_coonected_tmr = millis();
 	}
 	delete(rxBuffer);
 	return result;
@@ -222,12 +228,7 @@ uint8_t Board::readData() {
 	readStatsRaw();
 	mainData.EventNum = getEventsList(mainData.EventTxt, false);
 	getEventsList(mainStats.EventTxt, true);
-	if (result == NAN) {
-		(disconn < 10) ? (disconn++) : (disconn = 10, _disconnected = 1);
-	} else {
-		disconn = 0;
-		_disconnected = 0;
-	}
+	
 	Bdata.settings[0] = mainSets.EnableTransit; Bdata.settings[1] = mainSets.MinVolt; Bdata.settings[2] = mainSets.MaxVolt; 
 	Bdata.settings[3] = mainSets.Hysteresis; Bdata.settings[4] = mainSets.Target; Bdata.settings[5] = mainSets.TuneInVolt; 
 	Bdata.settings[6] = mainSets.TuneOutVolt; Bdata.settings[7] = mainSets.tcRatioList[mainSets.TransRatioIndx]; Bdata.settings[8] = mainSets.MotorType; 
@@ -240,7 +241,7 @@ uint8_t Board::readData() {
 	Bdata.online[6] = mainStats.Current[1]; Bdata.online[7] = mainStats.Power[1]/1000.0; Bdata.online[8] = mainStats.Uin[0]; 
 	Bdata.online[9] = mainStats.Uout[0]; Bdata.online[10] = mainStats.Current[0]; Bdata.online[11] = mainStats.Power[0]/1000.0; 
 	Bdata.online[12] = mainStats.WorkTimeMins/60; 
-	return _disconnected;
+	return result != -1.0;
 }
 
 uint8_t Board::sendMainSets(uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
@@ -258,6 +259,7 @@ uint8_t Board::sendMainSets(uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
         memcpy(txBuffer + 4, mainSets.buffer + val_addr*offset, byte_cnt);
     }
 	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(20));
+	if (!ret) _board_coonected_tmr = millis();
 	delete(txBuffer);
 	return !ret;
 }
@@ -269,6 +271,7 @@ uint8_t Board::sendSwitches(int8_t val_addr, uint8_t value) {
 	mainSets.Switches[SW_REBOOT] = 0;
 	mainSets.Switches[SW_RSTST] = 0;
 	if (val_addr == SW_OUTSIGN && ret) mainSets.Switches[SW_OUTSIGN] = 0; //если произошла ошибка передачи, то откл
+	if (!ret) _board_coonected_tmr = millis();
 	return !ret;
 }
 
@@ -565,25 +568,26 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 
 
 
-
+	//static uint8_t saved_addrs[3] = {0,0,0};
 
 	for (uint8_t i = 0; i < brd.size(); i++) {
-		if (!brd[i].isOnline()) { 					//если плата под номером i не онлайн
+		if (!brd[i].isAnswer()) { 					//если плата под номером i не онлайн
 			brd.erase(brd.begin() + i);				//удаляем 
 			delay(1);
 		}
 	}
-	if (brd.size() == max) return brd.size();
-	//StartI2C();
-	uint32_t tmrStart = millis();
+	if (brd.size() == max) {
+		goto sorting;
+	}
+
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
-		tmrStart = millis();
 		uint8_t ret = Board::getLiterRaw(addr);
 		if (ret) {				//если на этом адресе есть плата
 			bool reserved = false;	
-			for (uint8_t i = 0; i < brd.size(); i++) {				//проходимся по уже существующим платам
+			for (uint8_t i = 0; i < 3; i++) {				//проходимся по уже существующим платам
 				if (brd[i].getAddress() == addr) {						//если эта плата уже имеет этот адрес
 					reserved = true;									//то отмечаем как зарезервировано
+					break;
 				}
 			}
 			if (!reserved) {
@@ -591,8 +595,10 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 				brd[brd.size() - 1].setLiteral((char)ret);	
 			}
 		}
-		if (millis() - tmrStart > 50) return 0; //если сканирование заняло более 5 секунд - отменяем.
 	}
+
+
+	sorting:
 
 	auto compareByLiteral = [](Board& board1, Board& board2) {
         return board1.getLiteral() < board2.getLiteral();
@@ -600,6 +606,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 
     // Сортируем вектор
     std::sort(brd.begin(), brd.end(), compareByLiteral);
+
 	return brd.size();
 }
 
