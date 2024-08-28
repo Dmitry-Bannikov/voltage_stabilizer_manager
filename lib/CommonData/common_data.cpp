@@ -2,6 +2,7 @@
 
 
 GyverPortal ui;
+
 std::vector<Board> board;					//объекты плат
 
 bool dataReqDelay = false;

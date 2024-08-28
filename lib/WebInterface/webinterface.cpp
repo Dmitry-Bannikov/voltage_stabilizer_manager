@@ -5,7 +5,7 @@
 #include "devices.h"
 #include "mqtthandler.h"
 
-
+#include "WebServer.h"
 
 int actionDevice = -1;
 
@@ -79,19 +79,22 @@ void portalInit() {
 	ui.attachBuild(portalBuild);
 	ui.attach(portalActions);
 	ui.start(globalData.webInterfaceDNS);
-	ui.enableOTA("admin", "1234");
-	//ui.onlineTimeout(5000);
+	ui.onlineTimeout(3000);
 }
 
 void portalTick() {
+	static uint32_t tmr = 0;
+	static bool onSetsPage = false;
+	if (ui.uri("/brdcfg") && !onSetsPage) {
+		onSetsPage = true;
+		board[activeBoard].readAll();
+	} else onSetsPage = false;
 	ui.tick();
+	if (millis() > 600000) {
+		ESP.restart();
+	}
 }
 
-//===================================================================================
-
-
-
-//===================================================================================
 
 void createUpdateList(String &list) {
 	for (uint8_t i = 0; i < board.size(); i++) {
@@ -103,8 +106,6 @@ void createUpdateList(String &list) {
 		list += ",";
 	}
 	list += "setsalt,reload,btn_brd_outsgn,mqttConnected_led,fld_set_CKoef";
-	Serial.println("Update list: ");
-	Serial.println(list);
 }
 
 void formsHandler() {
@@ -159,16 +160,13 @@ void updatesHandler() {
 		webRefresh = false;
 		ui.answer(1);
 	}
-	static bool online = true;
-	online = !online;
 	for (uint8_t i = 0; i < board.size(); i++) {
-		String dataStr, statStr, testStr;
+		String dataStr, statStr;
 		board[i].getDataStr(dataStr);
 		board[i].getStatisStr(statStr);
-		testStr = "Статистика";
 		ui.updateString(S("fld_data/")+i, dataStr);
-		ui.updateString(S("fld_stat/") + i, testStr);
-		ui.updateBool(S("fld_online/") + i, online);
+		ui.updateString(S("fld_stat/") + i, statStr);
+		ui.updateBool(S("fld_online/") + i, true);
 	}
 	ui.updateFloat("fld_set_CKoef", board[activeBoard].mainSets.CurrClbrtKoeff, 2);
 	

@@ -23,9 +23,9 @@ void Board_Init() {
 	//========================//
 	Board::StartI2C();
 	board.reserve(MAX_BOARDS);
-	board.emplace_back(6);
-	//scanNewBoards();
+	scanNewBoards();
 	Serial.printf("Boards found: %d \n", board.size());
+	if (board.size()) board[0].readAll();
 }
 
 void Web_Init() {
@@ -41,19 +41,19 @@ void Web_Init() {
 
 
 void Board_Tick() {
+	/*------------TEST!!!-------------------
 	static uint32_t tmr = 0;
-	if (millis() - tmr < 5000) return;
+	if (millis() - tmr < 1000) return;
 	uint32_t start = millis();
-	float result = board[0].readDataRaw(2);
-	Serial.printf("\nTime: %d | Result: %.1f ", millis() - start, result);
+	float result = board[0].readDataRaw();
+	float result1 = board[0].readStatsRaw();
+	bool sets = board[0].readAll();
+	Serial.printf("\nTime: %d | Data: %.1f | Stats: %.1f | Sets: %d ", millis() - start, result, result1, sets);
 	tmr = millis();
+	*/
 
 
-
-
-
-	/*
-	static uint32_t tmr = 0, scanTmr = 0, scan_period = 60000;
+	static uint32_t tmr = 0, scanTmr = 0;
 	static uint8_t denyDataRequest = 0;
 	uint8_t boardsAmnt = board.size();
 	if (millis() - tmr > 1000 && !boardRequest) {
@@ -66,11 +66,10 @@ void Board_Tick() {
 	reqSuccess = BoardRequest(boardRequest);
 	
 
-	if (millis() - scanTmr > 30000) {
+	if (millis() - scanTmr > (board.size() < 3 ? 5000 : 30000)) {
 		boardRequest = 2;
 		scanTmr = millis();
 	}
-	*/
 }
 
 void System_Tick() {
@@ -111,7 +110,7 @@ uint8_t BoardRequest(uint8_t &request) {
 	} else if (request == 4) {					//4 - выбор активной платы или нажатие на кнопку чтения настроек
 		res = board[activeBoard].readAll() + 1;
 	} else if (request == 5) {					//5 - отправка внешнего сигнала на активную плату
-		res = board[activeBoard].sendSwitches(SW_OUTSIGN,1);
+		res = board[activeBoard].sendSwitches(SW_OUTSIGN,board[activeBoard].mainSets.Switches[SW_OUTSIGN]);
 	} else if (request == 6) {					//6 - отправка настроек на активную плату
 		res = board[activeBoard].sendMainSets() + 3;
 	} else if (request == 7) {					//7 - рестарт активной платы

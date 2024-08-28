@@ -141,9 +141,8 @@ bool sendFaseMqttData(int8_t numBrd, int request) {
 		board[numBrd].getJsonData(data, DATA_MAX, time_S);
 	} else if (request == 4 || board[numBrd].mainData.Events > 0) {
 		topic = "stab_brd/alarms/fase_" + Lit + "/" + S(Board_SN);
-		uint8_t alarm_code = 0;
-		std::string alarm_text;
-		alarm_code = board[numBrd].getNextActiveAlarm(alarm_text, board[numBrd].mainData.Events);
+        std::string alarm_text = board[numBrd].mainData.EventTxt.c_str();
+		uint8_t alarm_code = board[numBrd].mainData.EventNum;
 		data = "{\"Code\":\"" + std::to_string(alarm_code) + "\",";
         data += "\"Text\":\"" + alarm_text + "\"}\0";
 	}

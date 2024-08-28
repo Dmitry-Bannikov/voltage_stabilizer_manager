@@ -1,5 +1,5 @@
 #include <Board.h>
-#include <driver/i2c.h>
+#include <i2c_custom.h>
 #include <driver/gpio.h>
 #include <esp_err.h>
 
@@ -7,6 +7,21 @@
 #define isEvent(event)					(bitRead(mainData.Events, event))
 #define json	nlohmann::json
 
+std::map<int, std::string> gEventsList = {
+    {0, " "},
+    {1, "Блокировка мотора"},
+    {2, "Термостат"},
+    {3, "Доп. контакт"},
+    {4, "Нет сети"},
+    {5, "Низкое напряжение"},
+    {6, "Высокое напряжение"},
+    {7, "Крайнее мин. напряжение"},
+    {8, "Крайнее макс. напряжение"},
+    {9, "Режим транзит"},
+    {10, "Перегрузка"},
+    {11, "Внешний сигнал"},
+    {12, "Выход отключен"}
+};
 
 const char* jsonDataNames[NUM_VALS] = {
 		"Uin" , "Uout" , "I" , "P" , 
@@ -22,7 +37,6 @@ const char* jsonSetsNames[SETS_VALS] = {
 		"Password", "SN_1" , "SN_2" ,
 		"Rst_max", "Save", "Outsignal"
 };
-
 
 //==================Public=================//
 /*
@@ -42,15 +56,15 @@ int8_t Board::StartI2C() {
     config.scl_pullup_en = GPIO_PULLUP_ENABLE;
     config.master.clk_speed = 100000; 
 	config.clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL;
-	res = i2c_param_config(I2C_NUM_0, &config);
-    res = i2c_driver_install(I2C_NUM_0, config.mode, 0, 0, 0);
-	res = i2c_filter_enable(I2C_NUM_0, 4);
-	res = i2c_set_timeout(I2C_NUM_0, 5000);
+	res = wire_param_config(I2C_NUM_0, &config);
+    res = wire_driver_install(I2C_NUM_0, config.mode, 0, 0, 0);
+	res = wire_filter_enable(I2C_NUM_0, 4);
+	res = wire_set_timeout(I2C_NUM_0, 5000);
 	return res;
 }
 
 int8_t Board::StopI2C() {
-    if (i2c_driver_delete(I2C_NUM_0)) return 1;
+    if (wire_driver_delete(I2C_NUM_0)) return 1;
     gpio_reset_pin(GPIO_NUM_21);
     gpio_reset_pin(GPIO_NUM_22);
 	gpio_config_t io_conf = {};
@@ -69,20 +83,6 @@ bool Board::attach(const uint8_t addr, const char Liter) {
 	if (addr != _board_addr)
 		_board_addr = addr;
 	startFlag = true;
-	mainSets.Liter = Liter;
-	gEventsList[0] = " ";
-	gEventsList[1] = "Блокировка мотора";
-	gEventsList[2] = "Термостат";
-	gEventsList[3] = "Доп. контакт";
-	gEventsList[4] = "Нет сети";
-	gEventsList[5] = "Низкое напряжение";
-	gEventsList[6] = "Высокое напряжение";
-	gEventsList[7] = "Крайнее мин. напряжение";
-	gEventsList[8] = "Крайнее макс. напряжение";
-	gEventsList[9] = "Режим транзит";
-	gEventsList[10] = "Перегрузка";
-	gEventsList[11] = "Внешний сигнал";
-	gEventsList[12] = "Выход отключен";
 	Bdata.getMinMax(true);
 	return isOnline();
 }
@@ -96,7 +96,7 @@ float Board::setCurrClbrt(float clbrtCurr) {
 	if (clbrtCurr == 0) clbrtCurr = mainSets.CurrClbrtValue;
 	//convertData(clbrtCurr);
 	memcpy(txBuffer+4, &clbrtCurr, 4);
-	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, 8, rxBuffer, 5, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, 8, rxBuffer, 5, pdMS_TO_TICKS(20));
 	if (!ret && rxBuffer[0] == HEADER_MSETS) {
 		mainSets.CurrClbrtValue = clbrtCurr;
 		memcpy(&res, rxBuffer+1, 4);
@@ -109,7 +109,7 @@ bool Board::setLiterRaw(uint8_t addr, char newLit) {
 	int16_t lit = (int16_t)newLit;
     uint8_t txBuffer[6] = {HEADER_MSETS, XFER_WRITE, 0, 2};
 	memcpy(txBuffer + 4, &lit, 2);
-	esp_err_t ret = i2c_master_write_to_device(0, addr, txBuffer, 4, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_device(0, addr, txBuffer, 4, pdMS_TO_TICKS(20));
     return !ret;
 }
 
@@ -117,7 +117,7 @@ char Board::getLiterRaw(uint8_t addr) {
 	int16_t Liter = 0;
     uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, 0, 2};
     uint8_t rxBuffer[3] = {0,0,0};
-	esp_err_t ret = i2c_master_write_read_device(0, addr, txBuffer, 4, rxBuffer, 3, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_read_device(0, addr, txBuffer, 4, rxBuffer, 3, pdMS_TO_TICKS(20));
 	if (!ret && rxBuffer[0] == HEADER_MSETS) {
 		int16_t tempLiter = 0;
 		memcpy(&tempLiter, rxBuffer+1, 2);
@@ -127,16 +127,13 @@ char Board::getLiterRaw(uint8_t addr) {
 }
 
 bool Board::isOnline() {
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (_board_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_stop(cmd);
-    esp_err_t error = i2c_master_cmd_begin(0, cmd, pdMS_TO_TICKS(30));
-    i2c_cmd_link_delete(cmd);
-	if (error) {
-		return false;
-	}
-	return true;							
+	i2c_cmd_handle_t cmd = wire_cmd_link_create();
+    wire_master_start(cmd);
+    wire_master_write_byte(cmd, (_board_addr << 1) | I2C_MASTER_WRITE, true);
+    wire_master_stop(cmd);
+    esp_err_t error = wire_master_cmd_begin(0, cmd, pdMS_TO_TICKS(5));
+    wire_cmd_link_delete(cmd);
+	return !error;							
 }
 
 bool Board::isAnswer() {
@@ -153,7 +150,7 @@ float Board::readDataRaw(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt*offset;
     uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
 	if (!ret && rxBuffer[0] == HEADER_DATA) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainData.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
@@ -172,7 +169,7 @@ float Board::readStatsRaw(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt*offset;
     uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
 	if (rxBuffer[0] == HEADER_STATS) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainStats.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
@@ -191,7 +188,7 @@ int16_t Board::readMainSets(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt*offset;
     uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
 	if (rxBuffer[0] == HEADER_MSETS && val_addr < 24) {
         result = *((int16_t*)(rxBuffer+1));
 		memcpy(mainSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
@@ -208,7 +205,7 @@ uint8_t Board::readSwitches(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt;
     uint8_t txBuffer[4] = {HEADER_SWITCH, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = i2c_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
 	if (rxBuffer[0] == HEADER_SWITCH) {
 		result = (uint8_t)rxBuffer[1];
 		memcpy(mainSets.Switches + val_addr*1, rxBuffer + 1, byte_cnt);
@@ -217,12 +214,14 @@ uint8_t Board::readSwitches(uint8_t val_addr, uint8_t vals_cnt) {
 	return result;
 }
 
-uint8_t Board::getData() {
+uint8_t Board::readData() {
 	if (!startFlag) return 1;
 	static uint8_t disconn = 0;
 	static uint32_t last_update = 0;
 	float result = readDataRaw();
 	readStatsRaw();
+	mainData.EventNum = getEventsList(mainData.EventTxt, false);
+	getEventsList(mainStats.EventTxt, true);
 	if (result == NAN) {
 		(disconn < 10) ? (disconn++) : (disconn = 10, _disconnected = 1);
 	} else {
@@ -258,14 +257,14 @@ uint8_t Board::sendMainSets(uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
     } else {
         memcpy(txBuffer + 4, mainSets.buffer + val_addr*offset, byte_cnt);
     }
-	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(20));
 	delete(txBuffer);
 	return !ret;
 }
 
 uint8_t Board::sendSwitches(int8_t val_addr, uint8_t value) {
 	uint8_t txBuffer[5] = {HEADER_SWITCH, XFER_WRITE, (uint8_t)val_addr, 1, value};
-	esp_err_t ret = i2c_master_write_to_device(0, _board_addr, txBuffer, 5, pdMS_TO_TICKS(30));
+	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, 5, pdMS_TO_TICKS(20));
 	value = 0;
 	mainSets.Switches[SW_REBOOT] = 0;
 	mainSets.Switches[SW_RSTST] = 0;
@@ -305,7 +304,7 @@ void Board::getDataStr(String & result) {
 	);
 	s += String(data);
 	s += F("\nСобытия | ");
-	s += errorsToStr(mainData.Events, EVENTS_FULL);
+	s += mainData.EventTxt;
 	result = s;
 }
 
@@ -337,7 +336,7 @@ U выход  |
 	);
 	s += String(statis);
 	s += F("\nСобытия: ");
-	s += errorsToStr(mainStats.Events, EVENTS_FULL);
+	s += mainStats.EventTxt;
 	result = s;
 }
 
@@ -417,7 +416,7 @@ uint8_t Board::setJsonData(std::string input) {
 }
 
 void Board::tick() {
-	getData();
+	readData();
 }
 
 void Board::detach() {
@@ -484,20 +483,27 @@ void Board::getTcRatioList(String &result) {
 	}
 }
 
-uint8_t Board::getNextActiveAlarm(std::string& result, uint32_t alarms) {
-	static uint8_t i = 0;
-	if (!alarms) return 0;
-	uint32_t errors = alarms;
-	std::string tempResult = "";
-	while (i <= 32) {
-		if (errors & (1 << i)) {
-			result = gEventsList[i];
-			return i++;
-		}
-		i < 32 ? i++ : (i = 0);
+
+uint8_t Board::getEventsList(String &str, bool type) {
+	str = "";
+	uint8_t result = 0;
+	if (!type) {
+		result = CurrEvent.getNextBit(mainData.Events);
+		str = gEventsList[result].c_str();
+	} else {
+		std::string temp = "";
+		do {
+			temp += "\n";
+			temp += gEventsList[StatEvent.getNextBit(mainStats.Events)].c_str();
+		} while(StatEvent.curr_indx < StatEvent.max_indx - 1);
+		str = temp.c_str();
 	}
-	return 0;
+	return result;
 }
+
+
+
+
 
 //========Private=======//
 
@@ -520,35 +526,6 @@ void Board::validate() {
 	mainSets.SerialNumber[1] = constrain(mainSets.SerialNumber[1], 0, 999999);
 }
 
-String Board::errorsToStr(const int32_t errors, EventsFormat f) {
-	String s = "";
-	if (errors <= 1) {
-		s = "";
-		return s;
-	}
-	if (f == EVENTS_SHORT) {
-		for (uint8_t i = 0; i < 32; i++) {
-			if (errors & (1<<i)) {
-				if (i < 10) {
-					s += "A0";
-					s += String(i);
-				} else {
-					s += "A";
-					s += String(i);
-				}
-				s += ", ";
-			}  
-		}
-		if (s.length()) {
-			s.remove(s.length() - 2);
-		}
-	} else {
-		std::string resultStr = "";
-		getNextActiveAlarm(resultStr, errors);
-		s = String(resultStr.c_str());
-	}
-	return s;
-}
 
 String Board::getWorkTime(const uint32_t mins) {
 	uint32_t raw_mins = mins;

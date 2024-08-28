@@ -10,13 +10,23 @@ find WebServer.cpp at line 649 and comment log_e
 void setup() {
 	System_Init();
 	Board_Init();
-	//Web_Init();
+	Web_Init();
 	esp_task_wdt_init(10, true);
     esp_task_wdt_add(NULL);
 }
 
 void loop() {
-	Board_Tick();
-	//Web_Tick();
+	static uint32_t max = 0;
+	static uint32_t tmr = 0;
+	uint32_t start = millis();
+	Board_Tick(); //max time 27ms
+	uint32_t res = millis() - start;
+	max = res > max ? res : max;
+	if (millis() - tmr > 5000) {
+		Serial.printf("\nMAX TIME: %d \n", max);
+		tmr = millis();
+	}
+	Web_Tick();
 	esp_task_wdt_reset();
+	
 }

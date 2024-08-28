@@ -19,7 +19,7 @@ void GP_data_build() {
 			GP.AREA(String("fld_stat/")+i, 10, "Загрузка \nстатистики...", "", true);
 			M_BOX(GP_EDGES,
 				GP.BUTTON_MINI(String("btn_brd_rst/")+i, "Сброс");
-				GP.LED(String("fld_online/")+i, board[i].isOnline());
+				GP.LED(String("fld_online/")+i, true);
 			);
 			GP.BLOCK_END();
 		}
@@ -120,7 +120,7 @@ void GP_addsets_build(Board &brd) {
 	M_BOX(GP_EDGES, GP.LABEL("Время включения, мс");  GP.NUMBER("fld_set_ton", "", brd.mainSets.EmergencyTON, "70px"););
 	M_BOX(GP_EDGES, 
 		GP.LABEL("Калибровочный ток:"); GP.NUMBER_F("fld_set_CValue", "", brd.mainSets.CurrClbrtValue, 2, "70px");
-		GP.LABEL("Коэффициент", "", GP_GRAY); GP.NUMBER_F("fld_set_CKoef", "", brd.mainSets.CurrClbrtKoeff, 2, "70px");
+		GP.LABEL("Коэффициент", "", GP_GRAY); GP.NUMBER_F("fld_set_CKoef", "", brd.mainSets.CurrClbrtKoeff, 2, "70px", true);
 		GP.BUTTON_MINI("btn_brd_saveCValue", "Применить");
 	);
 	M_BOX(GP_EDGES, GP.LABEL("Внеш. сигнал"); GP.CHECK("btn_brd_outsgn", (bool)(brd.mainSets.Switches[SW_OUTSIGN])););
@@ -154,7 +154,6 @@ void GP_wificonnection_build() {
 				GP.SUBMIT_MINI("Запомнить");
 			GP.BLOCK_END();
 		GP.GRID_END();
-		GP.BUTTON_LINK("/ota_update", "Обновление прошивки");
 	GP.FORM_END();
 	GP.BLOCK_END();
 }

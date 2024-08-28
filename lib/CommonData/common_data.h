@@ -1,5 +1,9 @@
 #pragma once
 
+
+#define USE_GP
+
+
 #include <GyverPortal.h>
 #include <TimeTicker.h>
 #include <Board.h>
@@ -7,8 +11,10 @@
 #define S(arg)  String(arg)
 
 #define MAX_BOARDS	3
+
 extern GyverPortal ui;
 extern GPtime t;
+
 extern std::vector<Board> board;					//объекты плат
 
 extern bool dataReqDelay;

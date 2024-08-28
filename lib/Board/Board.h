@@ -44,7 +44,33 @@
 #define SW_RSTST	3
 #define SW_TRANSIT	4
 
-#define TEST_BRD_ADDR	6
+//#define TEST_BRD_ADDR	6
+struct next_active_bit {
+	private:
+	int32_t prev_value = 0;
+	uint8_t indxs[32];
+	public:
+	uint8_t max_indx = 0;
+	uint8_t curr_indx = 0;
+	uint8_t getNextBit(int32_t value) {
+		if (value != prev_value) {
+			curr_indx = 0;
+			max_indx = 0;
+			for (uint8_t pos = 0, i = 0 ; pos < 32; pos++) {
+				if (value & (1<<pos)) {
+					indxs[i++] = pos;
+					max_indx++;
+				}
+			}
+			prev_value = value;
+		}
+		uint8_t result = indxs[curr_indx];
+		curr_indx = curr_indx < max_indx - 1 ? (curr_indx + 1) : 0;
+		return result;
+	}
+};
+
+
 
 struct data {	//20
 	volatile float Uin = 0;
@@ -54,7 +80,8 @@ struct data {	//20
 	int Events = 0;
 	static constexpr uint8_t structSize = 20;
 	uint8_t buffer[structSize];
-
+	String EventTxt;
+	uint8_t EventNum = 0;
 	void unpackData() {
         memcpy((uint8_t*)&Uin, buffer, structSize);
     }
@@ -74,7 +101,7 @@ struct stats {	//60
 	int ResetFnc = 0;
 	static constexpr uint8_t structSize = 60;
 	uint8_t buffer[structSize];
-
+	String EventTxt;
 	void unpackData() {
         memcpy((uint8_t*)Uin, buffer, structSize);
     }
@@ -132,10 +159,6 @@ struct mainsets {	//38
 class Board
 {
 private:
-	enum EventsFormat {
-		EVENTS_FULL,
-		EVENTS_SHORT
-	};
 	uint8_t _board_addr = 0;
 	static const int _poll = 200;
 	bool startFlag = false;
@@ -144,9 +167,7 @@ private:
 	bool _active = false;
 	uint8_t _disconnected = 0;
 	String actTime;
-	std::map<int, std::string> gEventsList;
 	void 	validate();
-	String errorsToStr(const int32_t errors, EventsFormat f);
 	String getWorkTime(const uint32_t mins);
 	
 	template<typename T>
@@ -175,7 +196,7 @@ public:
 	bool 		isOnline();												//проверить, онлайн ли плата
 	bool 		isAnswer();
 	uint8_t 	getAddress() {return _board_addr;};						//получить адрес платы		
-	uint8_t 	getData();		
+	uint8_t 	readData();		
 	//=============================Получение данных с платы=========================================//										
 	float 		readDataRaw(uint8_t val_addr = 0, uint8_t vals_cnt = 5);		//получить данные с платы
 	float 		readStatsRaw(uint8_t val_addr = 0, uint8_t vals_cnt = 14);		//получить статистику с платы
@@ -197,11 +218,10 @@ public:
 	void 		getMotKoefsList(String &result, bool typeNumber);
 	void 		setMotKoefsList(String str);
 	void	 	getTcRatioList(String &result);
-	uint8_t 	getNextActiveAlarm(std::string& result, uint32_t alarms);
 	void 		setLiteral(char lit);
 	char 		getLiteral();
 	float 		getData(std::string request);
-	
+	uint8_t 	getEventsList(String &str, bool type);
 	
 	void 		tick();
 	void 		detach();
@@ -210,6 +230,8 @@ public:
 	data mainData;
 	stats mainStats;
 	mainsets mainSets;
+	next_active_bit CurrEvent;
+	next_active_bit StatEvent;
 	struct board_data_t {
 		std::string dataJson;
 		std::string settingsJson;
