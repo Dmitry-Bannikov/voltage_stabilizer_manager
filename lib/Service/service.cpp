@@ -55,19 +55,22 @@ void Board_Tick() {
 
 	static uint32_t tmr = 0, scanTmr = 0;
 	static uint8_t denyDataRequest = 0;
-	uint8_t boardsAmnt = board.size();
-	if (millis() - tmr > 1000 && !boardRequest) {
-		for (uint8_t i = 0; i < board.size() && !denyDataRequest; i++) {
-			board[i].tick();
-		}
-		denyDataRequest > 0 ? denyDataRequest-- : (denyDataRequest = 0);
-		tmr = millis();
+	uint8_t brdSize = board.size();
+	if (millis() - tmr > 1000 && !g_boardRequest && brdSize) {
+		static uint8_t brdCnt = 0;
+		board[brdCnt].tick();
+		if (brdCnt == brdSize - 1) {
+			tmr = millis();
+			brdCnt = 0;
+		} else brdCnt++;
+	} else {
+		g_reqSuccess = BoardRequest(g_boardRequest);
 	}
-	reqSuccess = BoardRequest(boardRequest);
+	
 	
 
-	if (millis() - scanTmr > (board.size() < 3 ? 5000 : 30000)) {
-		boardRequest = 2;
+	if (millis() - scanTmr > (board.size() < 3 ? 10000 : 60000)) {
+		g_boardRequest = 2;
 		scanTmr = millis();
 	}
 }
@@ -97,7 +100,7 @@ uint8_t BoardRequest(uint8_t &request) {
 	uint8_t res = 0;
 	static uint8_t requestTry = 0;
 	static uint32_t tmr = 0;
-	if (!request || millis() - tmr < 500) return reqSuccess;
+	if (!request || millis() - tmr < 500) return g_reqSuccess;
 
 	if (request == 1) ESP.restart(); 			//1 - рестарт менеджера
 	else if (request == 2) {					//2 - сканирование плат

@@ -59,7 +59,7 @@ int8_t Board::StartI2C() {
 	res = wire_param_config(I2C_NUM_0, &config);
     res = wire_driver_install(I2C_NUM_0, config.mode, 0, 0, 0);
 	res = wire_filter_enable(I2C_NUM_0, 4);
-	res = wire_set_timeout(I2C_NUM_0, 5000);
+	res = wire_set_timeout(I2C_NUM_0, 50000);
 	return res;
 }
 
@@ -91,12 +91,12 @@ bool Board::attach(const uint8_t addr, const char Liter) {
 
 float Board::setCurrClbrt(float clbrtCurr) {
 	float res = -1;
-	uint8_t txBuffer[8] = {HEADER_MSETS, XFER_WRITE, 26*2, 4};
+	uint8_t txBuffer[8] = {HEADER_MSETS, XFER_WRITE, 27*2, 4};
 	uint8_t rxBuffer[5] = {0,0,0,0,0};
 	if (clbrtCurr == 0) clbrtCurr = mainSets.CurrClbrtValue;
 	//convertData(clbrtCurr);
 	memcpy(txBuffer+4, &clbrtCurr, 4);
-	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, 8, rxBuffer, 5, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, 8, rxBuffer, 5, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret && rxBuffer[0] == HEADER_MSETS) {
 		mainSets.CurrClbrtValue = clbrtCurr;
 		memcpy(&res, rxBuffer+1, 4);
@@ -110,7 +110,7 @@ bool Board::setLiterRaw(uint8_t addr, char newLit) {
 	int16_t lit = (int16_t)newLit;
     uint8_t txBuffer[6] = {HEADER_MSETS, XFER_WRITE, 0, 2};
 	memcpy(txBuffer + 4, &lit, 2);
-	esp_err_t ret = wire_master_write_device(0, addr, txBuffer, 4, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_device(0, addr, txBuffer, 4, pdMS_TO_TICKS(I2C_TIMEOUT));
     return !ret;
 }
 
@@ -118,7 +118,7 @@ char Board::getLiterRaw(uint8_t addr) {
 	int16_t Liter = 0;
     uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, 0, 2};
     uint8_t rxBuffer[3] = {0,0,0};
-	esp_err_t ret = wire_master_write_read_device(0, addr, txBuffer, 4, rxBuffer, 3, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_read_device(0, addr, txBuffer, 4, rxBuffer, 3, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret && rxBuffer[0] == HEADER_MSETS) {
 		int16_t tempLiter = 0;
 		memcpy(&tempLiter, rxBuffer+1, 2);
@@ -132,7 +132,7 @@ bool Board::isOnline() {
     wire_master_start(cmd);
     wire_master_write_byte(cmd, (_board_addr << 1) | I2C_MASTER_WRITE, true);
     wire_master_stop(cmd);
-    esp_err_t ret = wire_master_cmd_begin(0, cmd, pdMS_TO_TICKS(5));
+    esp_err_t ret = wire_master_cmd_begin(0, cmd, pdMS_TO_TICKS(I2C_TIMEOUT));
     wire_cmd_link_delete(cmd);
 	if (!ret) _board_coonected_tmr = millis();
 	return !ret;							
@@ -152,7 +152,7 @@ float Board::readDataRaw(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt*offset;
     uint8_t txBuffer[4] = {HEADER_DATA, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret && rxBuffer[0] == HEADER_DATA) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainData.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
@@ -172,7 +172,7 @@ float Board::readStatsRaw(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt*offset;
     uint8_t txBuffer[4] = {HEADER_STATS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret && rxBuffer[0] == HEADER_STATS) {
         result = *(float*)(rxBuffer+1);
 		memcpy(mainStats.buffer + val_addr*offset, rxBuffer + 1, byte_cnt);
@@ -192,7 +192,7 @@ int16_t Board::readMainSets(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt*offset;
     uint8_t txBuffer[4] = {HEADER_MSETS, XFER_READ, (uint8_t)(val_addr*offset), byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret && rxBuffer[0] == HEADER_MSETS) {
         result = *((int16_t*)(rxBuffer+1));
 		memcpy(mainSets.buffer + val_addr*2, rxBuffer + 1, byte_cnt);
@@ -210,7 +210,7 @@ uint8_t Board::readSwitches(uint8_t val_addr, uint8_t vals_cnt) {
     uint8_t byte_cnt = vals_cnt;
     uint8_t txBuffer[4] = {HEADER_SWITCH, XFER_READ, val_addr, byte_cnt};
     uint8_t* rxBuffer = new uint8_t[byte_cnt + 1];
-	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_read_device(0, _board_addr, txBuffer, sizeof(txBuffer), rxBuffer, byte_cnt + 1, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret && rxBuffer[0] == HEADER_SWITCH) {
 		result = (uint8_t)rxBuffer[1];
 		memcpy(mainSets.Switches + val_addr*1, rxBuffer + 1, byte_cnt);
@@ -222,10 +222,13 @@ uint8_t Board::readSwitches(uint8_t val_addr, uint8_t vals_cnt) {
 
 uint8_t Board::readData() {
 	if (!startFlag) return 1;
-	static uint8_t disconn = 0;
-	static uint32_t last_update = 0;
-	float result = readDataRaw();
-	readStatsRaw();
+	float result = -1.0;
+	if (millis() - stat_update > 5000) {
+		readStatsRaw();
+		stat_update = millis();
+	} else {
+		result = readDataRaw();
+	}	
 	mainData.EventNum = getEventsList(mainData.EventTxt, false);
 	getEventsList(mainStats.EventTxt, true);
 	
@@ -258,7 +261,7 @@ uint8_t Board::sendMainSets(uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
     } else {
         memcpy(txBuffer + 4, mainSets.buffer + val_addr*offset, byte_cnt);
     }
-	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, byte_cnt + 4, pdMS_TO_TICKS(I2C_TIMEOUT));
 	if (!ret) _board_coonected_tmr = millis();
 	delete(txBuffer);
 	return !ret;
@@ -266,7 +269,7 @@ uint8_t Board::sendMainSets(uint8_t val_addr, uint8_t vals_cnt, int16_t value) {
 
 uint8_t Board::sendSwitches(int8_t val_addr, uint8_t value) {
 	uint8_t txBuffer[5] = {HEADER_SWITCH, XFER_WRITE, (uint8_t)val_addr, 1, value};
-	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, 5, pdMS_TO_TICKS(20));
+	esp_err_t ret = wire_master_write_device(0, _board_addr, txBuffer, 5, pdMS_TO_TICKS(I2C_TIMEOUT));
 	value = 0;
 	mainSets.Switches[SW_REBOOT] = 0;
 	mainSets.Switches[SW_RSTST] = 0;
@@ -566,25 +569,25 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 	return brd.size();
 #endif
 
-
-
-	//static uint8_t saved_addrs[3] = {0,0,0};
-
+	//bool rescan_flag = false;
+	Serial.print("\nScanning: ");
 	for (uint8_t i = 0; i < brd.size(); i++) {
-		if (!brd[i].isAnswer()) { 					//если плата под номером i не онлайн
-			brd.erase(brd.begin() + i);				//удаляем 
-			delay(1);
+		if (!brd[i].isAnswer()) {
+			//brd.erase(brd.begin() + i);
 		}
 	}
+	
+	
 	if (brd.size() == max) {
 		goto sorting;
 	}
 
+	brd.clear();
 	for (uint8_t addr = 1; addr < 128; addr++) {				//проходимся по возможным адресам
-		uint8_t ret = Board::getLiterRaw(addr);
+		char ret = Board::getLiterRaw(addr);
 		if (ret) {				//если на этом адресе есть плата
 			bool reserved = false;	
-			for (uint8_t i = 0; i < 3; i++) {				//проходимся по уже существующим платам
+			for (uint8_t i = 0; i < brd.size(); i++) {				//проходимся по уже существующим платам
 				if (brd[i].getAddress() == addr) {						//если эта плата уже имеет этот адрес
 					reserved = true;									//то отмечаем как зарезервировано
 					break;
@@ -592,11 +595,11 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 			}
 			if (!reserved) {
 				brd.emplace_back(addr);					//если не зарезервировано, то создаем новую плату с этим адресом
-				brd[brd.size() - 1].setLiteral((char)ret);	
+				brd[brd.size() - 1].setLiteral((char)ret);
 			}
+			Serial.printf("| %c, %d ", ret, addr);
 		}
 	}
-
 
 	sorting:
 
@@ -606,6 +609,7 @@ uint8_t Board::scanBoards(std::vector<Board> &brd, const uint8_t max) {
 
     // Сортируем вектор
     std::sort(brd.begin(), brd.end(), compareByLiteral);
+	Serial.printf(" | Size: %d \n", brd.size());
 
 	return brd.size();
 }

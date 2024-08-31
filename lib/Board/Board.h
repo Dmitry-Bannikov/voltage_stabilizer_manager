@@ -53,6 +53,7 @@ struct next_active_bit {
 	uint8_t max_indx = 0;
 	uint8_t curr_indx = 0;
 	uint8_t getNextBit(int32_t value) {
+		if (!value) return 0;
 		if (value != prev_value) {
 			curr_indx = 0;
 			max_indx = 0;
@@ -164,6 +165,7 @@ private:
 	bool startFlag = false;
 	uint32_t _board_coonected_tmr = 0;
 	String actTime;
+	uint32_t stat_update = 0;
 	void 	validate();
 	String getWorkTime(const uint32_t mins);
 	

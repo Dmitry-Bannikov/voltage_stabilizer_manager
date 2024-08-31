@@ -9,8 +9,8 @@ bool dataReqDelay = false;
 uint8_t activeBoard = 0;
 bool mqttReqResult = false;
 bool webRefresh = true;  
-uint8_t reqSuccess = 0;
-uint8_t boardRequest = 0; //запрос на плату
+uint8_t g_reqSuccess = 0;
+uint8_t g_boardRequest = 0; //запрос на плату
 uint32_t Board_SN = 0;
 
 

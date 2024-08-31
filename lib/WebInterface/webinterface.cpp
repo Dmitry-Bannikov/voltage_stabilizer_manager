@@ -150,11 +150,11 @@ void updatesHandler() {
 	ui.updateBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN]);
 	ui.updateBool("mqttConnected_led", mqttReqResult);
 	if (ui.update("setsalt")) {	//вызов алерта
-		if (reqSuccess == 4)
+		if (g_reqSuccess == 4)
 		{
 			ui.answer("Выполнено!");
 		}
-		reqSuccess = 0;
+		g_reqSuccess = 0;
 	}
 	if (ui.update("reload") && webRefresh) { //перезагрузка страницы
 		webRefresh = false;
@@ -183,16 +183,16 @@ void buttons_handler() {
 		}
 	}
 
-	if (ui.click("btn_sys_reboot")) 	boardRequest = 1;					//esp restart
-	if (ui.click("btn_sys_rescan")) 	boardRequest = 2;					//scan boards
-	if (ui.click("btn_brd_saveall")) 	boardRequest = 3;					//save to all boards
-	if (ui.clickInt("btn_brd_active", activeBoard) || ui.click("btn_brd_read")) boardRequest = 4;		//set an active board
-	if (ui.clickBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN])) boardRequest = 5;	//outsignal on active board
+	if (ui.click("btn_sys_reboot")) 	g_boardRequest = 1;					//esp restart
+	if (ui.click("btn_sys_rescan")) 	g_boardRequest = 2;					//scan boards
+	if (ui.click("btn_brd_saveall")) 	g_boardRequest = 3;					//save to all boards
+	if (ui.clickInt("btn_brd_active", activeBoard) || ui.click("btn_brd_read")) g_boardRequest = 4;		//set an active board
+	if (ui.clickBool("btn_brd_outsgn", board[activeBoard].mainSets.Switches[SW_OUTSIGN])) g_boardRequest = 5;	//outsignal on active board
 	
-	if (ui.click("btn_brd_write"))  	boardRequest = 6; 	//write settings to active board
-	if (ui.click("btn_brd_reboot")) 	boardRequest = 7;	//reboot active board
-	if (ui.click("btn_brd_saveCValue"))	boardRequest = 8;	//submit current calibration
-	if (ui.clickSub("btn_brd_rst"))		boardRequest = 90 + ui.clickNameSub().toInt();	//reset statistic
+	if (ui.click("btn_brd_write"))  	g_boardRequest = 6; 	//write settings to active board
+	if (ui.click("btn_brd_reboot")) 	g_boardRequest = 7;	//reboot active board
+	if (ui.click("btn_brd_saveCValue"))	g_boardRequest = 8;	//submit current calibration
+	if (ui.clickSub("btn_brd_rst"))		g_boardRequest = 90 + ui.clickNameSub().toInt();	//reset statistic
 }
 
 void fields_handler() {
